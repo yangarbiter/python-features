@@ -33,7 +33,8 @@ import Text.Printf
 import NanoML.Classify
 import NanoML.ExampleFeatures
 
-import Language.Python.Version2.Parser
+import qualified Language.Python.Version2.Parser as Py2
+import qualified Language.Python.Version3.Parser as Py3
 import Language.Python.Common
 
 import Debug.Trace
@@ -141,27 +142,30 @@ traceStats outss = do
 -- uniqDiffs :: [String] -> HashSet ([SrcSpan], Prog, String, String, Int)
 -- uniqDiffs = foldl' (\seen json -> seen `mappend` HashSet.fromList (mkDiffs json)) mempty
 
-parseTopForm :: String -> Either String [StatementSpan]
-parseTopForm code = case parseModule code "foo.py" of
+parseTopForm :: Int -> String -> Either String [StatementSpan]
+parseTopForm v code = case (parseModule v) code "foo.py" of
   Left e -> Left (show e)
   Right (Module decls, _) -> Right decls
+
+parseModule 2 = Py2.parseModule
+parseModule 3 = Py3.parseModule
 
 mkDiffs :: String -> [([SrcSpan], Prog, String, String, Int)]
 mkDiffs json = case eitherDecode (LBSC.pack json) of
   Left e -> {-trace e-} error "e1"
     -- -> HashSet.fromList . maybeToList $ mkDiff fix bad
-  Right (MkInSample bad' fix' _)
+  Right (MkInSample bad' fix' v _)
   --Right (MkInSample bads' (fix':_))
-    | Left e <- parseTopForm fix'
+    | Left e <- parseTopForm v fix'
     -> {-trace e-} error "e2"
-  Right (MkInSample bad' fix' _)
+  Right (MkInSample bad' fix' v _)
   --Right (MkInSample bads' (fix':_))
-    | Left e <- parseTopForm bad'
+    | Left e <- parseTopForm v bad'
     -> {-trace e-} error "e3"
-  Right (MkInSample bad' fix' idx)
+  Right (MkInSample bad' fix' v idx)
   --Right (MkInSample bads' (fix':_))
-    | Right fix <- parseTopForm fix'
-    , Right bad <- parseTopForm bad'
+    | Right fix <- parseTopForm v fix'
+    , Right bad <- parseTopForm v bad'
     , let ss = mkDiff'' bad fix
     -- , not (null ss)
     -- -> maybeToList . fmap (,bad, bad', fix') $ mkDiff' bad' fix'
@@ -173,34 +177,34 @@ mkDiffs json = case eitherDecode (LBSC.pack json) of
 mkProgs :: String -> Either String (Prog, Prog)
 mkProgs json = case eitherDecode (LBSC.pack json) of
   Left e -> {-trace e-} error "bad json"
-  Right (MkInSample bad' fix' _)
-    | Left e <- parseTopForm fix'
+  Right (MkInSample bad' fix' v _)
+    | Left e <- parseTopForm v fix'
     -> {-trace e-} error "fix no parse"
-  Right (MkInSample bad' fix' _)
-    | Left e <- parseTopForm bad'
+  Right (MkInSample bad' fix' v _)
+    | Left e <- parseTopForm v bad'
     -> {-trace e-} error "bad no parse"
-  Right (MkInSample bad' fix' _)
-    | Right fix <- parseTopForm fix'
-    , Right bad <- parseTopForm bad'
+  Right (MkInSample bad' fix' v _)
+    | Right fix <- parseTopForm v fix'
+    , Right bad <- parseTopForm v bad'
     -> Right (bad, fix) -- [(ss, bad, bad', fix')]
 
 mkFixes :: String -> [Prog]
 mkFixes json = case eitherDecode (LBSC.pack json) of
   Left e -> {-trace e-} mempty
-  Right (MkInSample bad' fix' _)
+  Right (MkInSample bad' fix' v _)
   --Right (MkInSample bads' (fix':_))
-    | Right fix <- parseTopForm fix'
+    | Right fix <- parseTopForm v fix'
     -> [fix]
     -- -> HashSet.fromList . maybeToList $ mkDiff fix bad
-  Right (MkInSample bad' fix' _)
+  Right (MkInSample bad' fix' v _)
   --Right (MkInSample bads' (fix':_))
-    | Left e <- parseTopForm fix'
+    | Left e <- parseTopForm v fix'
     -> {-trace e-} error "f1"
-  Right (MkInSample bad' fix' _)
+  Right (MkInSample bad' fix' v _)
   --Right (MkInSample bads' (fix':_))
-    | Left e <- parseTopForm bad'
+    | Left e <- parseTopForm v bad'
     -> {-trace e-} error "f2"
-  v -> error (show v)
+  x -> error (show x)
 
 mkDiff'' :: Prog -> Prog -> [SrcSpan] --TODO currently returns []
 mkDiff'' bad fix
@@ -267,6 +271,6 @@ mkFeature :: String -> BSC.ByteString
 mkFeature s = BSC.pack ("F-" ++ s)
 
 
-data InSample = MkInSample { bad :: String, fix :: String, index :: Int }
+data InSample = MkInSample { bad :: String, fix :: String, pyVersion :: Int, index :: Int }
   deriving (Show, Generic)
 instance FromJSON InSample

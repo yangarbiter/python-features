@@ -16,7 +16,7 @@ data Literal
   | LD Double
   | LB Bool
   | LC Char
-  | LS String
+  | LS [String]
   deriving (Show, Eq)
 
 foldExpr :: Monoid a => (ExprSpan -> a -> a) -> a -> ExprSpan -> a
@@ -395,17 +395,22 @@ data ESKind
   | PrintK
   | ConditionalK Int
   | ClassK Int
+  | WhileK Int
+  | ForK Int Int
+  | ParenK
+  | FunK Int
+  | DotK IdentSpan
   deriving (Eq, Show)
 
---TODO a Suite should be alowed to change size without effectively changing Kind
+--TODO a Suite should be alowed to change size without effectively changing Kind?
 exprKind :: ES -> ESKind
 exprKind (Ex e) = exprKind' e
 exprKind (St s) = case s of
   Import {} -> TerminalStatementK $ void s
   FromImport {} -> TerminalStatementK $ void s
-  -- While cond body els _ -> (Ex cond) : (St <$> (body ++ els))
-  -- For vs gen body els _ -> (Ex <$> vs ++ [gen]) ++ (St <$> (body ++ els))
-  -- Fun _ _ Nothing body _ -> St <$> body --TODO we do not yet support annotations or default values on function Parameters (or result annotations)
+  While _ body _ _ -> WhileK (length body)
+  For vs _ body _ _ -> ForK (length vs) (length body)
+  Fun _ args Nothing _ _ -> FunK (length args)
   Class _ args body _ -> ClassK (length args)
   Conditional gs _ _ -> ConditionalK (length gs)
   Assign {} -> AssignK
@@ -425,6 +430,7 @@ exprKind (St s) = case s of
   NonLocal _ _ -> TerminalStatementK $ void s
   Assert {} -> AssertK
   Print {} -> PrintK
+  e -> error $ "unhandled case of exprKind: " ++ (show e)
   --Exec
 
 
@@ -439,7 +445,7 @@ exprKind' = \case
   -- None {} -> []
   -- Ellipsis
   -- ByteStrings {} -> []
-  -- Strings {} -> []
+  Strings ss _ -> LitK (LS ss)
   -- UnicodeStrings {} -> []
   Call {} -> AppK
   -- Subscript x y _ -> [x,y]
@@ -447,7 +453,7 @@ exprKind' = \case
   CondExpr {} -> IteK
   BinaryOp o _ _ _ -> BopK o
   UnaryOp o _ _ -> UopK o
-  -- Dot
+  Dot _ a _ -> DotK a
   -- Lambda _ e _ -> [e]
   Tuple {} -> TupleK
   -- Yield
@@ -459,9 +465,9 @@ exprKind' = \case
   -- Set es _ -> es
   -- SetComp
   -- Starred
-  -- Paren e _ -> [e]
+  Paren e _ -> ParenK
   -- StringConversion e _ -> [e]
-  e -> error $ "unhandled case of exprKind: " ++ (show e)
+  e -> error $ "unhandled case of exprKind': " ++ (show e)
 
 subESes :: ES -> [ES]
 subESes = \case
@@ -512,7 +518,7 @@ subExprs = \case
   CondExpr t b f _ -> [t,b,f]
   BinaryOp _ x y _ -> [x,y]
   UnaryOp _ x _ -> [x]
-  -- Dot
+  Dot e _ _ -> [e]
   Lambda _ e _ -> [e]
   Tuple es _ -> es
   -- Yield
