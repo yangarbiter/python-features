@@ -29,6 +29,8 @@ import System.Environment
 import System.FilePath
 import System.IO
 import Text.Printf
+import System.Process
+import System.IO.Unsafe
 
 import NanoML.Classify
 import NanoML.ExampleFeatures
@@ -58,8 +60,8 @@ main = do
   case cls of
     "op"
       -> mkBadFeatures out cls (preds_tis) jsons
-    -- "op+slice"
-    --   -> mkBadFeaturesWithSlice All out cls (preds_tis) jsons
+    "op+slice"
+      -> mkBadFeaturesWithSlice All out cls (preds_tis) jsons
     "op+context"
       -> mkBadFeatures out cls (preds_tis ++ map only_ctx preds_tis_ctx) jsons
     -- "op+context+size"
@@ -77,7 +79,7 @@ mkBadFeaturesWithSlice withSlice out nm fs jsons = do
   let uniqs = concatMap mkDiffs jsons
   let feats = [ ((h, f'), (ss, bad, fix, c, all, idx))
               | (ss, p, bad, fix, idx) <- uniqs
-              , (h, f, c) <- maybeToList $ runTFeaturesDiff fs (ss,p)
+              , (h, f, c) <- maybeToList $ runTFeaturesDiff bad fs (ss,p)
               , let f' = filter (\r -> withSlice == All || r HashMap.! "F-InSlice" == "1.0") f
                 -- a one-constraint core is bogus, this should be impossible
               -- , length f' > 1
@@ -217,9 +219,9 @@ mkDiff'' bad fix
   x = Set.toList (diffSpans (getDiff $ diffExprsT (St <$> bad) (St <$> fix)) (St <$> bad))
 
 runTFeaturesDiff
-  :: [Feature] -> ([SrcSpan], Prog)
+  :: String -> [Feature] -> ([SrcSpan], Prog)
   -> Maybe (Header, [NamedRecord], [SrcSpan])
-runTFeaturesDiff fs (ls, bad)
+runTFeaturesDiff badStr fs (ls, bad)
   | null samples
   = error "why Nothing"
   | otherwise
@@ -237,7 +239,12 @@ runTFeaturesDiff fs (ls, bad)
     | otherwise
     = ["L-DidChange" .= (0::Double), "L-NoChange" .= (1::Double)]
 
-  inSlice l = ["F-InSlice" .= (1::Double)] --TODO add actual slice checking
+  slice :: [Int]
+  slice = read $ unsafePerformIO $ readProcess "python3" ["make_trace/process_json.py", badStr] ""
+
+  inSlice l = ["F-InSlice" .= (x::Double)]
+    where
+      x = boolToDouble $ any (spanOnLine l) slice
 
   mkTypeOut :: StatementSpan -> [NamedRecord]
   mkTypeOut te = ctfold f [] (St te)
@@ -247,6 +254,16 @@ runTFeaturesDiff fs (ls, bad)
              ++ didChange (getSrcSpan e)
              ++ inSlice (getSrcSpan e)
              ++ concatMap (\(ls,c) -> zipWith (.=) (map mkFeature ls) (c p e)) fs
+
+spanOnLine :: SrcSpan -> Int -> Bool
+spanOnLine (SpanCoLinear _ x _ _) y = x == y
+spanOnLine (SpanMultiLine _ x1 _ x2 _) y = x1 <= y && y <= x2
+spanOnLine (SpanPoint _ x _) y = x == y
+spanOnLine SpanEmpty y = error "empty span"
+
+boolToDouble :: Bool -> Double
+boolToDouble True = 1
+boolToDouble False = 0
 
 runTFeaturesTypes
   :: [Feature] -> Prog
