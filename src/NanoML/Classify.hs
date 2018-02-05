@@ -5,6 +5,7 @@ import Control.Monad
 import Data.Monoid
 import qualified Data.Set as Set
 import Data.Set (Set)
+import Data.Maybe (catMaybes)
 
 import Language.Python.Common hiding ((<>))
 
@@ -170,7 +171,7 @@ ctfold f z r = go r r
       CondExpr t b f _ -> go x' (Ex b) <> go x' (Ex t) <> go x' (Ex f)
       BinaryOp _ x y _ -> mappend (go x' (Ex x)) (go x' (Ex y))
       UnaryOp _ x _ -> go x' (Ex x)
-      -- Dot
+      Dot e _ _ -> go x' (Ex e)
       Lambda _ e _ -> go x' (Ex e)
       Tuple es _ -> mconcat (map (go x') (Ex <$> es))
       -- Yield
@@ -181,7 +182,7 @@ ctfold f z r = go r r
       -- DictComp
       Set es _ -> mconcat (map (go x') (Ex <$> es))
       -- SetComp
-      -- Starred
+      Starred e _ -> go x' (Ex e)
       Paren e _ -> go x' (Ex e)
       StringConversion e _ -> go x' (Ex e)
       e -> error $ "unhandled case of ctfoldExpr: " ++ (show e)
@@ -387,19 +388,26 @@ data ESKind
   | ListK
   | TerminalStatementK (Statement ())
   | AssignK
-  | AugmentedAssignK
+  | AugmentedAssignK AssignOpSpan
   | ReturnK
   | DeleteK
   | StmtExprK
   | AssertK
-  | PrintK
-  | ConditionalK Int
-  | ClassK Int
+  | PrintK Bool Bool
+  | ConditionalK [Int]
+  | ClassK IdentSpan Int
   | WhileK Int
   | ForK Int Int
   | ParenK
-  | FunK Int
+  | FunK IdentSpan Int
   | DotK IdentSpan
+  | SliceK
+  | SubscriptK
+  | NoneK
+  | EllipsisK
+  | SetK
+  | StarredK
+  | StringConversionK
   deriving (Eq, Show)
 
 --TODO a Suite should be alowed to change size without effectively changing Kind?
@@ -410,11 +418,11 @@ exprKind (St s) = case s of
   FromImport {} -> TerminalStatementK $ void s
   While _ body _ _ -> WhileK (length body)
   For vs _ body _ _ -> ForK (length vs) (length body)
-  Fun _ args Nothing _ _ -> FunK (length args)
-  Class _ args body _ -> ClassK (length args)
-  Conditional gs _ _ -> ConditionalK (length gs)
+  Fun name args Nothing _ _ -> FunK name (length args) --TODO args have idents
+  Class name args body _ -> ClassK name (length args) --TODO args have idents
+  Conditional gs _ _ -> ConditionalK (length . snd <$> gs)
   Assign {} -> AssignK
-  AugmentedAssign {} -> AugmentedAssignK
+  AugmentedAssign _ op _ _ -> AugmentedAssignK op
   -- --Decorated
   Return Nothing _ -> TerminalStatementK $ void s
   Return (Just e) _ -> ReturnK
@@ -429,11 +437,11 @@ exprKind (St s) = case s of
   Global _ _ -> TerminalStatementK $ void s
   NonLocal _ _ -> TerminalStatementK $ void s
   Assert {} -> AssertK
-  Print {} -> PrintK
-  e -> error $ "unhandled case of exprKind: " ++ (show e)
+  Print b1 _ b2 _ -> PrintK b1 b2
   --Exec
+  e -> error $ "unhandled case of exprKind: " ++ (show e)
 
-
+-- NOTE: ignores "expr_literal"s
 exprKind' :: ExprSpan -> ESKind
 exprKind' = \case
   Var v _ -> VarK v
@@ -442,14 +450,14 @@ exprKind' = \case
   Float f _ _ -> LitK (LD f)
   -- Imaginary {} -> []
   Bool b _ -> LitK (LB b)
-  -- None {} -> []
-  -- Ellipsis
+  None _ -> NoneK
+  Ellipsis _ -> EllipsisK
   -- ByteStrings {} -> []
   Strings ss _ -> LitK (LS ss)
   -- UnicodeStrings {} -> []
-  Call {} -> AppK
-  -- Subscript x y _ -> [x,y]
-  -- SlicedExpr
+  Call {} -> AppK --TODO different kinds of arguments
+  Subscript x y _ -> SubscriptK
+  SlicedExpr {} -> SliceK --TODO different kinds of Slices
   CondExpr {} -> IteK
   BinaryOp o _ _ _ -> BopK o
   UnaryOp o _ _ -> UopK o
@@ -462,11 +470,11 @@ exprKind' = \case
   List {} -> ListK
   -- Dictionary
   -- DictComp
-  -- Set es _ -> es
+  Set {} -> SetK
   -- SetComp
-  -- Starred
-  Paren e _ -> ParenK
-  -- StringConversion e _ -> [e]
+  Starred {} -> StarredK
+  Paren {} -> ParenK
+  StringConversion {} -> StringConversionK
   e -> error $ "unhandled case of exprKind': " ++ (show e)
 
 subESes :: ES -> [ES]
@@ -514,7 +522,7 @@ subExprs = \case
   UnicodeStrings {} -> []
   Call e args _ -> e:(argExpr <$> args)
   Subscript x y _ -> [x,y]
-  -- SlicedExpr
+  SlicedExpr e ss _ -> e:(concatMap sliceExpr ss)
   CondExpr t b f _ -> [t,b,f]
   BinaryOp _ x y _ -> [x,y]
   UnaryOp _ x _ -> [x]
@@ -532,10 +540,16 @@ subExprs = \case
   -- Starred
   Paren e _ -> [e]
   StringConversion e _ -> [e]
-  e -> error $ "unhandled case of subExprs" ++ (show e)
+  e -> error $ "unhandled case of subExprs: " ++ (show e)
 
 argExpr :: Argument a -> Expr a
 argExpr (ArgExpr e _) = e
 argExpr (ArgVarArgsPos e _) = e
 argExpr (ArgVarArgsKeyword e _) = e
 argExpr (ArgKeyword _ e _) = e
+
+sliceExpr :: Slice a -> [Expr a]
+sliceExpr (SliceProper x y Nothing _) = catMaybes [x, y]
+sliceExpr (SliceProper x y (Just z) _) = catMaybes [x, y, z]
+sliceExpr (SliceExpr e _) = [e]
+sliceExpr (SliceEllipsis _) = []

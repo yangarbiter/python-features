@@ -240,7 +240,7 @@ runTFeaturesDiff badStr fs (ls, bad)
     = ["L-DidChange" .= (0::Double), "L-NoChange" .= (1::Double)]
 
   slice :: [Int]
-  slice = read $ unsafePerformIO $ readProcess "python3" ["make_trace/process_json.py", badStr] ""
+  slice = read $ unsafePerformIO $ readProcess "python3" ["make_trace/process_raw.py", badStr] ""
 
   inSlice l = ["F-InSlice" .= (x::Double)]
     where
