@@ -29,7 +29,6 @@ executable generate-features
                , unordered-containers
                , vector
                , language-python
-               , process
 
 library
   exposed-modules:    NanoML.Classify

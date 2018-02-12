@@ -29,7 +29,6 @@ import System.Environment
 import System.FilePath
 import System.IO
 import Text.Printf
-import System.Process
 
 import NanoML.Classify
 import NanoML.ExampleFeatures
