@@ -23,7 +23,7 @@ with open("failPairs.jsonl", 'w') as failFile:
     with open("goodPairs.jsonl", 'w') as goodFile:
         for fileName in os.listdir(DATA_FOLDER):
             print(fileName)
-            with open(DATA_FOLDER+fileName, 'r') as inFile:
+            with open(os.path.join(DATA_FOLDER,fileName), 'r') as inFile:
                 lines = inFile.readlines()
                 for line in lines:
                     dct = json.loads(line.strip())

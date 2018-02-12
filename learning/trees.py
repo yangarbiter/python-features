@@ -17,6 +17,8 @@ if model not in ['mlp', 'decision-tree', 'random-forest']:
 train_dir = sys.argv[2]
 test_dir = sys.argv[3]
 
+FIRST_NON_SLICE_FEATURE = 'F-Is-Var'
+
 RANDOM_SEED = 0
 np.random.seed(RANDOM_SEED)
 prng=np.random.RandomState(RANDOM_SEED)
@@ -57,7 +59,7 @@ train = pd.concat(train)
 test = pd.concat(test)
 
 #print (len(test))
-#print (len(train))  
+#print (len(train))
 
 
 # print (df.shape)
@@ -67,7 +69,7 @@ classes = list(train.groupby(ls2))
 max_samples = max(len(c) for _, c in classes)
 train = pd.concat(c.sample(max_samples, replace=True) for _, c in classes)
 print train.shape
-#print (len(train))  
+#print (len(train))
 #print df.shape
 #print type(df)
 #list_keys = [ k for k in df ]
@@ -79,11 +81,11 @@ print train.shape
 
 
 
-train_samps = train.loc[:,'F-Is-Eq':]
+train_samps = train.loc[:,FIRST_NON_SLICE_FEATURE:]
 print train_samps.shape
 train_labels = train.loc[:,'L-DidChange']
 
-test_samps = test.loc[:,'F-Is-Eq':]
+test_samps = test.loc[:,FIRST_NON_SLICE_FEATURE:]
 del test_samps['SOURCE_FILE']
 test_labels = test.loc[:,'L-DidChange']
 test_span = test.loc[:,'SourceSpan']
@@ -122,7 +124,7 @@ else:
 clf = clf.fit(train_samps.values, train_labels.values)
 
 from sklearn.externals import joblib
-joblib.dump(clf, os.path.join('models', model+'-'+train_dir.replace('/', '-')+'.pkl'))
+# joblib.dump(clf, os.path.join('models', model+'-'+train_dir.replace('/', '-')+'.pkl')) # TODO was this important?
 
 # print test_samps
 # print test_samps.values
@@ -139,7 +141,7 @@ anses = clf.predict(test_samps.values)
 # imp_features = [(y,x) for (y,x) in sorted(zip(imps,fs))]
 # imp_features.reverse()
 # for elem in imp_features:
-#         print elem  
+#         print elem
 #------------------
 
 #testanses =test_labels.values
@@ -221,15 +223,15 @@ for labelind in list(set(test_labels.index)):
 		a3 = 1
 		a2 = 1
 		a1 = 1
-		tp = tp+1		
-	yay1 = yay1+a1	
+		tp = tp+1
+	yay1 = yay1+a1
 	yay2 = yay2+a2
 	yay3 = yay3+a3
 
 print "precision for top 3"
-print 'top 1' 
+print 'top 1'
 print float(yay1)/tots
-print 'top 2' 
+print 'top 2'
 print float(yay2)/tots
 print 'top 3'
 print float(yay3)/tots
