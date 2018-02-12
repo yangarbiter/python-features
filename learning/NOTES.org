@@ -1,0 +1,339 @@
+* Notes
+** Feature Selection
+each feature is a predicate on parse trees
+- presence of operator
+- types of leaf nodes?
+** Learning
+*** linear model
+62% acc with presence of operator
+*** convolution neural net
+52% acc with presence of operator
+(unclear if i set it up properly)
+*** wide-n-deep
+would like to try, but can't get example working?
+** Ideas
+- maybe we shouldn't treat each subexpr as an individual feature vector
+  - instead of classifying subexpr as good/bad independently
+  - classify good/bad in context of other subexprs
+** Implementation
+*** Avoiding sampling bias
+- unequal # of good/bad samples can produce misleading results, model
+  has essentially learned constant function, but appears better
+- select N good and bad samples
+- then shuffle them together to ensure similar distribution per batch
+** Neural Networks
+http://www.asimovinstitute.org/neural-network-zoo/
+* Todo
+** CANCELLED 8k bad/fix pairs, only 4k bad locations?
+CLOSED: [2016-10-28 Fri 11:52]
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2016-10-28 Fri 11:52]
+:END:
+should be equal number...
+** DONE fix "syntax error" checker, rerun data
+CLOSED: [2016-10-28 Fri 11:52]
+** DONE add type of current / parent / child expr as features
+   CLOSED: [2017-01-06 Fri 13:49]
+** DONE add feature vectors of children (parent? sibling?)
+   CLOSED: [2017-01-06 Fri 13:49]
+zero-pad to widest expr node
+** DONE add type info
+   CLOSED: [2017-01-06 Fri 13:49]
+plus whether expr is part of bad program slice
+** TODO run queries on typed asts
+- eg. how often do students match on functions
+
+#+BEGIN_SRC ocaml
+let pipe fs =
+  let f a z e x = x a in
+  let base y = y in
+  List.fold_left f base fs;;
+#+END_SRC
+** DONE make sure we can run nanomaly as a binary on arbitrary files
+CLOSED: [2016-10-27 Thu 10:47]
+- compare against ocaml/sherrloc
+- when they fail, can nanomaly find a witness?
+** DONE diff threshold                                                :ersp:
+CLOSED: [2016-11-10 Thu 15:55]
+if diff encompasses >n% of original program, filter out
+for different n, how many fixes exceed threshold
+** DONE send RJ the algorithm M paper
+CLOSED: [2016-10-27 Thu 10:47]
+** CANCELLED try adding *root* features to each vector (identify exprs by common prog)
+CLOSED: [2016-11-10 Thu 15:55]
+:LOGBOOK:
+- State "CANCELLED"  from "TODO"       [2016-11-10 Thu 15:55] \\
+  learning is slightly better (~10%), but i have a feeling this is due to the classifier memorizing answers for specific programs
+:END:
+** TODO can we predict *type* of expression
+- features are ast-node + [is_int, is_bool, is_list, ...] for children (maybe + is_error?)
+- labels are [is_int, is_bool, is_list, ...]
+- linear classifier
+- train classifier on fully annotated programs
+- then predict in bottom up fashion on unannotated programs, propagating labels up into parent's features
+** DONE figure out meaningful error location from nanomaly
+   CLOSED: [2017-01-06 Fri 13:49]
+*** DONE source of values in stuck term
+    CLOSED: [2017-01-06 Fri 13:50]
+** DONE add "is part of type-error slice" as a feature
+   CLOSED: [2017-01-06 Fri 13:50]
+** TODO look at samples where we mispredict                             :wes:
+- can we add a custom feature to fix this instance?
+** TODO look at line-level labeling rather than expression-level        :wes:
+** TODO look at latent semantic analysis / latent diriclet allocation   :wes:
+** TODO how to combine metrics from expr to line level?                 :wes:
+may need combination of min/max/avg/sum
+** TODO look into non-local features for variables                      :wes:
+** TODO try learning on structure of slice rather than program
+- features could be AST node, type
+- context of neighbors based on *slice* (or constraint graph?)
+- ignore non-slice terms entirely
+** NEXT End-to-end testing
+- evaluate model by classifying all exprs in program, select top-k bad exprs
+- seems we still want to train on jumble of exprs from all programs
+  rather that looking at each program in isolation
+  - much better results, no clue why..
+
+Batching by program: ~0.3 - 0.4 (top-3)
+
+Batching across all programs:
+#+BEGIN_EXAMPLE
+> python learning/learn.py --data data/op+context-count+type+size --learn_rate=0.01 --verbose --model=hidden --hidden_layers=500 --batch_size=100
+2052
+(141589, 299)
+(268146, 299)
+accuracy at step 0000: 0.129 / 0.340 (0.930)  # top-1 / top-3 (by-expr)
+accuracy at step 0100: 0.258 / 0.461 (0.639)
+accuracy at step 0200: 0.316 / 0.527 (0.681)
+accuracy at step 0300: 0.273 / 0.473 (0.734)
+accuracy at step 0400: 0.312 / 0.512 (0.811)
+accuracy at step 0500: 0.332 / 0.547 (0.737)
+accuracy at step 0600: 0.281 / 0.539 (0.775)
+accuracy at step 0700: 0.309 / 0.570 (0.701)
+accuracy at step 0800: 0.324 / 0.559 (0.795)
+accuracy at step 0900: 0.367 / 0.551 (0.748)
+accuracy at step 1000: 0.340 / 0.551 (0.703)
+accuracy at step 1100: 0.355 / 0.543 (0.759)
+accuracy at step 1200: 0.305 / 0.543 (0.757)
+accuracy at step 1300: 0.309 / 0.539 (0.699)
+accuracy at step 1400: 0.336 / 0.555 (0.766)
+accuracy at step 1500: 0.328 / 0.578 (0.693)
+accuracy at step 1600: 0.340 / 0.578 (0.745)
+accuracy at step 1700: 0.332 / 0.570 (0.802)
+accuracy at step 1800: 0.328 / 0.555 (0.681)
+accuracy at step 1900: 0.309 / 0.512 (0.717)
+accuracy at step 2000: 0.301 / 0.516 (0.721)
+accuracy at step 2100: 0.371 / 0.555 (0.731)
+accuracy at step 2200: 0.316 / 0.543 (0.703)
+accuracy at step 2300: 0.332 / 0.551 (0.776)
+accuracy at step 2400: 0.367 / 0.574 (0.817)
+accuracy at step 2500: 0.320 / 0.543 (0.754)
+accuracy at step 2600: 0.355 / 0.586 (0.702)
+accuracy: 0.5859375                           # top-3
+#+END_EXAMPLE
+** DONE get yijun up and running with mycroft
+   CLOSED: [2017-01-30 Mon 12:05]
+** TODO compute some notion of recall
+** TODO look at random forests
+** TODO how important is type slice?                                    :wes:
+   - random trial, pick random slice of program, pretend it's the slice
+   - does this suck in general? if so, provides confidence in starting with slice
+** TODO can we throw away more parts of the slice?                      :wes:
+   - smaller "buggy" slice was performing better than complete slice
+** TODO what is the average (span) size of a blamed node                :wes:
+** What about just looking at error slices?
+#+BEGIN_EXAMPLE
+> python learning/learn.py --data data/op+context-count+type+size --learn_rate=0.01 --verbose --model=hidden --hidden_layers=500 --batch_size=100
+614
+accuracy at step    0: 0.197 / 0.618 (0.163)
+accuracy at step  100: 0.658 / 0.882 (0.763)
+final accuracy: 0.684 / 0.921
+#+END_EXAMPLE
+
+much better, but 75% of the programs don't change any of the exprs in the slice, WTF?
+
+* TALK NOTES
+- make more clear the purpose of witnesses (generality)
+- talk about locations from nanomaly
+- outline for both parts of the talk, motivate 2nd better
+  - mention "explain" vs "localize" view of problem
+- machine learning model is the box (the function)
+  - features are inputs
+  - labels are outputs
+- slide 37: same color for all boxes, might be confusing
+* Compressing hidden features
+| hidden features | top-1 | top-2 | top-3 | recall |
+|        baseline | 30.0% | 53.3% | 70.8% |        |
+|             500 | 80.2% | 90.0% | 94.3% |  69.4% |
+|             250 | 78.5% | 89.6% | 94.2% |  68.4% |
+|             100 | 77.0% | 88.7% | 93.4% |  67.1% |
+|              50 | 74.8% | 88.0% | 93.0% |  65.8% |
+|              25 | 72.3% | 87.2% | 92.7% |  64.9% |
+|              10 | 69.8% | 85.3% | 91.2% |  62.7% |
+|               5 | 68.7% | 84.2% | 90.8% |  62.0% |
+|               2 | 59.0% | 74.4% | 82.5% |  55.1% |
+|               1 | 55.1% | 72.4% | 80.2% |  53.0% |
+
+
+(Note about the 1 and 2-feature cases, they don't cross-validate very
+well, there are folds where the accuracy tanks, i.e. worse than the
+baseline)
+
+| tool                     | accuracy (top-1) |
+| ocaml                    |            49.8% |
+| mycroft (maxsat)         |            46.6% |
+| sherrloc                 |            64.5% |
+| neural net (500 neurons) |            80.2% |
+| decision tree            |            75.9% |
+|                          |                  |
+
+| tool     | acc-1 | acc-2 | acc-3 |
+| sherrloc | 59.0% | 78.3% | 86.4% |
+
+* Distribution of features in true positive samples
+https://plot.ly/~HSib/24/
+Note the spike of =F-Is-App=, this is interesting!
+
+changing an =App= node can mean a few things:
+
+- changing application to something else,
+  e.g. =f x y= becomes =x + y=
+
+- adding/removing arguments,
+  e.g. =f x= becomes =f x y=
+
+- wrapping the application,
+  e.g. =f x= becomes =g (f x)=
+
+what it can't mean is:
+
+- changing the function,
+  e.g. =f x= becomes =g x=
+
+- changing an argument,
+  e.g. =f x= becomes =f y=
+
+(these would both involve changing a child of the =App= node, not the =App=)
+
+* How to report predictions to the user?
+ATM we predict *locations* that change, but we eventually want to
+provide a helpful message as well. Each location can be associated with
+multiple constraints, e.g. in
+
+#+BEGIN_EXAMPLE
+1 + true
+#+END_EXAMPLE
+
+the =+= node gives rise to three constraints
+
+1. the output is an =int=
+2. the left child must be an =int=
+3. the right child must be an =int=
+
+Assuming we choose to blame the =+=, which *constraint* do we blame?
+
+1. We already have a minimal type error slice, if we're lucky only one
+   constraint in the slice will come from the =+=.
+2. If we're not lucky? Perhaps we can try to be clever based on the kind
+   of expression we're looking at. For example, changing an =App= node
+   =f x= is more likely (according to the above) to mean changing the
+   type of the =App= node than its children. So let's provide the
+   message that complains about the output type of =f=.
+
+Still, (2) feels flimsy, it would be nice to have a better strategy.
+
+Perhaps we should also investigate predicting *constraints* that should
+change rather than *locations*? That seems like future work though, as
+it might entail a substantial reworking of the feature set, e.g. we might
+want features based on neighbors in the constraint graph.
+
+A simple addition to the current feature set could be enumerating the
+different constraint sources (e.g. plus-return, plus-left-child,
+plus-right-child), and adding vectors for each constraint. So we would
+get three vectors for a =+= expression, which would be identical except
+for the constraint-source feature.
+* Impact of feature sets
+** Impact of (minimized) type error slice
+
+- baseline = local syntax, context type, expr size
+- expanded all datasets to have 280800 samples (exprs)
+- trained on a single epoch of fa15, tested on sp14
+- MLP w/ 10 hidden neurons
+- learn-rate = l2-rate = 0.001
+- mini-batch size = 200
+
+| features             | top-1 | top-2 | top-3 | recall | avg/med samples | avg/med changes |
+|----------------------+-------+-------+-------+--------+-----------------+-----------------|
+| baseline             | 70.6% | 83.5% | 89.9% |  68.1% | 11 /  9         | 3 / 2           |
+| + non-slice exprs    | 62.5% | 79.6% | 86.2% |  40.1% | 70 / 45         | 6 / 4           |
+| + un-minimized slice | 59.8% | 74.5% | 82.1% |  36.6% | 70 / 45         | 6 / 4           |
+
+** Impact of context vs type vs size
+
+baseline = local syntax
+
+- trained on 10 epochs of fa15, tested on sp14
+- MLP w/ 10 hidden neurons
+- learn-rate = l2-rate = 0.001
+- mini-batch size = 200
+
+| features           | top-1 | top-2 | top-3 | recall |
+|--------------------+-------+-------+-------+--------|
+| baseline           | 60.3% | 74.7% | 84.0% |  58.5% |
+|--------------------+-------+-------+-------+--------|
+| +size              | 64.8% | 76.9% | 84.3% |  58.7% |
+| +context           | 68.3% | 82.6% | 88.8% |  67.8% |
+| +type              | 69.8% | 83.3% | 89.2% |  67.3% |
+|--------------------+-------+-------+-------+--------|
+| +context+size      | 69.0% | 82.6% | 88.8% |  67.3% |
+| +type+size         | 71.6% | 84.3% | 89.5% |  67.8% |
+| +context+type      | 71.9% | 84.7% | 91.3% |  70.5% |
+|--------------------+-------+-------+-------+--------|
+| +context+type+size | 73.5% | 85.8% | 91.5% |  70.8% |
+* TODO try discarding outliers based on fraction of SLICE that changes
+  - rather than fraction of ENTIRE program
+  - might lead to better classifier?
+** tried, we get a few MORE programs, but results don't appear to change much
+* DONE add study programs to web demo
+  CLOSED: [2017-06-12 Mon 08:22]
+  - they ought to be good examples of where our predictions are nice
+  - might want to dig through WIN programs to find others
+* TODO show predictions when program is ill-typed but no witness
+* DONE fix the stupid highlights in codemirror
+  CLOSED: [2017-05-26 Fri 12:35]
+  - [ ] may need to sort spans based on subsumption
+    - add contained spans later to override css
+  - [X] OR, just add a list of spans + error/confidence
+    - highlight text on hover
+* DONE add error message to highlight
+  CLOSED: [2017-06-12 Mon 08:22]
+  - assuming that location is correct to blame, what would the type error be?
+  - can we just use the constraint as the error?
+    - i.e. =substM= the two types and report that as the mismatch?
+* TODO why are there duplicate spans coming to web demo?
+  - must not be filtering by unique span?
+* FUTURE WORK
+** variable name embedding
+*** PROBLEM
+   - how to distinguish
+#+BEGIN_SRC ocaml
+let rec sumlist xs = match xs with
+  | [] -> []
+  | h::t -> h + sumlist t
+#+END_SRC
+from
+#+BEGIN_SRC ocaml
+let rec concat xs = match xs with
+  | [] -> []
+  | h::t -> h + concat t
+#+END_SRC
+"correct" fix depends on info encoded in fn name
+*** SOLUTION
+   - train word2vec embedding on variable names
+   - need TONS of data (how much exactly?)
+   - could use pre-trained embedding for english
+     - assuming relationship between words is mostly similar (unclear if
+       that's true)
+     - last-mile training on ocaml ala imagenet thingers
+   - may want to split variable name into set of words, based on
+     snake_case, CamelCase, etc
