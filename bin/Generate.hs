@@ -30,7 +30,6 @@ import System.FilePath
 import System.IO
 import Text.Printf
 import System.Process
-import System.IO.Unsafe
 
 import NanoML.Classify
 import NanoML.ExampleFeatures
@@ -43,6 +42,7 @@ import Debug.Trace
 
 
 type Prog = [StatementSpan]
+type ErrorSlice = [Int] --Temporary version uses list of line numbers
 
 data Generate = Generate
   { source :: FilePath
@@ -78,8 +78,8 @@ mkBadFeaturesWithSlice :: WithSlice -> String -> String -> [Feature] -> [String]
 mkBadFeaturesWithSlice withSlice out nm fs jsons = do
   let uniqs = concatMap mkDiffs jsons
   let feats = [ ((h, f'), (ss, bad, fix, c, all, idx))
-              | (ss, p, bad, fix, idx) <- uniqs
-              , (h, f, c) <- maybeToList $ runTFeaturesDiff bad fs (ss,p)
+              | (ss, p, bad, fix, slice, idx) <- uniqs
+              , (h, f, c) <- maybeToList $ runTFeaturesDiff slice fs (ss,p)
               , let f' = filter (\r -> withSlice == All || r HashMap.! "F-InSlice" == "1.0") f
                 -- a one-constraint core is bogus, this should be impossible
               -- , length f' > 1
@@ -152,26 +152,26 @@ parseTopForm v code = case (parseModule v) code "foo.py" of
 parseModule 2 = Py2.parseModule
 parseModule 3 = Py3.parseModule
 
-mkDiffs :: String -> [([SrcSpan], Prog, String, String, Int)]
+mkDiffs :: String -> [([SrcSpan], Prog, String, String, ErrorSlice, Int)]
 mkDiffs json = case eitherDecode (LBSC.pack json) of
   Left e -> {-trace e-} error "e1"
     -- -> HashSet.fromList . maybeToList $ mkDiff fix bad
-  Right (MkInSample bad' fix' v _)
+  Right (MkInSample bad' fix' v _ _)
   --Right (MkInSample bads' (fix':_))
     | Left e <- parseTopForm v fix'
     -> {-trace e-} error "e2"
-  Right (MkInSample bad' fix' v _)
+  Right (MkInSample bad' fix' v _ _)
   --Right (MkInSample bads' (fix':_))
     | Left e <- parseTopForm v bad'
     -> {-trace e-} error "e3"
-  Right (MkInSample bad' fix' v idx)
+  Right (MkInSample bad' fix' v slice idx)
   --Right (MkInSample bads' (fix':_))
     | Right fix <- parseTopForm v fix'
     , Right bad <- parseTopForm v bad'
     , let ss = mkDiff'' bad fix
     -- , not (null ss)
     -- -> maybeToList . fmap (,bad, bad', fix') $ mkDiff' bad' fix'
-    -> [(ss, bad, bad', fix', idx)]
+    -> [(ss, bad, bad', fix', slice, idx)]
 
   -- _ -> mempty
   v -> error (show v)
@@ -179,13 +179,13 @@ mkDiffs json = case eitherDecode (LBSC.pack json) of
 mkProgs :: String -> Either String (Prog, Prog)
 mkProgs json = case eitherDecode (LBSC.pack json) of
   Left e -> {-trace e-} error "bad json"
-  Right (MkInSample bad' fix' v _)
+  Right (MkInSample bad' fix' v _ _)
     | Left e <- parseTopForm v fix'
     -> {-trace e-} error "fix no parse"
-  Right (MkInSample bad' fix' v _)
+  Right (MkInSample bad' fix' v _ _)
     | Left e <- parseTopForm v bad'
     -> {-trace e-} error "bad no parse"
-  Right (MkInSample bad' fix' v _)
+  Right (MkInSample bad' fix' v _ _)
     | Right fix <- parseTopForm v fix'
     , Right bad <- parseTopForm v bad'
     -> Right (bad, fix) -- [(ss, bad, bad', fix')]
@@ -193,16 +193,16 @@ mkProgs json = case eitherDecode (LBSC.pack json) of
 mkFixes :: String -> [Prog]
 mkFixes json = case eitherDecode (LBSC.pack json) of
   Left e -> {-trace e-} mempty
-  Right (MkInSample bad' fix' v _)
+  Right (MkInSample bad' fix' v _ _)
   --Right (MkInSample bads' (fix':_))
     | Right fix <- parseTopForm v fix'
     -> [fix]
     -- -> HashSet.fromList . maybeToList $ mkDiff fix bad
-  Right (MkInSample bad' fix' v _)
+  Right (MkInSample bad' fix' v _ _)
   --Right (MkInSample bads' (fix':_))
     | Left e <- parseTopForm v fix'
     -> {-trace e-} error "f1"
-  Right (MkInSample bad' fix' v _)
+  Right (MkInSample bad' fix' v _ _)
   --Right (MkInSample bads' (fix':_))
     | Left e <- parseTopForm v bad'
     -> {-trace e-} error "f2"
@@ -219,9 +219,9 @@ mkDiff'' bad fix
   x = Set.toList (diffSpans (getDiff $ diffExprsT (St <$> bad) (St <$> fix)) (St <$> bad))
 
 runTFeaturesDiff
-  :: String -> [Feature] -> ([SrcSpan], Prog)
+  :: ErrorSlice -> [Feature] -> ([SrcSpan], Prog)
   -> Maybe (Header, [NamedRecord], [SrcSpan])
-runTFeaturesDiff badStr fs (ls, bad)
+runTFeaturesDiff slice fs (ls, bad)
   | null samples
   = error "why Nothing"
   | otherwise
@@ -238,9 +238,6 @@ runTFeaturesDiff badStr fs (ls, bad)
     = ["L-DidChange" .= (1::Double), "L-NoChange" .= (0::Double)]
     | otherwise
     = ["L-DidChange" .= (0::Double), "L-NoChange" .= (1::Double)]
-
-  slice :: [Int]
-  slice = read $ unsafePerformIO $ readProcess "python3" ["make_trace/process_raw.py", badStr] ""
 
   inSlice l = ["F-InSlice" .= (x::Double)]
     where
@@ -288,6 +285,6 @@ mkFeature :: String -> BSC.ByteString
 mkFeature s = BSC.pack ("F-" ++ s)
 
 
-data InSample = MkInSample { bad :: String, fix :: String, pyVersion :: Int, index :: Int }
+data InSample = MkInSample { bad :: String, fix :: String, pyVersion :: Int, slice :: ErrorSlice, index :: Int}
   deriving (Show, Generic)
 instance FromJSON InSample
