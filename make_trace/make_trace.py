@@ -34,6 +34,13 @@ class VarEnvironment():
         else:
             return None
 
+    def get_val(self, name):
+        ref = self.get_ref(name)
+        if ref:
+            return self.heap[ref]
+        else:
+            return None
+
     def vars(self):
         my_vars = self.heap.copy()
         
@@ -396,3 +403,54 @@ def slice(source, ri, line=None, debug=False):
     stmt_count = float(len(line_map))
             
     return keep_these, len(set(line_map) - keep_these) / stmt_count
+
+# Assumes one assignment per line max
+class BindingVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.line_to_assignment = {}
+    
+    def visit_Assign(self, node):
+        if (isinstance(node, ast.Assign) and len(node.targets) == 1):
+            target = node.targets[0]
+            if (isinstance(target, ast.Name)):
+                line = target.lineno
+                ident = target.id
+
+                self.line_to_assignment[line] = ident
+            
+
+"""
+Returns a dictionary mapping identifiers to types
+"""
+
+def extract_type_info(source, ri):
+    line_map, line_to_control = make_line_maps(source)
+    tr = trace(source, ri)
+
+    bv = BindingVisitor()
+    bv.visit(ast.parse(source))
+    line_to_assignment = bv.line_to_assignment
+
+    ident_to_type = {}
+
+    for step, exec_point in enumerate(tr):
+        if exec_point['event'] == 'step_line':
+            line = exec_point['line']
+            if line in line_to_assignment:
+                ident = line_to_assignment[line]
+                next_vars = VarEnvironment(tr[step + 1])
+
+                val = next_vars.get_val(ident)
+                if val:
+                    if val[0] == 'HEAP_PRIMITIVE':
+                        typ = val[1]
+                    else:
+                        typ = val[0]
+
+                    if ident in ident_to_type and ident_to_type[ident] != typ:
+                        ident_to_type[ident] = ident_to_type[ident] + ',' + typ
+                    else:
+                        ident_to_type[ident] = typ
+
+
+    return ident_to_type
