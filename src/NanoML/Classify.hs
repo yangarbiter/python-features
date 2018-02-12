@@ -125,67 +125,9 @@ type TExpr = ExprSpan
 ctfold :: Monoid a => (ES {- parent -} -> ES -> a -> a) -> a -> ES -> a
 ctfold f z r = go r r
   where
-  go p x' = f p x' $ case x' of
-    St s' -> case s' of
-      Import {} -> z
-      FromImport {} -> z
-      While cond body els _ -> mconcat (map (go x') ((Ex cond) : (St <$> (body ++ els))))
-      For vs gen body els _ -> mconcat (map (go x') ((Ex <$> vs ++ [gen]) ++ (St <$> (body ++ els))))
-      Fun _ _ Nothing body _ -> mconcat (map (go x') (St <$> body)) --TODO we do not yet support annotations or default values on function Parameters (or result annotations)
-      -- Class _ args body _ -> (Ex <$> (argExpr <$> args)) ++ (St <$> body)
-      -- Conditional gs els _ -> concatMap (\(e, ss) -> [Ex e] ++ (St <$> ss)) gs ++ (St <$> els)
-      Assign xs e _ -> mconcat (map (go x') (Ex <$> (xs ++ [e])))
-      AugmentedAssign x _ e _ -> mconcat (map (go x') (Ex <$> [x,e]))
-      --Decorated
-      Return Nothing _ -> z
-      Return (Just e) _ -> go x' (Ex e)
-      --Try
-      --Raise
-      --With
-      Pass _ -> z
-      Break _ -> z
-      Continue _ -> z
-      Delete es _ -> mconcat (map (go x') (Ex <$> es))
-      StmtExpr e _ -> go x' (Ex e)
-      Global _ _ -> z
-      NonLocal _ _ -> z
-      Assert es _ -> mconcat (map (go x') (Ex <$> es))
-      Print _ es _ _ -> mconcat (map (go x') (Ex <$> es))
-      --Exec
-      e -> error $ "unhandled case of ctfold: " ++ (show e)
-    Ex e' -> case e' of
-      Var {} -> z
-      Int {} -> z
-      LongInt {} -> z
-      Float {} -> z
-      Imaginary {} -> z
-      Bool {} -> z
-      None {} -> z
-      -- Ellipsis
-      ByteStrings {} -> z
-      Strings {} -> z
-      UnicodeStrings {} -> z
-      Call e args _ -> mconcat $ map (go x') (Ex <$> (e:(argExpr <$> args)))
-      Subscript x y _ -> mappend (go x' (Ex x)) (go x' (Ex y))
-      -- SlicedExpr
-      CondExpr t b f _ -> go x' (Ex b) <> go x' (Ex t) <> go x' (Ex f)
-      BinaryOp _ x y _ -> mappend (go x' (Ex x)) (go x' (Ex y))
-      UnaryOp _ x _ -> go x' (Ex x)
-      Dot e _ _ -> go x' (Ex e)
-      Lambda _ e _ -> go x' (Ex e)
-      Tuple es _ -> mconcat (map (go x') (Ex <$> es))
-      -- Yield
-      -- Generator
-      -- ListComp
-      List es _ -> mconcat (map (go x') (Ex <$> es))
-      -- Dictionary
-      -- DictComp
-      Set es _ -> mconcat (map (go x') (Ex <$> es))
-      -- SetComp
-      Starred e _ -> go x' (Ex e)
-      Paren e _ -> go x' (Ex e)
-      StringConversion e _ -> go x' (Ex e)
-      e -> error $ "unhandled case of ctfoldExpr: " ++ (show e)
+    go p x = f p x (if null subs then z else mconcat (map (go x) subs))
+      where
+        subs = subESes x
 
 data Diff
   = Ins ES Diff
