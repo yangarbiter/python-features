@@ -6,10 +6,12 @@ OUT_FOLDER=os.path.join(DATA_FOLDER, 'pairs')
 
 universalCounter = 0
 
-def doStuff(fileName):
-    global universalCounter
+for fileName in os.listdir(DATA_FOLDER):
+    fullPath = os.path.join(DATA_FOLDER,fileName)
+    if os.path.isdir(fullPath):
+        continue
     pairs = []
-    with open(os.path.join(DATA_FOLDER,fileName), 'r') as logFile:
+    with open(fullPath, 'r') as logFile:
         badProgs = []
         try:
             for line in logFile:
@@ -18,19 +20,22 @@ def doStuff(fileName):
                     continue
                 result = dct['__result']
                 newProg = dct['user_script']
+                types = dct['__types']
                 if result == "None\n":
                     # found a good program!
-                    for (prog, slice) in badProgs:
-                        pairs.append({"bad": prog,
+                    for (badProg, badSlice, badTypes) in badProgs:
+                        pairs.append({"bad": badProg,
                                       "fix": newProg,
                                       "index": universalCounter,
                                       "pyVersion": 3,
-                                      "slice": list(ast.literal_eval(slice))})
+                                      "slice": list(ast.literal_eval(badSlice)),
+                                      "badTypes": ast.literal_eval(badTypes.strip()),
+                                      "fixTypes": ast.literal_eval(types.strip())})
                         universalCounter += 1
                     badProgs = []
                 elif result[0] == '{':
                     # found a program with an error slice
-                    badProgs.append((newProg, dct['__result'])) #TODO finish including error slice in pair
+                    badProgs.append((newProg, result, types))
                 else:
                     # slicer crashed or timed out
                     # Since we can't be sure if this program was good or bad,
@@ -42,9 +47,3 @@ def doStuff(fileName):
         with open(os.path.join(OUT_FOLDER,fileName), 'w') as outFile:
             for pair in pairs:
                 outFile.write(json.dumps(pair) + "\n")
-
-for fileName in os.listdir(DATA_FOLDER):
-    if fileName == "pairs":
-        continue
-    doStuff(fileName)
-    # os.rename(DATA_FOLDER+fileName, JUNK_DRAWER+fileName)
