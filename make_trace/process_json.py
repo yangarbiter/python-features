@@ -11,7 +11,7 @@ def process_one(outfile, string):
     ri = json.dumps(obj['raw_input']) if 'raw_input' in obj else '[]'
 
     last_line = len(source.splitlines())
-    slice_lines, slice_p = make_trace.slice(source, ri, debug=True)
+    slice_lines, slice_p, slice_spans = make_trace.slice(source, ri, debug=True)
     type_info = make_trace.extract_type_info(source, ri)
 
     if slice_lines:
@@ -20,12 +20,14 @@ def process_one(outfile, string):
 
         print('Lines to keep: ' + str(slice_lines))
         print('Line proportion removed: ' + str(slice_p))
+        print('Expression spans to keep: ' + str(slice_spans))
 
         print('Types:')
         print(type_info)
 
         obj['exception_slice'] = list(slice_lines)
         obj['id_to_type'] = type_info
+        obj['slice_expr_spans'] = slice_spans
     else:
         print("No exception")
 
