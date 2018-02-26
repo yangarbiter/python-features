@@ -1,4 +1,4 @@
-import sys, os, ast
+import sys, os, ast, re
 import pg_logger
 from collections import defaultdict
 from queue import Queue
@@ -366,6 +366,8 @@ def find_exception(trace):
         if exec_point['event'] in ['uncaught_exception', 'exception']:
             return step
 
+span_rexp = re.compile('span_([0-9]*)_([0-9]*)_([0-9]*)_([0-9]*)')
+        
 """
 Returns a set of line numbers.
 
@@ -375,6 +377,10 @@ TODO: Guess or allow specification of specific values to track.
 def slice(source, ri, line=None, debug=False):
     line_map, line_to_control = make_line_maps(source)
     tr = trace(source, ri)
+
+    bv = BindingVisitor()
+    bv.visit(ast.parse(source))
+    line_to_assignment = bv.line_to_assignment
     
     step_to_line, line_to_step, UD_CT = build_relations(line_map, line_to_control, tr)
 
@@ -385,7 +391,7 @@ def slice(source, ri, line=None, debug=False):
     if exception_step:
         print('Exception at line ' + str(step_to_line[exception_step]))
     elif not line:
-        return None, 0
+        return None, 0, []
 
     for step in [exception_step] if exception_step else line_to_step[line]:
         queue.put(step)
@@ -400,9 +406,15 @@ def slice(source, ri, line=None, debug=False):
             queue.put(infl_step)
 
     keep_these = set([step_to_line[step] for step in visited])
+    span_slice = []
+    for line in keep_these:
+        if line in line_to_assignment:
+            match = span_rexp.match(line_to_assignment[line])
+            if match:
+                span_slice.append([int(s) for s in match.groups()])
     stmt_count = float(len(line_map))
             
-    return keep_these, len(set(line_map) - keep_these) / stmt_count
+    return keep_these, len(set(line_map) - keep_these) / stmt_count, span_slice
 
 # Assumes one assignment per line max
 class BindingVisitor(ast.NodeVisitor):
