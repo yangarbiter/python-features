@@ -1,17 +1,7 @@
-from subprocess import Popen, PIPE
+from subprocess import run, PIPE
 import json, sys, os
 
 DATA_FOLDER = sys.argv[1]
-
-def decodeTuple(x):
-    (a,b) = x
-    if a is not None:
-        a = a.decode("utf-8")
-    if b is not None:
-        b = b.decode("utf-8")
-    return (a,b)
-
-i = 0
 
 with open("failPairs.jsonl", 'w') as failFile:
     with open("goodPairs.jsonl", 'w') as goodFile:
@@ -23,8 +13,8 @@ with open("failPairs.jsonl", 'w') as failFile:
                     dct = json.loads(line.strip())
                     with open("temp.json", 'w') as outFile:
                         outFile.write(line)
-                    p = Popen("stack exec -- generate-features --source temp.json --features op --out blah".split(), stdout=PIPE, stderr=PIPE)
-                    output = p.communicate()
+                    p = run("stack exec -- generate-features --source temp.json --features op --out blah".split(), stdout=PIPE, stderr=PIPE, encoding="utf-8", errors="strict")
+                    output = (p.stdout, p.stderr)
                     # print(output)
                     # print(p.returncode)
                     dct['__retCode'] = p.returncode # for debugging
@@ -35,5 +25,3 @@ with open("failPairs.jsonl", 'w') as failFile:
                     else:
                         goodFile.write(json.dumps(dct)+'\n')
                         goodFile.flush()
-                    i += 1
-print(i)

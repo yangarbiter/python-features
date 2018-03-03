@@ -1,20 +1,19 @@
-import subprocess, os, sys, json
+import os, sys, json
 from subprocess import run, PIPE, CalledProcessError, TimeoutExpired
 from utils import doForNonDirs
 from multiprocessing import Pool
 
-DATA_FOLDER=sys.argv[1]
-OUT_FOLDER=os.path.join(DATA_FOLDER, 'updated-with-anf')
 TIMEOUT=3
 
-os.mkdir(OUT_FOLDER)
+ANF_dataFolder = ""
+ANF_outFolder = ""
 
 def func(fileName):
-    fullPath = os.path.join(DATA_FOLDER,fileName)
+    fullPath = os.path.join(ANF_dataFolder,fileName)
     if os.path.isdir(fullPath):
         return
     with open(fullPath, 'r') as logFile:
-        with open(os.path.join(OUT_FOLDER,fileName), 'w') as outFile:
+        with open(os.path.join(ANF_outFolder,fileName), 'w') as outFile:
             for line in logFile:
                 dct = json.loads(line)
                 if "PF_exitPipelineReason" in dct:
@@ -31,8 +30,14 @@ def func(fileName):
                 outFile.write(json.dumps(dct))
         os.remove(fullPath)
 
-with Pool() as p:
-    print(p.map(func, os.listdir(DATA_FOLDER)))
+def anfPass(dataFolder):
+    global ANF_dataFolder
+    global ANF_outFolder
+    ANF_dataFolder = dataFolder
+    ANF_outFolder=os.path.join(dataFolder, 'updated-with-anf')
+    os.mkdir(ANF_outFolder)
+    with Pool() as p:
+        p.map(func, os.listdir(dataFolder))
 
-# step "2" of pipeline:
-# subprocess.check_output(["docker", "run", "-v", "/Users/benjamin/LessTemporaryDownloads/may-to-july-2017-server-logs/data:/app/data", "python-munge"])
+if __name__ == '__main__':
+    anfPass(sys.argv[1])
