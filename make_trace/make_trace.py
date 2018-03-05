@@ -406,6 +406,7 @@ def slice(source, ri, line=None, debug=False):
     exception_step = find_exception(tr)
 
     if exception_step:
+        if debug:
         print('Exception at line ' + str(step_to_line[exception_step]))
     elif not line:
         return None, 0, []
