@@ -155,6 +155,21 @@ class UseVisitor(ast.NodeVisitor):
     def nothing(self, node):
         pass
 
+    def handle_assignment_target(self, node):
+        if isinstance(node, ast.Attribute):
+            self.visit(node.value)
+        elif isinstance(node, ast.Subscript):
+            self.visit(node.value)
+            self.visit(node.slice)
+        elif isinstance(node, ast.List):
+            self.visit(node)
+        elif isinstance(node, ast.Tuple):
+            self.visit(node)
+        elif isinstance(node, ast.Name):
+            pass
+        else:
+            raise ValueError('Unsupported assign target: ' + str(type(node)))
+
     # Exprs
     # BoolOp
     # BinOp
@@ -209,6 +224,8 @@ class UseVisitor(ast.NodeVisitor):
 
     def visit_Assign(self, stmt):
         self.visit(stmt.value)
+        for target in stmt.targets:
+            self.handle_assignment_target(target)
 
     def visit_AugAssign(self, stmt):
         self.visit(stmt.target)
@@ -217,8 +234,8 @@ class UseVisitor(ast.NodeVisitor):
     visit_AnnAssign = visit_Assign
 
     def visit_For(self, stmt):
-        # Ignore target
         self.visit(stmt.iter)
+        self.handle_assignment_target(stmt.target)
         
     visit_AsyncFor = die
 
