@@ -1,15 +1,16 @@
-import os
-from multiprocessing import Pool
+import os, json
 
-def doForNonDirs(folder, func, loud=False):
-    for fileName in os.listdir(folder):
-        fullPath = os.path.join(folder,fileName)
+def doForNonDirs(dataFolder, func, outArg, loud=False):
+    for fileName in os.listdir(dataFolder):
+        fullPath = os.path.join(dataFolder,fileName)
         if os.path.isdir(fullPath):
             continue
         if loud:
             print(fileName)
         with open(fullPath, 'r') as logFile:
-            func(fileName, logFile)
+            for line in logFile:
+                dct = json.loads(line)
+                func(dct, outArg)
 
 def doFunc(func, fileName, dataFolder, outFolder):
     fullPath = os.path.join(dataFolder,fileName)
