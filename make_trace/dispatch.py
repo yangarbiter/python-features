@@ -1,16 +1,20 @@
 import sys
 
 from filterPass import filterPass
-from anfPass import anfPass
-from slicePass import slicePass
+from anfPass import anfFunc
+from slicePass import sliceFunc
 
 passName = sys.argv[1]
 if passName == "filter":
     filterPass(sys.argv[2], sys.argv[3])
 elif passName == "anf":
-    anfPass(sys.argv[2])
+    doPass(anfFunc, sys.argv[2], 'updated-with-anf')
 elif passName == "slice":
-    slicePass(sys.argv[2])
+    doPass(sliceFunc, sys.argv[2], 'sliced')
 
-# step "2" of pipeline:
-# subprocess.check_output(["docker", "run", "-v", "/Users/benjamin/LessTemporaryDownloads/may-to-july-2017-server-logs/data:/app/data", "python-munge"])
+def doPass(func, dataFolder, outSuffix):
+    outFolder = os.path.join(dataFolder, outSuffix)
+    os.mkdir(outFolder)
+    argsIter = zip(os.listdir(dataFolder), repeat(dataFolder), repeat(outFolder))
+    with Pool() as p:
+        p.map(func, os.listdir(dataFolder))
