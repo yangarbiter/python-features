@@ -82,9 +82,30 @@ def find_attribute(var_env, val, identifier):
         assert(key[0] == 'HEAP_PRIMITIVE')
         assert(key[1] == 'str')
         if key[2] == identifier:
-            value = var_env.heap[ref1[1]]
-            return ref1[1], value
+            value = var_env.heap[ref2[1]]
+            return ref2[1], value
 
+# Attempts to find a value by subscripting a value
+# Returns a heap ref and a value
+def find_subscript(var_env, container, index):
+    if container[0] ==  'LIST':
+        if index[0] == 'HEAP_PRIMITIVE' and index[1] == 'int' and len(container) > index[2] + 1:
+            ref = container[index[2] + 1]
+            assert(ref[0] == 'REF')
+            value = var_env.heap[ref[1]]
+            return ref[1], value
+    elif container[0] == 'TUPLE':
+        if index[0] == 'HEAP_PRIMITIVE' and index[1] == 'int' and len(container) > index[2] + 1:
+            ref = container[index[2] + 1]
+            assert(ref[0] == 'REF')
+            value = var_env.heap[ref[1]]
+            return ref[1], value
+    elif container[0] == 'DICT':
+        raise 'TODO: support dict indexing'
+
+    return None, None
+
+        
 # Attempts to find heap locations for the expression
 # Returns a set of heap refs, plus a value for the overall expression
 def find_refs(var_env, expr):
@@ -103,8 +124,26 @@ def find_refs(var_env, expr):
             return instance_refs, attr_value
         else:
             return instance_refs, None
+    elif isinstance(expr, ast.Subscript):
+        s = expr.slice
+        if not isinstance(s, ast.Index):
+            raise 'TODO: support slicing'
+
+        container_refs, container = find_refs(var_env, expr.value)
+
+        if not container:
+            return container_refs, None
+
+        index_refs, index = find_refs(var_env, s.value)
+        if not index:
+            return container_refs | index_refs, None
+
+        sub_ref, sub_value = find_subscript(var_env, container, index)
+
+        return container_refs | index_refs | set([sub_ref]), sub_value
     else:
-        raise 'Unsupported find_refs argument'
+        # raise 'Unsupported find_refs argument'
+        return set(), None
 
 ignored_events = set(['raw_input'])
 def trace(source, ri):
@@ -199,9 +238,9 @@ class UseVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node):
         refs, _ = find_refs(self.env, node)
         self.use_set |= refs
-
-    visit_Subscript = die
-
+    
+    visit_Subscript = visit_Attribute
+    
     visit_Starred = die
 
     def visit_Name(self, node):
