@@ -13,7 +13,14 @@ import Language.Python.Version3.Parser
 
 makeAnfSource :: String -> Either ParseError String
 makeAnfSource s = fmap (go . fst) $ parseModule s "interaction"
-  where go = prettyText . fst . flip runState 0 . makeAnfModule
+  where go = prettyText . MkVerboseModule . fst . flip runState 0 . makeAnfModule
+
+newtype VerboseModule = MkVerboseModule ModuleSpan
+instance Pretty VerboseModule where
+  pretty (MkVerboseModule (Module stmts)) = vcat $ map prettyWithSpanComment stmts
+
+prettyWithSpanComment :: StatementSpan -> Doc
+prettyWithSpanComment stmt = pretty stmt <+> (text " # ") <+> pretty (annot stmt)
 
 type Fresh = State Int
 
@@ -58,10 +65,12 @@ makeAnfStat Conditional{..} = do
                       -> Fresh ([StatementSpan], [(ExprSpan, Suite SrcSpan)])
         makeAnfGuards = fmap sequence . traverse makeAnfGuard
 makeAnfStat Assign{..} = do
-  -- TODO?: Transform target too
+  -- TODO?: Transform target too (here and AugmentedAssign)
   (srcStmts, srcExpr) <- makeAnfExpr assign_expr
   pure $ srcStmts ++ [Assign assign_to srcExpr stmt_annot]
-makeAnfStat AugmentedAssign{} = error "Unsupported: Aug Assign"
+makeAnfStat AugmentedAssign{..} = do
+  (srcStmts, srcExpr) <- makeAnfExpr aug_assign_expr
+  pure $ srcStmts ++ [AugmentedAssign aug_assign_to aug_assign_op srcExpr stmt_annot]
 makeAnfStat Decorated{} = error "Unsupported: Decorated"
 makeAnfStat Return{..} = case return_expr of
   Nothing -> pure [Return Nothing stmt_annot]
@@ -83,8 +92,8 @@ makeAnfStat s@NonLocal{} = pure [s]
 makeAnfStat Assert{..} = do
   (valStmts, valExprs) <- makeAnfExprs assert_exprs
   pure $ valStmts ++ [Assert valExprs stmt_annot]
-makeAnfStat Print{} = error "Unsupported: Print"
-makeAnfStat Exec{} = error "Unsupported: Exec"
+makeAnfStat Print{} = error "Unsupported: Print" -- not needed in python3
+makeAnfStat Exec{} = error "Unsupported: Exec" -- not needed in python3
 
 makeAnfStats :: [StatementSpan] -> Fresh [StatementSpan]
 makeAnfStats stats = fmap concat $ traverse makeAnfStat stats
@@ -99,7 +108,7 @@ spanId SpanCoLinear{..} =
 spanId SpanMultiLine{..} =
   idFromNumbers span_start_row span_start_column span_end_row span_end_column
 spanId SpanPoint{..} =
-  idFromNumbers span_row span_column span_row span_column 
+  idFromNumbers span_row span_column span_row span_column
 
 locIdent :: SrcSpan -> Fresh IdentSpan
 locIdent ss = pure $ Ident ("span_" ++ spanId ss) ss
@@ -204,7 +213,7 @@ makeAnfExpr Paren{..} = do
   (eStmts, eExpr) <- makeAnfExpr paren_expr
   (parenStmts, parenExpr) <- namedExpr $ Paren eExpr expr_annot
   pure $ (eStmts ++ parenStmts, parenExpr)
-makeAnfExpr StringConversion{} = error "Unsupported: StringConversion"
+makeAnfExpr StringConversion{} = error "Unsupported: StringConversion" -- not needed in python3
 
 makeAnfExprs :: [ExprSpan] -> Fresh ([StatementSpan], [ExprSpan])
 makeAnfExprs = makeAnfThings makeAnfExpr
