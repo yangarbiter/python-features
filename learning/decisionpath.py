@@ -18,12 +18,14 @@ import sys
 
 import input_old
 
+FIRST_NON_SLICE_FEATURE = 'F-Is-Var'
+
 model = sys.argv[1]
 test, fs, ls = input_old.load_csv(sys.argv[2], filter_no_labels=True, only_slice=True)
 
 
 # print test
-test_samps = test.loc[:,'F-Is-Eq':]
+test_samps = test.loc[:,FIRST_NON_SLICE_FEATURE:]
 test_labels = test.loc[:,'L-DidChange']
 test_span = test.loc[:,'SourceSpan']
 # print test.iloc[1]
@@ -145,9 +147,9 @@ for ind, _ in enumerate(test_samps):
 	print ('For span')
 	print(test_span.values[ind])
 	print ('with confidence')
-	print ((estimator.predict_proba(X_test[ind].reshape(1,-1)))[0][1]) 
+	print ((estimator.predict_proba(X_test[ind].reshape(1,-1)))[0][1])
 	print ('our prediction is')
-	print ((estimator.predict(X_test[ind].reshape(1,-1)))[0]) 
+	print ((estimator.predict(X_test[ind].reshape(1,-1)))[0])
 	print ('should be')
 	print (test_labels.values[ind])
 	sample_id = ind

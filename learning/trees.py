@@ -124,7 +124,7 @@ else:
 clf = clf.fit(train_samps.values, train_labels.values)
 
 from sklearn.externals import joblib
-# joblib.dump(clf, os.path.join('models', model+'-'+train_dir.replace('/', '-')+'.pkl')) # TODO was this important?
+joblib.dump(clf, os.path.join('models', model+'-'+train_dir.replace('/', '-')+'.pkl'))
 
 # print test_samps
 # print test_samps.values
