@@ -8,7 +8,7 @@ ANF_BIN="./.stack-work/install/x86_64-osx/lts-8.14/8.0.2/bin/make-anf-raw"
 def anfFunc(fileName, dataFolder, outFolder):
     doFunc(actualFunc, fileName, dataFolder, outFolder)
 
-def actualFunc(dct, outFile):
+def actualFunc(line, dct, outFile):
     code = dct['user_script']
     try:
         x = run([ANF_BIN, code], stdout=PIPE, stderr=PIPE,

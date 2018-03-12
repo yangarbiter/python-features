@@ -17,7 +17,7 @@ def checkList(dctlist):
 
 def handleFile(dct, results):
     if 'lang' not in dct or dct['lang'] != LANG or 'event_type' not in dct or dct['event_type'] != EVENT_TYPE or 'session_uuid' not in dct:
-        continue
+        return
     try:
         # py_compile.compile('temp.py', doraise=True) #TODO more accurate (rejects "Return"), but can timeout (e.g. on 'print(8 ** 1000000000000000)')
         ast.parse(dct['user_script'])

@@ -10,6 +10,13 @@ def spanToTuple(s):
     '''Converts "span_5_10_6_14" to "(5,10,6,14)"'''
     return tuple([int(n) for n in s.split("_")[1:]])
 
+def findTriple(slicerOutput):
+    '''Returns the important triple in slicer output since it sometimes outputs
+    extra stuff'''
+    outLines = slicerOutput.split('\n')
+    for line in outLines:
+        if line[0] == '(':
+            return ast.literal_eval(line)
 
 for fileName in os.listdir(DATA_FOLDER):
     fullPath = os.path.join(DATA_FOLDER,fileName)
@@ -28,12 +35,7 @@ for fileName in os.listdir(DATA_FOLDER):
                     # badProgs = []
                 continue
             newProg = dct['user_script']
-            try:
-                (result, types, slice) = ast.literal_eval(dct['PF_slicerOutput'])
-            except:
-                # TODO fix slicer so this does not happen
-                print(fileName, dct['PF_slicerOutput'])
-                continue
+            (result, types, slice) = findTriple(dct['PF_slicerOutput'])
             if result == None:
                 # found a good program!
                 for (badProg, badSlice, badTypes) in badProgs:

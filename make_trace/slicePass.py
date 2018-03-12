@@ -7,7 +7,7 @@ TIMEOUT=2  # max time per program (sec)
 def sliceFunc(fileName, dataFolder, outFolder):
     doFunc(actualFunc, fileName, dataFolder, outFolder)
 
-def actualFunc(dct, outFile):
+def actualFunc(line, dct, outFile):
     try:
         # running as separate process for ease of TIMEOUT
         x = run(["python3", "process_raw.py", line], stdout=PIPE, stderr=PIPE,

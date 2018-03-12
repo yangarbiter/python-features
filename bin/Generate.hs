@@ -15,7 +15,6 @@ import Data.Csv
 import Data.Either
 import Data.Function
 import Data.List
-import Data.List as List
 import qualified Data.Map.Strict as Map
 import Data.Maybe
 import qualified Data.HashMap.Strict as HashMap
@@ -80,9 +79,9 @@ mkBadFeatures = mkBadFeaturesWithSlice JustSlice
 mkBadFeaturesWithSlice :: WithSlice -> String -> String -> (TypeMap -> [Feature]) -> [String] -> IO ()
 mkBadFeaturesWithSlice withSlice out nm fs jsons = do
   let uniqs = concatMap mkDiffs jsons
-  let feats = [ ((h, f'), (ss, bad, fix, c, all, idx))
+  let feats = [ ((h, f'), (ss, bad, fix, slice, all, idx))
               | (ss, p, bad, fix, slice, badTypes, idx) <- uniqs
-              , (h, f, c) <- maybeToList $ runTFeaturesDiff slice (fs badTypes) (ss,p)
+              , (h, f) <- maybeToList $ runTFeaturesDiff slice (fs badTypes) (ss,p)
               , let f' = filter (\r -> withSlice == All || r HashMap.! "F-InSlice" == "1.0") f
                 -- a one-constraint core is bogus, this should be impossible
               -- , length f' > 1
@@ -90,10 +89,10 @@ mkBadFeaturesWithSlice withSlice out nm fs jsons = do
               ]
   --let feats' = filter (\(_, (_,_,_,cs,_,_)) -> not (null cs)) feats
   let mkMean f xs = sum (map f xs) / genericLength xs
-  -- let mkFrac (_, (ss, _, _, _, all, _)) = genericLength ss / genericLength all
-  -- For discarding outliers by fraction of type error slice that changed rather than
+  let mkFrac (_, (ss, _, _, _, all, _)) = genericLength ss / genericLength all
+  -- For discarding outliers by fraction of error slice that changed rather than
   -- whole program. Doesn't seem to make a huge difference overall.
-  let mkFrac (_, (ss, _, _, cs, _all, _)) = genericLength (ss `intersect` cs) / genericLength cs
+  -- let mkFrac (_, (ss, _, _, cs, _all, _)) = genericLength (ss `intersect` cs) / genericLength cs
   let mean = mkMean mkFrac feats :: Double
   let std  = sqrt $ mkMean (\x -> (mkFrac x - mean) ^ 2) feats
   forM_ feats $ \ f@((header, features), (ss, bad, fix, cs, allspans, i)) -> do
@@ -112,8 +111,8 @@ mkBadFeaturesWithSlice withSlice out nm fs jsons = do
         LBSC.writeFile path $ encodeByName header features
         let path = out </> fn <.> "ml"
         writeFile path $ unlines $ [ bad, "", "(* fix", fix, "*)", ""
-                                   , "(* changed spans" ] ++ map show ss ++ [ "*)" ]
-                                ++ [ "", "(* type error slice" ] ++ map show cs ++ [ "*)" ]
+                                   , "(* changed spans" ] ++ map show (spanToTuple <$> ss) ++ [ "*)" ]
+                                ++ [ "", "(* error slice" ] ++ map show cs ++ [ "*)" ]
                                 ++ [ "", "(* all spans" ] ++ map show allspans ++ [ "*)" ]
 
     -- let (header, features) = unzip $ map (runTFeaturesDiff fs) uniqs
@@ -174,12 +173,12 @@ mkDiff'' bad fix
 
 runTFeaturesDiff
   :: ErrorSlice -> [Feature] -> ([SrcSpan], Prog)
-  -> Maybe (Header, [NamedRecord], [SrcSpan])
+  -> Maybe (Header, [NamedRecord])
 runTFeaturesDiff slice fs (ls, bad)
   | null samples
   = error "why Nothing"
   | otherwise
-  = Just (header, samples, [])
+  = Just (header, samples)
   where
   header = Vector.fromList
          $ ["SourceSpan", "L-NoChange", "L-DidChange", "F-InSlice"]

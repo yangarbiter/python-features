@@ -1,4 +1,6 @@
 import os, json
+from itertools import repeat
+from multiprocessing import Pool
 
 def doForNonDirs(dataFolder, func, outArg, loud=False):
     for fileName in os.listdir(dataFolder):
@@ -23,6 +25,13 @@ def doFunc(func, fileName, dataFolder, outFolder):
                 if "PF_exitPipelineReason" in dct:
                     outFile.write(line)
                     continue
-                func(dct, outFile)
+                func(line, dct, outFile)
                 outFile.write(json.dumps(dct) + '\n')
     os.remove(fullPath)
+
+def doPass(func, dataFolder, outSuffix):
+    outFolder = os.path.join(dataFolder, outSuffix)
+    # os.mkdir(outFolder)
+    argsIter = zip(os.listdir(dataFolder), repeat(dataFolder), repeat(outFolder))
+    with Pool() as p:
+        p.starmap(func, argsIter)
