@@ -1,6 +1,6 @@
 import json, sys, ast, os
 from subprocess import run, PIPE
-import functools
+import functools, html
 
 ML_DIR = 'foo'
 ML_EXT = '.ml'
@@ -52,7 +52,7 @@ def spanComparator(span1, span2):
     endOrder = cmp((c1, d1), (c2, d2))
     overlapCheck1 = cmp((a1, b1), (c2, d2))
     overlapCheck2 = cmp((c1, d1), (a2, b2))
-    if (beginOrder == 0 and endOrder == 0) or (beginOrder == -1 and overlapCheck2 == 1) or (beginOrder == 1 and overlapCheck1 == -1):
+    if (beginOrder == 0 and endOrder == 0) or (beginOrder == -1 and overlapCheck2 == 1 and endOrder == -1) or (beginOrder == 1 and overlapCheck1 == -1 and endOrder == 1):
         print(span1, span2)
         print(beginOrder, endOrder, overlapCheck1, overlapCheck2)
         raise hell
@@ -78,8 +78,9 @@ def visualize(code, facts):
                         classes.append("change")
                     if confidence >= 0.5:
                         classes.append("blame")
-                    outBuffer += '<div class="%s" title="%f\n%s">' % (" ".join(classes),confidence,rules)
-            outBuffer += char
+                    color = int((1-confidence)*120)
+                    outBuffer += '<div class="%s" style="border-color:hsl(%d, 100%%, 50%%)" title="%f\n%s">' % (" ".join(classes),color,confidence,rules)
+            outBuffer += html.escape(char, quote=False).replace(' ', '&nbsp')
             for fact in facts:
                 (_, _, r2, c2) = fact[0]
                 if row+1 == r2 and col+1 == c2:
@@ -87,18 +88,17 @@ def visualize(code, facts):
         outBuffer += '<br/>\n'
     return outBuffer
 
-if __name__ == '__main__':
-    idx = sys.argv[1]
+def runNames(inName, outName):
     progSection = True
     prog = ""
-    with open(os.path.join(ML_DIR,idx+ML_EXT)) as inFile:
+    with open(os.path.join(ML_DIR,inName+ML_EXT)) as inFile:
         for line in inFile:
             if line == "(* fix\n":
                 break
             else:
                 prog += line
 
-    proc = run("python2 learning/decisionpath.py models/decision-tree-goodCsvs.pkl".split()+[os.path.join(CSV_DIR,idx+CSV_EXT)],
+    proc = run("python2 learning/decisionpath.py models/decision-tree-goodCsvs.pkl".split()+[os.path.join(CSV_DIR,inName+CSV_EXT)],
             stdout=PIPE, stderr=PIPE, encoding="utf-8", errors="strict")
     facts = []
     span = None
@@ -123,5 +123,8 @@ if __name__ == '__main__':
     facts.sort(key=functools.cmp_to_key(factComparator))
 
     htmlBody = visualize(prog, facts)
-    with open(sys.argv[2], 'w') as outFile:
+    with open(outName, 'w') as outFile:
         outFile.write(HTML_BEGIN + htmlBody + HTML_END)
+
+if __name__ == '__main__':
+    runNames(sys.argv[1], sys.argv[2]) #21234
