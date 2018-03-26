@@ -101,7 +101,16 @@ def find_subscript(var_env, container, index):
             value = var_env.heap[ref[1]]
             return ref[1], value
     elif container[0] == 'DICT':
-        raise 'TODO: support dict indexing'
+        ass_list = container[1]
+        for pair in ass_list:
+            key_ref = pair[0]
+            assert(key_ref[0] == 'REF')
+            key = var_env.heap[key_ref[1]]
+            if key == index:
+                value_ref = pair[1]
+                assert(value_ref[0] == 'REF')
+                value = var_env.heap[value_ref[1]]
+                return value_ref, value
 
     return None, None
 
