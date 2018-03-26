@@ -32,7 +32,7 @@ def handleFile(dct, results):
 
 def filterPass(dataFolder, outFolder):
     outFolder = outFolder+'/'+LANG+'-'+EVENT_TYPE
-    os.mkdir(outFolder)
+    os.makedirs(outFolder)
     results = collections.defaultdict(list)
     doForNonDirs(dataFolder, handleFile, results)
     for uuid in results.keys():

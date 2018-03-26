@@ -114,7 +114,7 @@ def find_subscript(var_env, container, index):
 
     return None, None
 
-        
+
 # Attempts to find heap locations for the expression
 # Returns a set of heap refs, plus a value for the overall expression
 def find_refs(var_env, expr):
@@ -247,9 +247,9 @@ class UseVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node):
         refs, _ = find_refs(self.env, node)
         self.use_set |= refs
-    
+
     visit_Subscript = visit_Attribute
-    
+
     visit_Starred = die
 
     def visit_Name(self, node):
@@ -443,9 +443,9 @@ def slice(source, ri, line=None, debug=False):
     line_map, line_to_control = make_line_maps(source)
     tr = trace(source, ri)
 
-    bv = BindingVisitor()
-    bv.visit(ast.parse(source))
-    line_to_assignment = bv.line_to_assignment
+    # bv = BindingVisitor()
+    # bv.visit(ast.parse(source))
+    # line_to_assignment = bv.line_to_assignment
 
     step_to_line, line_to_step, UD_CT = build_relations(line_map, line_to_control, tr)
 
@@ -473,11 +473,15 @@ def slice(source, ri, line=None, debug=False):
 
     keep_these = set([step_to_line[step] for step in visited])
     span_slice = []
-    for line in keep_these:
-        if line in line_to_assignment:
-            match = span_rexp.match(line_to_assignment[line])
-            if match:
-                span_slice.append([int(s) for s in match.groups()])
+    lines = source.split('\n')
+    for lineNum in keep_these:
+        line = lines[lineNum-1].split("#  interaction:")
+        if len(line) > 1: #TODO handle when this is false
+            span_slice.append(line[1])
+        # if line in line_to_assignment:
+        #     match = span_rexp.match(line_to_assignment[line])
+        #     if match:
+        #         span_slice.append([int(s) for s in match.groups()])
     stmt_count = float(len(line_map))
 
     return keep_these, len(set(line_map) - keep_these) / stmt_count, span_slice

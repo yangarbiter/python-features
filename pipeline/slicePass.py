@@ -10,7 +10,7 @@ def sliceFunc(fileName, dataFolder, outFolder):
 def actualFunc(line, dct, outFile):
     try:
         # running as separate process for ease of TIMEOUT
-        x = run(["python3", "process_raw.py", line], stdout=PIPE, stderr=PIPE,
+        x = run(["python3", "make_trace/process_raw.py", line], stdout=PIPE, stderr=PIPE,
                 encoding="utf-8", errors="strict", timeout=TIMEOUT, check=True)
         dct["PF_slicerOutput"] = x.stdout
     except CalledProcessError as e:

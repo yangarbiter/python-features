@@ -1,5 +1,5 @@
 ### Create pairs of broken and fixed code
-import sys, os, json, ast, subprocess
+import sys, os, json, ast
 
 DATA_FOLDER=sys.argv[1]
 OUT_FOLDER=os.path.join(DATA_FOLDER, 'pairs')

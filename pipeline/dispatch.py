@@ -12,3 +12,7 @@ elif passName == "anf":
     doPass(anfFunc, sys.argv[2], 'updated-with-anf')
 elif passName == "slice":
     doPass(sliceFunc, sys.argv[2], 'sliced')
+elif passName == "all":
+    filterPass(sys.argv[2], sys.argv[3])
+    doPass(anfFunc, sys.argv[3]+'/py3-web_exec', 'updated-with-anf')
+    doPass(sliceFunc, sys.argv[3]+'/py3-web_exec/updated-with-anf', 'sliced')
