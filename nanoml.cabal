@@ -54,6 +54,7 @@ library
   exposed-modules:    NanoML.Classify
                     , NanoML.ExampleFeatures
                     , Anf
+                    , MyPretty
   build-depends:      base >=4.7 && <5
                     , containers >= 0.5
                     , language-python

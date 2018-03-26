@@ -196,7 +196,7 @@ runTFeaturesDiff slice fs (ls, bad)
   mkTypeOut te = ctfold f [] (St te)
     where
     f p e acc = (:acc) . namedRecord $
-                ["SourceSpan" .= show (getSrcSpan e)]
+                ["SourceSpan" .= show (spanToTuple $ getSrcSpan e)]
              ++ didChange (getSrcSpan e)
              ++ inSlice e slice
              ++ concatMap (\(ls,c) -> zipWith (.=) (map mkFeature ls) (c p e)) fs

@@ -143,14 +143,14 @@ leave_id = estimator.apply(X_test)
 for ind, _ in enumerate(test_samps):
         if ind >= len(test_samps): # WTF?
                 continue
-	print ('----------------------------------')
-	print ('For span')
+	# print ('----------------------------------')
+	# print ('For span')
 	print(test_span.values[ind])
-	print ('with confidence')
+	# print ('with confidence')
 	print ((estimator.predict_proba(X_test[ind].reshape(1,-1)))[0][1])
-	print ('our prediction is')
-	print ((estimator.predict(X_test[ind].reshape(1,-1)))[0])
-	print ('should be')
+	# print ('our prediction is')
+	# print ((estimator.predict(X_test[ind].reshape(1,-1)))[0])
+	# print ('should be')
 	print (test_labels.values[ind])
 	sample_id = ind
 	# print X_test[sample_id]
@@ -163,19 +163,18 @@ for ind, _ in enumerate(test_samps):
 
 	    if leave_id[sample_id] == node_id:  # <-- changed != to ==
 	        #continue # <-- comment out
-	        print("leaf node {} reached, no decision here".format(leave_id[sample_id])) # <--
+	        # print("leaf node {} reached, no decision here".format(leave_id[sample_id])) # <--
+			pass
 
 	    else: # < -- added else to iterate through decision nodes
 	        if (X_test[sample_id, feature[node_id]] <= threshold[node_id]):
-	            threshold_sign = "<="
+	            threshold_sign = False
 	        else:
-	            threshold_sign = ">"
+	            threshold_sign = True
 
-                print("%s : (= %s) %s %s"
+                print("%s : %s"
                       % (feature_names[feature[node_id]],
-                         X_test[sample_id, feature[node_id]],
-                         threshold_sign,
-                         threshold[node_id]))
+                         threshold_sign))
 	        # print("decision id node %s : (X[%s, %s] (= %s) %s %s)"
 	        #       % (node_id,
 	        #          sample_id,
@@ -184,3 +183,4 @@ for ind, _ in enumerate(test_samps):
 	        #          threshold_sign,
 	        #          threshold[node_id]))
 	        # print(feature_names[feature[node_id]]);
+	print ('----------------------------------')

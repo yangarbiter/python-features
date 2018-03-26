@@ -11,16 +11,15 @@ import Language.Python.Common
 import Language.Python.Common.Pretty
 import Language.Python.Version3.Parser
 
+import MyPretty
+
 makeAnfSource :: String -> Either ParseError String
 makeAnfSource s = fmap (go . fst) $ parseModule s "interaction"
   where go = prettyText . MkVerboseModule . fst . flip runState 0 . makeAnfModule
 
 newtype VerboseModule = MkVerboseModule ModuleSpan
 instance Pretty VerboseModule where
-  pretty (MkVerboseModule (Module stmts)) = vcat $ map prettyWithSpanComment stmts
-
-prettyWithSpanComment :: StatementSpan -> Doc
-prettyWithSpanComment stmt = pretty stmt <+> (text " # ") <+> pretty (annot stmt)
+  pretty (MkVerboseModule m) = mypretty m
 
 type Fresh = State Int
 
@@ -71,19 +70,19 @@ makeAnfStat Assign{..} = do
 makeAnfStat AugmentedAssign{..} = do
   (srcStmts, srcExpr) <- makeAnfExpr aug_assign_expr
   pure $ srcStmts ++ [AugmentedAssign aug_assign_to aug_assign_op srcExpr stmt_annot]
-makeAnfStat Decorated{} = error "Unsupported: Decorated"
+-- makeAnfStat Decorated{} = error "Unsupported: Decorated"
 makeAnfStat Return{..} = case return_expr of
   Nothing -> pure [Return Nothing stmt_annot]
   Just e  -> do
     (valStmts, valExpr) <- makeAnfExpr e
     pure $ valStmts ++ [Return (Just valExpr) stmt_annot]
-makeAnfStat Try{} = error "Unsupported: Try"
-makeAnfStat Raise{} = error "Unsupported: Raise"
-makeAnfStat With{} = error "Unsupported: With"
+-- makeAnfStat Try{} = error "Unsupported: Try"
+-- makeAnfStat Raise{} = error "Unsupported: Raise"
+-- makeAnfStat With{} = error "Unsupported: With"
 makeAnfStat s@Pass{} = pure [s]
 makeAnfStat s@Break{} = pure [s]
 makeAnfStat s@Continue{} = pure [s]
-makeAnfStat Delete{} = error "Unsupported: Delete"
+-- makeAnfStat Delete{} = error "Unsupported: Delete"
 makeAnfStat StmtExpr{..} = do
   (stats, expr) <- makeAnfExpr stmt_expr
   pure $ stats ++ [StmtExpr expr stmt_annot]
@@ -94,6 +93,7 @@ makeAnfStat Assert{..} = do
   pure $ valStmts ++ [Assert valExprs stmt_annot]
 makeAnfStat Print{} = error "Unsupported: Print" -- not needed in python3
 makeAnfStat Exec{} = error "Unsupported: Exec" -- not needed in python3
+makeAnfStat s = pure [s]
 
 makeAnfStats :: [StatementSpan] -> Fresh [StatementSpan]
 makeAnfStats stats = fmap concat $ traverse makeAnfStat stats
@@ -164,8 +164,8 @@ makeAnfExpr Subscript{..} = do
   (ssStmts, ssExpr) <- namedExpr $ Subscript subscripteeExpr subscriptExpr expr_annot
   pure $
     (subscripteeStmts ++ subscriptStmts ++ ssStmts, ssExpr)
-makeAnfExpr SlicedExpr{} = error "Unsupported: SlicedExpr"
-makeAnfExpr CondExpr{} = error "Unsupported: CondExpr"
+-- makeAnfExpr SlicedExpr{} = error "Unsupported: SlicedExpr"
+-- makeAnfExpr CondExpr{} = error "Unsupported: CondExpr"
 makeAnfExpr BinaryOp{..} = do
   (leftStmts, leftExpr) <- makeAnfExpr left_op_arg
   (rightStmts, rightExpr) <- makeAnfExpr right_op_arg
@@ -179,14 +179,14 @@ makeAnfExpr Dot{..} = do
   (dottedStmts, dottedExpr) <- makeAnfExpr dot_expr
   (dotStmts, dotExpr) <- namedExpr $ Dot dottedExpr dot_attribute expr_annot
   pure $ (dottedStmts ++ dotStmts, dotExpr)
-makeAnfExpr Lambda{} = error "Unsupported: Lambda"
+-- makeAnfExpr Lambda{} = error "Unsupported: Lambda"
 makeAnfExpr Tuple{..} = do
   (eStmts, eExprs) <- makeAnfExprs tuple_exprs
   (tupleStmts, tupleExpr) <- namedExpr $ Tuple eExprs expr_annot
   pure $ (eStmts ++ tupleStmts, tupleExpr)
-makeAnfExpr Yield{} = error "Unsupported: Yield"
-makeAnfExpr Generator{} = error "Unsupported: Generator"
-makeAnfExpr ListComp{} = error "Unsupported: ListComp"
+-- makeAnfExpr Yield{} = error "Unsupported: Yield"
+-- makeAnfExpr Generator{} = error "Unsupported: Generator"
+-- makeAnfExpr ListComp{} = error "Unsupported: ListComp"
 makeAnfExpr List{..} = do
   (eStmts, eExprs) <- makeAnfExprs list_exprs
   (listStmts, listExpr) <- namedExpr $ List eExprs expr_annot
@@ -199,12 +199,12 @@ makeAnfExpr Dictionary{..} = do
           (pairStmts, [keyExpr, valueExpr]) <- makeAnfExprs [key, value]
           pure $ (pairStmts, DictMappingPair keyExpr valueExpr)
         makeAnfPairs = makeAnfThings makeAnfPair
-makeAnfExpr DictComp{} = error "Unsupported: DictComp"
+-- makeAnfExpr DictComp{} = error "Unsupported: DictComp"
 makeAnfExpr Set{..} = do
   (eStmts, eExprs) <- makeAnfExprs set_exprs
   (setStmts, setExpr) <- namedExpr $ Set eExprs expr_annot
   pure $ (eStmts ++ setStmts, setExpr)
-makeAnfExpr SetComp{} = error "Unsupported: SetComp"
+-- makeAnfExpr SetComp{} = error "Unsupported: SetComp"
 makeAnfExpr Starred{..} = do
   (eStmts, eExpr) <- makeAnfExpr starred_expr
   (starStmts, starExpr) <- namedExpr $ Starred eExpr expr_annot
@@ -214,6 +214,7 @@ makeAnfExpr Paren{..} = do
   (parenStmts, parenExpr) <- namedExpr $ Paren eExpr expr_annot
   pure $ (eStmts ++ parenStmts, parenExpr)
 makeAnfExpr StringConversion{} = error "Unsupported: StringConversion" -- not needed in python3
+makeAnfExpr e = pure ([], e)
 
 makeAnfExprs :: [ExprSpan] -> Fresh ([StatementSpan], [ExprSpan])
 makeAnfExprs = makeAnfThings makeAnfExpr
