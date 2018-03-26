@@ -1,0 +1,19 @@
+.container {
+    width: 10000px;
+    font-family: monospace;
+}
+.box {
+    padding: 2px;
+    border: 3px dashed green;
+    display: inline-block;
+    background-color: white;
+}
+.change {
+    border-style: solid;
+}
+.blame {
+    border-color: red;
+}
+.box:hover {
+    background-color: lightblue;
+}
