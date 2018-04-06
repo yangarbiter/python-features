@@ -4,7 +4,6 @@ from utils import doFunc
 
 TIMEOUT=3
 ANF_BIN="./.stack-work/install/x86_64-osx/lts-8.14/8.0.2/bin/make-anf-raw"
-# ANF_BIN="./make-anf-raw"
 
 def anfFunc(fileName, dataFolder, outFolder):
     doFunc(actualFunc, fileName, dataFolder, outFolder)

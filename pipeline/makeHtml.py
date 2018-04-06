@@ -127,4 +127,9 @@ def runNames(inName, outName):
         outFile.write(HTML_BEGIN + htmlBody + HTML_END)
 
 if __name__ == '__main__':
+    # for i in range(0, 15000, 500):
+    #     try:
+    #         runNames(str(i), "pipeline/"+str(i)+".html")
+    #     except:
+    #         pass
     runNames(sys.argv[1], sys.argv[2]) #21234

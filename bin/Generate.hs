@@ -41,7 +41,8 @@ import Debug.Trace
 
 
 type Prog = [StatementSpan]
-type ErrorSlice = [(Int, Int, Int, Int)]
+type MySpan = (Int, Int, Int, Int)
+type ErrorSlice = [MySpan]
 
 data Generate = Generate
   { source :: FilePath
@@ -79,9 +80,9 @@ mkBadFeatures = mkBadFeaturesWithSlice JustSlice
 mkBadFeaturesWithSlice :: WithSlice -> String -> String -> (TypeMap -> [Feature]) -> [String] -> IO ()
 mkBadFeaturesWithSlice withSlice out nm fs jsons = do
   let uniqs = concatMap mkDiffs jsons
-  let feats = [ ((h, f'), (ss, bad, fix, slice, all, idx))
-              | (ss, p, bad, fix, slice, badTypes, idx) <- uniqs
-              , (h, f) <- maybeToList $ runTFeaturesDiff slice (fs badTypes) (ss,p)
+  let feats = [ ((h, f'), (ss, bad, fix, exceptionSpan, slice, all, idx))
+              | (ss, p, bad, fix, exceptionSpan, slice, badTypes, idx) <- uniqs
+              , (h, f) <- maybeToList $ runTFeaturesDiff slice exceptionSpan (fs badTypes) (ss,p)
               , let f' = filter (\r -> withSlice == All || r HashMap.! "F-InSlice" == "1.0") f
                 -- a one-constraint core is bogus, this should be impossible
               -- , length f' > 1
@@ -89,13 +90,13 @@ mkBadFeaturesWithSlice withSlice out nm fs jsons = do
               ]
   --let feats' = filter (\(_, (_,_,_,cs,_,_)) -> not (null cs)) feats
   let mkMean f xs = sum (map f xs) / genericLength xs
-  let mkFrac (_, (ss, _, _, _, all, _)) = genericLength ss / genericLength all
+  let mkFrac (_, (ss, _, _, _, _, all, _)) = genericLength ss / genericLength all
   -- For discarding outliers by fraction of error slice that changed rather than
   -- whole program. Doesn't seem to make a huge difference overall.
   -- let mkFrac (_, (ss, _, _, cs, _all, _)) = genericLength (ss `intersect` cs) / genericLength cs
   let mean = mkMean mkFrac feats :: Double
   let std  = sqrt $ mkMean (\x -> (mkFrac x - mean) ^ 2) feats
-  forM_ feats $ \ f@((header, features), (ss, bad, fix, cs, allspans, i)) -> do
+  forM_ feats $ \ f@((header, features), (ss, bad, fix, _, cs, allspans, i)) -> do
     if
       | mkFrac f > mean+std -> do
           printf "OUTLIER: %.2f > %.2f\n" (mkFrac f :: Double) (mean+std)
@@ -129,26 +130,26 @@ parseTopForm v code = case (parseModule v) code "foo.py" of
 parseModule 2 = Py2.parseModule
 parseModule 3 = Py3.parseModule
 
-mkDiffs :: String -> [([SrcSpan], Prog, String, String, ErrorSlice, TypeMap, Int)]
+mkDiffs :: String -> [([SrcSpan], Prog, String, String, MySpan, ErrorSlice, TypeMap, Int)]
 mkDiffs json = case eitherDecode (LBSC.pack json) of
   Left e -> {-trace e-} error "e1"
     -- -> HashSet.fromList . maybeToList $ mkDiff fix bad
-  Right (MkInSample bad' fix' v _ _ _ _)
+  Right (MkInSample bad' fix' v _ _ _ _ _)
   --Right (MkInSample bads' (fix':_))
     | Left e <- parseTopForm v fix'
     -> {-trace e-} error "e2"
-  Right (MkInSample bad' fix' v _ _ _ _)
+  Right (MkInSample bad' fix' v _ _ _ _ _)
   --Right (MkInSample bads' (fix':_))
     | Left e <- parseTopForm v bad'
     -> {-trace e-} error "e3"
-  Right (MkInSample bad' fix' v spanSlice idx varTypes spanTypes)
+  Right (MkInSample bad' fix' v exceptionSpan spanSlice idx varTypes spanTypes)
   --Right (MkInSample bads' (fix':_))
     | Right fix <- parseTopForm v fix'
     , Right bad <- parseTopForm v bad'
     , let ss = mkDiff'' bad fix
     -- , not (null ss)
     -- -> maybeToList . fmap (,bad, bad', fix') $ mkDiff' bad' fix'
-    -> [(ss, bad, bad', fix', listToTuple <$> spanSlice, foo (varTypes, spanTypes), idx)]
+    -> [(ss, bad, bad', fix', listToTuple exceptionSpan, listToTuple <$> spanSlice, foo (varTypes, spanTypes), idx)]
 
   -- _ -> mempty
   v -> error (show v)
@@ -169,12 +170,13 @@ mkDiff'' bad fix
   = assert (not (null x)) $ x
   where
   -- x = Set.toList (diffSpans (collapseDiff (getDiff $ diffExprsT bs fs)))
-  x = Set.toList (diffSpans (getDiff $ diffExprsT (St <$> bad) (St <$> fix)) (St <$> bad))
+  y = (getDiff $ diffExprsT (St <$> bad) (St <$> fix))
+  x = trace (show y) $ Set.toList (diffSpans y (St <$> bad))
 
 runTFeaturesDiff
-  :: ErrorSlice -> [Feature] -> ([SrcSpan], Prog)
+  :: ErrorSlice -> MySpan -> [Feature] -> ([SrcSpan], Prog)
   -> Maybe (Header, [NamedRecord])
-runTFeaturesDiff slice fs (ls, bad)
+runTFeaturesDiff slice exceptionSpan fs (ls, bad)
   | null samples
   = error "why Nothing"
   | otherwise
@@ -183,6 +185,7 @@ runTFeaturesDiff slice fs (ls, bad)
   header = Vector.fromList
          $ ["SourceSpan", "L-NoChange", "L-DidChange", "F-InSlice"]
         ++ concatMap (\(ls,_) -> map mkFeature ls) fs
+        ++ ["F-PythonBlame"]
 
   samples = concatMap mkTypeOut bad
 
@@ -200,6 +203,7 @@ runTFeaturesDiff slice fs (ls, bad)
              ++ didChange (getSrcSpan e)
              ++ inSlice e slice
              ++ concatMap (\(ls,c) -> zipWith (.=) (map mkFeature ls) (c p e)) fs
+             ++ pythonBlame e exceptionSpan
 
 boolToDouble :: Bool -> Double
 boolToDouble b = if b then 1 else 0
@@ -209,8 +213,11 @@ inSlice e slice = ["F-InSlice" .= (x::Double)]
     x = boolToDouble $ inSlice' e slice
 
 inSlice' :: ES -> ErrorSlice -> Bool
-inSlice' (St _) _ = False --TODO
-inSlice' (Ex e) spanSlice = elem (spanToTuple $ annot e) spanSlice
+inSlice' e spanSlice = elem (spanToTuple $ getSpan e) spanSlice
+
+pythonBlame e exceptionSpan = ["F-PythonBlame" .= (x::Double)]
+  where
+    x = boolToDouble $ inSlice' e [exceptionSpan]
 
 mkLabel :: String -> BSC.ByteString
 mkLabel s = BSC.pack ("L-" ++ s)
@@ -222,6 +229,7 @@ mkFeature s = BSC.pack ("F-" ++ s)
 data InSample = MkInSample { bad :: String,
                              fix :: String,
                              pyVersion :: Int,
+                             exceptionSpan :: [Int],
                              spanSlice :: [[Int]], --[(Int, Int, Int, Int)],
                              index :: Int,
                              varTypes :: HashMap.HashMap String String,

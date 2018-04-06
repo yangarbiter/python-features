@@ -31,7 +31,8 @@ def doFunc(func, fileName, dataFolder, outFolder):
 
 def doPass(func, dataFolder, outSuffix):
     outFolder = os.path.join(dataFolder, outSuffix)
-    os.mkdir(outFolder)
+    # os.makedirs(outFolder, exist_ok=True)
+    os.makedirs(outFolder)
     argsIter = zip(os.listdir(dataFolder), repeat(dataFolder), repeat(outFolder))
     with Pool() as p:
         p.starmap(func, argsIter)

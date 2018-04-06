@@ -6,6 +6,17 @@ OUT_FOLDER=os.path.join(DATA_FOLDER, 'pairs')
 
 universalCounter = 0
 
+def convertSlice(slice):
+    '''Converts " (3,1)" to [3,1,3,1] and " (3,1)-(5,4)" to [3,1,5,4]'''
+    return [convertSpan(span) for span in slice]
+
+def convertSpan(span):
+    span = span.strip().split("-")
+    if len(span) == 1:
+        span.append(span[0])
+    [(a,b), (c,d)] = [ast.literal_eval(x) for x in span]
+    return [a,b,c,d]
+
 def spanToTuple(s):
     '''Converts "span_5_10_6_14" to "(5,10,6,14)"'''
     return tuple([int(n) for n in s.split("_")[1:]])
@@ -15,9 +26,10 @@ def findTriple(slicerOutput):
     extra stuff'''
     outLines = slicerOutput.split('\n')
     for line in outLines:
-        if line[0] == '(':
+        if line[0] == '(': #TODO harden this
             return ast.literal_eval(line)
 
+os.mkdir(OUT_FOLDER)
 for fileName in os.listdir(DATA_FOLDER):
     fullPath = os.path.join(DATA_FOLDER,fileName)
     if os.path.isdir(fullPath):
@@ -38,7 +50,7 @@ for fileName in os.listdir(DATA_FOLDER):
             (result, types, slice) = findTriple(dct['PF_slicerOutput'])
             if result == None:
                 # found a good program!
-                for (badProg, badSlice, badTypes) in badProgs:
+                for (badProg, badSlice, badTypes, badExceptionSpan) in badProgs:
                     varTypes = {}
                     spanTypes = {}
                     for key in badTypes:
@@ -58,8 +70,9 @@ for fileName in os.listdir(DATA_FOLDER):
                                   "fix": newProg,
                                   "index": universalCounter,
                                   "pyVersion": 3,
+                                  "exceptionSpan": convertSpan(badExceptionSpan),
                                   # "varSlice": varSlice,
-                                  "spanSlice": badSlice,
+                                  "spanSlice": [convertSpan(span) for span in badSlice],
                                   "varTypes": varTypes,
                                   "spanTypes": spanTypes,})
                     universalCounter += 1
@@ -70,7 +83,7 @@ for fileName in os.listdir(DATA_FOLDER):
                 # slice = []
                 # for lineNum in result:
                 #     slice.append(anf_lines[lineNum-1].split(" = ")[0].strip())
-                badProgs.append((newProg, slice, types))
+                badProgs.append((newProg, slice, types, result))
     if len(pairs) > 0:
         with open(os.path.join(OUT_FOLDER,fileName), 'w') as outFile:
             for pair in pairs:

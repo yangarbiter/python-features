@@ -457,7 +457,7 @@ def slice(source, ri, line=None, debug=False):
         if debug:
             print('Exception at line ' + str(step_to_line[exception_step]))
     elif not line:
-        return None, 0, []
+        return None
 
     for step in [exception_step] if exception_step else line_to_step[line]:
         queue.put(step)
@@ -476,15 +476,24 @@ def slice(source, ri, line=None, debug=False):
     lines = source.split('\n')
     for lineNum in keep_these:
         line = lines[lineNum-1].split("#  interaction:")
-        if len(line) > 1: #TODO handle when this is false
+        if len(line) != 2:
             span_slice.append(line[1])
+        else:
+            raise Exception("Sourcemap fail")
         # if line in line_to_assignment:
         #     match = span_rexp.match(line_to_assignment[line])
         #     if match:
         #         span_slice.append([int(s) for s in match.groups()])
     stmt_count = float(len(line_map))
 
-    return keep_these, len(set(line_map) - keep_these) / stmt_count, span_slice
+    exceptionLine = step_to_line[exception_step]
+    line = lines[exceptionLine-1].split("#  interaction:")
+    if len(line) > 1:
+        exceptionSpan = line[1]
+    else:
+        raise Exception("Sourcemap fail")
+
+    return exceptionSpan, span_slice
 
 # Assumes one assignment per line max
 class BindingVisitor(ast.NodeVisitor):

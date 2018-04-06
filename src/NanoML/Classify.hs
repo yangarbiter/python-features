@@ -12,6 +12,10 @@ import Language.Python.Common hiding ((<>))
 
 data ES = Ex ExprSpan | St StatementSpan deriving (Show)
 
+instance Span ES where
+  getSpan (Ex e) = annot e
+  getSpan (St s) = annot s
+
 data Literal
   = LI Integer
   | LD Double
@@ -159,9 +163,9 @@ cost = \case
 
 showDiff :: Diff -> String
 showDiff = \case
-  Ins e d -> "Ins (" ++ show (exprKind e) ++ ") (" ++ showDiff d ++ ")"
-  Del e d -> "Del (" ++ show (exprKind e) ++ ") (" ++ showDiff d ++ ")"
-  Cpy e d -> "Cpy (" ++ show (exprKind e) ++ ") (" ++ showDiff d ++ ")"
+  Ins e d -> "Ins (" ++ show (esKind e) ++ ") (" ++ showDiff d ++ ")"
+  Del e d -> "Del (" ++ show (esKind e) ++ ") (" ++ showDiff d ++ ")"
+  Cpy e d -> "Cpy (" ++ show (esKind e) ++ ") (" ++ showDiff d ++ ")"
   End     -> "End"
 
 diffSpans :: Diff -> [ES] -> Set SrcSpan
@@ -312,7 +316,7 @@ extractd dt k = case dt of
 
 bestT :: ES -> ES -> DiffT -> DiffT -> DiffT -> Diff
 bestT x y i d c
-  | exprKind x == exprKind y
+  | esKind x == esKind y
   , length (subESes x) == length (subESes y)
   = cpy x (getDiff c) -- del x (getDiff d) `meet` ins y (getDiff i)
   | otherwise
@@ -320,29 +324,29 @@ bestT x y i d c
     -- `meet`
 
 data ESKind
-  = VarK IdentSpan
+  = VarK (Ident ())
   | AppK
-  | BopK OpSpan
-  | UopK OpSpan
+  | BopK (Op ())
+  | UopK (Op ())
   | LitK Literal
   | IteK
   | TupleK
   | ListK
   | TerminalStatementK (Statement ())
   | AssignK
-  | AugmentedAssignK AssignOpSpan
+  | AugmentedAssignK (AssignOp ())
   | ReturnK
   | DeleteK
   | StmtExprK
   | AssertK
   | PrintK Bool Bool
   | ConditionalK [Int]
-  | ClassK IdentSpan Int
+  | ClassK (Ident ()) Int
   | WhileK Int
   | ForK Int Int
   | ParenK
-  | FunK IdentSpan Int
-  | DotK IdentSpan
+  | FunK (Ident ()) Int
+  | DotK (Ident ())
   | SliceK
   | SubscriptK
   | NoneK
@@ -353,11 +357,14 @@ data ESKind
   deriving (Eq, Show)
 
 --TODO a Suite should be alowed to change size without effectively changing Kind?
-exprKind :: ES -> ESKind
-exprKind (Ex e) = exprKind' e
-exprKind (St s) = case s of
-  Import {} -> TerminalStatementK $ void s
-  FromImport {} -> TerminalStatementK $ void s
+esKind :: ES -> ESKind
+esKind (Ex e) = exprKind (void e)
+esKind (St s) = stmtKind (void s)
+
+stmtKind :: Statement () -> ESKind
+stmtKind s = case s of
+  Import {} -> TerminalStatementK s
+  FromImport {} -> TerminalStatementK s
   While _ body _ _ -> WhileK (length body)
   For vs _ body _ _ -> ForK (length vs) (length body)
   Fun name args Nothing _ _ -> FunK name (length args) --TODO args have idents
@@ -366,26 +373,26 @@ exprKind (St s) = case s of
   Assign {} -> AssignK
   AugmentedAssign _ op _ _ -> AugmentedAssignK op
   -- --Decorated
-  Return Nothing _ -> TerminalStatementK $ void s
+  Return Nothing _ -> TerminalStatementK s
   Return (Just e) _ -> ReturnK
   -- --Try
   -- --Raise
   -- --With
-  Pass _ -> TerminalStatementK $ void s
-  Break _ -> TerminalStatementK $ void s
-  Continue _ -> TerminalStatementK $ void s
+  Pass _ -> TerminalStatementK s
+  Break _ -> TerminalStatementK s
+  Continue _ -> TerminalStatementK s
   Delete {} -> DeleteK
   StmtExpr {} -> StmtExprK
-  Global _ _ -> TerminalStatementK $ void s
-  NonLocal _ _ -> TerminalStatementK $ void s
+  Global _ _ -> TerminalStatementK s
+  NonLocal _ _ -> TerminalStatementK s
   Assert {} -> AssertK
   Print b1 _ b2 _ -> PrintK b1 b2
   --Exec
-  e -> error $ "unhandled case of exprKind: " ++ (show e)
+  e -> error $ "unhandled case of stmtKind: " ++ (show e)
 
 -- NOTE: ignores "expr_literal"s
-exprKind' :: ExprSpan -> ESKind
-exprKind' = \case
+exprKind :: Expr () -> ESKind
+exprKind = \case
   Var v _ -> VarK v
   Int i _ _ -> LitK (LI i)
   -- LongInt i _ _ -> LitK (LI i)
@@ -417,7 +424,7 @@ exprKind' = \case
   Starred {} -> StarredK
   Paren {} -> ParenK
   StringConversion {} -> StringConversionK
-  e -> error $ "unhandled case of exprKind': " ++ (show e)
+  e -> error $ "unhandled case of exprKind: " ++ (show e)
 
 subESes :: ES -> [ES]
 subESes = \case
