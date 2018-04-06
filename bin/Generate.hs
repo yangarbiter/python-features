@@ -170,8 +170,7 @@ mkDiff'' bad fix
   = assert (not (null x)) $ x
   where
   -- x = Set.toList (diffSpans (collapseDiff (getDiff $ diffExprsT bs fs)))
-  y = (getDiff $ diffExprsT (St <$> bad) (St <$> fix))
-  x = trace (show y) $ Set.toList (diffSpans y (St <$> bad))
+  x = Set.toList (diffSpans (getDiff $ diffExprsT (St <$> bad) (St <$> fix)) (St <$> bad))
 
 runTFeaturesDiff
   :: ErrorSlice -> MySpan -> [Feature] -> ([SrcSpan], Prog)
@@ -204,9 +203,6 @@ runTFeaturesDiff slice exceptionSpan fs (ls, bad)
              ++ inSlice e slice
              ++ concatMap (\(ls,c) -> zipWith (.=) (map mkFeature ls) (c p e)) fs
              ++ pythonBlame e exceptionSpan
-
-boolToDouble :: Bool -> Double
-boolToDouble b = if b then 1 else 0
 
 inSlice e slice = ["F-InSlice" .= (x::Double)]
   where

@@ -6,9 +6,12 @@ module NanoML.ExampleFeatures
   , Feature
   , TypeMap
   , spanToTuple
+  , boolToDouble
   ) where
 
 import Data.Bifunctor
+import Data.Typeable
+import Data.Data
 import qualified Data.HashMap.Strict as HashMap
 
 import NanoML.Classify
@@ -41,39 +44,26 @@ type_tis_ctx :: TypeMap -> [Feature]
 type_tis_ctx tm = ($ tm) <$> tis_type_ctx <$> slicerTypes
 
 preds_tis_ctx :: [Feature]
-preds_tis_ctx = [tis_var_ctx, tis_fun_ctx, tis_app_ctx, tis_lit_int_ctx, tis_lit_float_ctx, tis_lit_bool_ctx]
+preds_tis_ctx = tis_kind_ctx_list <$> constructors
 
 eisToTis :: (ExprSpan -> Double) -> ES -> Double
 eisToTis _ (St _) = 0
 eisToTis f (Ex e) = f e
 
-eis_var :: ExprSpan -> Double
-eis_var e = case e of
-  Var {} -> 1
-  _ -> 0
 
-eis_fun :: ExprSpan -> Double
-eis_fun e = case e of
-  Lambda {} -> 1
-  _ -> 0
+exprConstructors = dataTypeConstrs (dataTypeOf ((None ()) :: Expr ()))
+stmtConstructors = dataTypeConstrs (dataTypeOf ((Pass ()) :: Statement ()))
+constructors = exprConstructors ++ stmtConstructors
 
-eis_app :: ExprSpan -> Double
-eis_app e = case e of
-  Call {} -> 1
-  _ -> 0
+boolToDouble :: Bool -> Double
+boolToDouble b = if b then 1 else 0
 
-eis_lit_int :: ExprSpan -> Double
-eis_lit_int e = case e of
-  Int {} -> 1
-  _ -> 0
-eis_lit_float :: ExprSpan -> Double
-eis_lit_float e = case e of
-  Float {} -> 1
-  _ -> 0
-eis_lit_bool :: ExprSpan -> Double
-eis_lit_bool e = case e of
-  Bool {} -> 1
-  _ -> 0
+eis_kind :: Constr -> ES -> Double
+eis_kind c (Ex e) = boolToDouble $ c == toConstr e
+eis_kind c (St s) = boolToDouble $ c == toConstr s
+
+kindToString :: ES -> String
+kindToString (Ex e) = showConstr $ toConstr e
 
 -- primitive types and OBJECT types
 slicerTypes :: [String]
@@ -99,18 +89,5 @@ spanToTuple SpanEmpty = error "empty span"
 tis_type_ctx :: String -> TypeMap -> Feature
 tis_type_ctx t tm = ( mkContextLabels ("Is-T-"++t), mkContextFeatures (eisToTis (eis_type t tm)) )
 
-tis_var_ctx :: Feature
-tis_var_ctx = ( mkContextLabels "Is-Var", mkContextFeatures (eisToTis eis_var) )
-
-tis_fun_ctx :: Feature
-tis_fun_ctx = ( mkContextLabels "Is-Fun", mkContextFeatures (eisToTis eis_fun) )
-
-tis_app_ctx :: Feature
-tis_app_ctx = ( mkContextLabels "Is-App", mkContextFeatures (eisToTis eis_app) )
-
-tis_lit_int_ctx :: Feature
-tis_lit_int_ctx = ( mkContextLabels "Is-Lit-Int", mkContextFeatures (eisToTis eis_lit_int) )
-tis_lit_float_ctx :: Feature
-tis_lit_float_ctx = ( mkContextLabels "Is-Lit-Float", mkContextFeatures (eisToTis eis_lit_float) )
-tis_lit_bool_ctx :: Feature
-tis_lit_bool_ctx = ( mkContextLabels "Is-Lit-Bool", mkContextFeatures (eisToTis eis_lit_bool) )
+tis_kind_ctx_list :: Constr -> Feature
+tis_kind_ctx_list c = ( mkContextLabels ("Is-"++(showConstr c)), mkContextFeatures (eis_kind c) )
