@@ -59,18 +59,18 @@ main = do
   jsons <- lines <$> readFile src
   case cls of
     "op"
-      -> mkBadFeatures out cls (requestTypeMap preds_tis type_tis) jsons
+      -> mkBadFeatures out cls (requestTypeMap (preds_tis ++ op_tis) [type_tis]) jsons
     "op+slice"
-      -> mkBadFeaturesWithSlice All out cls (requestTypeMap preds_tis type_tis) jsons
+      -> mkBadFeaturesWithSlice All out cls (requestTypeMap (preds_tis ++ op_tis) [type_tis]) jsons
     "op+context"
-      -> mkBadFeatures out cls (requestTypeMap (preds_tis ++ map only_ctx preds_tis_ctx) type_tis) jsons
+      -> mkBadFeatures out cls (requestTypeMap (preds_tis ++ op_tis ++ map only_ctx preds_tis_ctx ++ map only_ctx op_tis_ctx) [type_tis, type_tis_ctx]) jsons
     -- "op+context+size"
     --   -> mkBadFeatures out cls (preds_tsize ++ preds_tis ++ map only_ctx preds_tis_ctx) jsons
     -- "op+size"
     --   -> mkBadFeatures out cls (preds_tsize ++ preds_tis) jsons
 
-requestTypeMap :: [Feature] -> (TypeMap -> [Feature]) -> TypeMap -> [Feature]
-requestTypeMap fs tfs tm = fs ++ (tfs tm)
+requestTypeMap :: [Feature] -> [(TypeMap -> [Feature])] -> TypeMap -> [Feature]
+requestTypeMap fs tfs tm = fs ++ concatMap ($ tm) tfs
 
 data WithSlice = JustSlice | All deriving Eq
 
@@ -99,12 +99,14 @@ mkBadFeaturesWithSlice withSlice out nm fs jsons = do
   forM_ feats $ \ f@((header, features), (ss, bad, fix, _, cs, allspans, i)) -> do
     if
       | mkFrac f > mean+std -> do
-          printf "OUTLIER: %.2f > %.2f\n" (mkFrac f :: Double) (mean+std)
+          -- printf "OUTLIER: %.2f > %.2f\n" (mkFrac f :: Double) (mean+std)
+          return ()
       | null ss -> do
-        putStrLn "NO DIFF"
-        putStrLn bad
-        putStrLn "---------------------------"
-        putStrLn fix
+        -- putStrLn "NO DIFF"
+        -- putStrLn bad
+        -- putStrLn "---------------------------"
+        -- putStrLn fix
+        return ()
       | otherwise -> do
         let fn = printf "%04d" (i :: Int)
         let path = out </> nm </> fn <.> "csv"

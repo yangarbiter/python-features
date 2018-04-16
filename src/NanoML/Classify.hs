@@ -127,7 +127,8 @@ diff e1 e2 = case (e1, e2) of
 type TExpr = ExprSpan
 
 ctfold :: Monoid a => (ES {- parent -} -> ES -> a -> a) -> a -> ES -> a
-ctfold f z r = go r r
+--NOTE: hack using Print as top level just because Print isn't used in Python3
+ctfold f z r = go (St (Print False [] False SpanEmpty)) r
   where
     go p x = f p x (if null subs then z else mconcat (map (go x) subs))
       where
@@ -339,11 +340,11 @@ data ESKind
   | DeleteK
   | StmtExprK
   | AssertK
-  | PrintK Bool Bool
-  | ConditionalK [Int]
+  -- | PrintK Bool Bool
+  | ConditionalK
   | ClassK (Ident ()) Int
-  | WhileK Int
-  | ForK Int Int
+  | WhileK
+  | ForK Int
   | ParenK
   | FunK (Ident ()) Int
   | DotK (Ident ())
@@ -365,11 +366,11 @@ stmtKind :: Statement () -> ESKind
 stmtKind s = case s of
   Import {} -> TerminalStatementK s
   FromImport {} -> TerminalStatementK s
-  While _ body _ _ -> WhileK (length body)
-  For vs _ body _ _ -> ForK (length vs) (length body)
+  While _ body _ _ -> WhileK
+  For vs _ body _ _ -> ForK (length vs)
   Fun name args Nothing _ _ -> FunK name (length args) --TODO args have idents
   Class name args body _ -> ClassK name (length args) --TODO args have idents
-  Conditional gs _ _ -> ConditionalK (length . snd <$> gs)
+  Conditional gs _ _ -> ConditionalK --TODO handle varying number of if/elifs?
   Assign {} -> AssignK
   AugmentedAssign _ op _ _ -> AugmentedAssignK op
   -- --Decorated
@@ -386,7 +387,7 @@ stmtKind s = case s of
   Global _ _ -> TerminalStatementK s
   NonLocal _ _ -> TerminalStatementK s
   Assert {} -> AssertK
-  Print b1 _ b2 _ -> PrintK b1 b2
+  -- Print b1 _ b2 _ -> PrintK b1 b2
   --Exec
   e -> error $ "unhandled case of stmtKind: " ++ (show e)
 

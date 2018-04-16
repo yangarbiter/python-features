@@ -12,12 +12,17 @@ HTML_BEGIN = '''<head>
 </head>
 <body>
 <div class="container">'''
-HTML_END = '''Key:
+HTML_MAIN_END = '''<br/>
+</div>
+Key:
 <br/>
-<div class="box blame">blame</div> / <div class="box">no blame</div>
+<div class="box blame">blame</div> - <div class="box">no blame</div>
 <br/>
 <div class="box change">change</div> / <div class="box">no change</div>
 <br/>
+'''
+HTML_FIX_BEGIN = '''<div class="container">'''
+HTML_END = '''
 <br/>
 </div>
 </body>
@@ -91,12 +96,18 @@ def visualize(code, facts):
 def runNames(inName, outName):
     progSection = True
     prog = ""
+    fix = ""
     with open(os.path.join(ML_DIR,inName+ML_EXT)) as inFile:
         for line in inFile:
             if line == "(* fix\n":
+                progSection = False
+                continue
+            if line == "*)\n":
                 break
-            else:
+            if progSection:
                 prog += line
+            else:
+                fix += line
 
     proc = run("python2 learning/decisionpath.py models/decision-tree-goodCsvs.pkl".split()+[os.path.join(CSV_DIR,inName+CSV_EXT)],
             stdout=PIPE, stderr=PIPE, encoding="utf-8", errors="strict")
@@ -124,12 +135,15 @@ def runNames(inName, outName):
 
     htmlBody = visualize(prog, facts)
     with open(outName, 'w') as outFile:
-        outFile.write(HTML_BEGIN + htmlBody + HTML_END)
+        htmlFix = html.escape(fix, quote=False).replace(' ', '&nbsp').replace('\n', '<br/>\n')
+        outFile.write(HTML_BEGIN + htmlBody + HTML_MAIN_END + HTML_FIX_BEGIN + htmlFix + HTML_END)
 
 if __name__ == '__main__':
-    # for i in range(0, 15000, 500):
+    # bothLost = [example.csv]
+    # for i in bothLost:
+    #     i = i.split('.')[0]
     #     try:
-    #         runNames(str(i), "pipeline/"+str(i)+".html")
+    #         runNames(i, "pipeline/"+i+".html")
     #     except:
     #         pass
     runNames(sys.argv[1], sys.argv[2]) #21234
