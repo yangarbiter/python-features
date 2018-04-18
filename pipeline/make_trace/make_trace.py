@@ -476,7 +476,7 @@ def slice(source, ri, line=None, debug=False):
     lines = source.split('\n')
     for lineNum in keep_these:
         line = lines[lineNum-1].split("#  interaction:")
-        if len(line) != 2:
+        if len(line) == 2:
             span_slice.append(line[1])
         else:
             raise Exception("Sourcemap fail")
