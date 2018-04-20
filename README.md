@@ -14,3 +14,14 @@ stack exec -- generate-features \
 where json in example.json should have three fields - "bad" and "fix" are two Python programs, and "index" is an arbitrary integer.
 
 This will create a `out/op+context/[index].csv` file with the feature vectors, which can then be used normally by NATE.
+
+
+## Running the entire data pipeline
+
+Make sure stack is installed, and docker is installed and running. Then
+- `cd pipeline`
+- `sh ./run-all.sh PATH_TO_PYTHONTUTOR_LOGS OUTDIR
+
+(where OUTDIR is a folder that does not yet exist.)
+
+The resulting data will be in OUTDIR/goodCsvs
