@@ -20,7 +20,7 @@ This will create a `out/op+context/[index].csv` file with the feature vectors, w
 
 Make sure stack is installed, and docker is installed and running. Then
 - `cd pipeline`
-- `sh ./run-all.sh PATH_TO_PYTHONTUTOR_LOGS OUTDIR
+- `sh ./run-all.sh PATH_TO_PYTHONTUTOR_LOGS OUTDIR`
 
 (where OUTDIR is a folder that does not yet exist.)
 
