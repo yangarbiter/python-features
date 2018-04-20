@@ -85,6 +85,8 @@ def find_attribute(var_env, val, identifier):
             value = var_env.heap[ref2[1]]
             return ref2[1], value
 
+    return None, None
+
 # Attempts to find a value by subscripting a value
 # Returns a heap ref and a value
 def find_subscript(var_env, container, index):
@@ -136,7 +138,7 @@ def find_refs(var_env, expr):
     elif isinstance(expr, ast.Subscript):
         s = expr.slice
         if not isinstance(s, ast.Index):
-            raise 'TODO: support slicing'
+            raise ValueError('TODO: support slicing')
 
         container_refs, container = find_refs(var_env, expr.value)
 
