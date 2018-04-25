@@ -5,7 +5,7 @@ from queue import Queue
 
 class VarEnvironment():
     def __init__(self, execution_point):
-        self.heap = execution_point['heap']
+        self.heap = execution_point['heap'] # TODO: routinely raises "KeyError: 'heap'"
         self.globals = execution_point['globals']
         if len(execution_point['stack_to_render']) > 0:
             frame = execution_point['stack_to_render'][-1]
@@ -415,7 +415,11 @@ def build_relations(line_map, line_to_control, tr):
                 UD_CT[step].add(last_definitions[ref])
 
         if exec_point['event'] == 'step_line':
-            stmt_defineds = defined_stmt(tr[step], tr[step + 1])
+            try:
+                stmt_defineds = defined_stmt(tr[step], tr[step + 1])
+            except IndexError:
+                # TODO: find a better way of detecting this issue
+                raise Exception("Insufficient raw input")
             for ref in stmt_defineds:
                 last_definitions[ref] = step
 
@@ -490,7 +494,7 @@ def slice(source, ri, line=None, debug=False):
 
     exceptionLine = step_to_line[exception_step]
     line = lines[exceptionLine-1].split("#  interaction:")
-    if len(line) > 1:
+    if len(line) == 2:
         exceptionSpan = line[1]
     else:
         raise Exception("Sourcemap fail")
