@@ -3,9 +3,14 @@ import pg_logger
 from collections import defaultdict
 from queue import Queue
 
+class BadInputException(Exception):
+    pass
+
 class VarEnvironment():
     def __init__(self, execution_point):
-        self.heap = execution_point['heap'] # TODO: routinely raises "KeyError: 'heap'"
+        if execution_point['event'] == 'instruction_limit_reached':
+            raise BadInputException("Runs more than 1000 steps")
+        self.heap = execution_point['heap']
         self.globals = execution_point['globals']
         if len(execution_point['stack_to_render']) > 0:
             frame = execution_point['stack_to_render'][-1]
@@ -419,7 +424,7 @@ def build_relations(line_map, line_to_control, tr):
                 stmt_defineds = defined_stmt(tr[step], tr[step + 1])
             except IndexError:
                 # TODO: find a better way of detecting this issue
-                raise Exception("Insufficient raw input")
+                raise BadInputException("Insufficient raw input")
             for ref in stmt_defineds:
                 last_definitions[ref] = step
 
@@ -485,7 +490,7 @@ def slice(source, ri, line=None, debug=False):
         if len(line) == 2:
             span_slice.append(line[1])
         else:
-            raise Exception("Sourcemap fail")
+            raise BadInputException("Sourcemap fail")
         # if line in line_to_assignment:
         #     match = span_rexp.match(line_to_assignment[line])
         #     if match:
@@ -497,7 +502,7 @@ def slice(source, ri, line=None, debug=False):
     if len(line) == 2:
         exceptionSpan = line[1]
     else:
-        raise Exception("Sourcemap fail")
+        raise BadInputException("Sourcemap fail")
 
     return exceptionSpan, span_slice
 
