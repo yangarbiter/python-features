@@ -42,5 +42,5 @@ def doPass(func, dataFolder, outSuffix):
     os.makedirs(outFolder, exist_ok=True)
     ignoredFiles = os.listdir(outFolder)
     argsIter = zip(os.listdir(dataFolder), repeat(dataFolder), repeat(outFolder), repeat(ignoredFiles))
-    with Pool(4) as p:
+    with Pool() as p:
         p.starmap(func, argsIter)

@@ -10,6 +10,10 @@ class VarEnvironment():
     def __init__(self, execution_point):
         if execution_point['event'] == 'instruction_limit_reached':
             raise BadInputException("Runs more than 1000 steps")
+        if execution_point['event'] == 'exception' and execution_point['exception_msg'][:9] == 'NameError':
+            raise BadInputException("Input has NameError")
+        if execution_point['event'] == 'uncaught_exception' and execution_point['exception_msg'][:38] == "SyntaxError: 'return' outside function":
+            raise BadInputException("Input has return outside function")
         self.heap = execution_point['heap']
         self.globals = execution_point['globals']
         if len(execution_point['stack_to_render']) > 0:
@@ -409,7 +413,14 @@ def build_relations(line_map, line_to_control, tr):
 
         line = exec_point['line']
         line_to_step[line].add(step)
-        stmt = line_map[line]
+        try:
+            stmt = line_map[line]
+        except KeyError:
+            # TODO: as far as I can tell this happens only with multi-line strings
+            # or blank input. There's no reason blank programs need to make it
+            # this far, and we should support multiline strings eventually
+            # but they're not particularly interesting
+            raise BadInputException("multi-line strings are not supported")
 
         step_to_line[step] = line
 
@@ -450,9 +461,10 @@ Returns a set of line numbers.
 TODO: Guess or allow specification of specific values to track.
 """
 
-def slice(source, ri, line=None, debug=False):
+def slice(source, ri, line=None, debug=False, tr=None):
     line_map, line_to_control = make_line_maps(source)
-    tr = trace(source, ri)
+    if tr == None:
+        tr = trace(source, ri)
 
     # bv = BindingVisitor()
     # bv.visit(ast.parse(source))
@@ -525,9 +537,9 @@ class BindingVisitor(ast.NodeVisitor):
 Returns a dictionary mapping identifiers to types
 """
 
-def extract_type_info(source, ri):
-    line_map, line_to_control = make_line_maps(source)
-    tr = trace(source, ri)
+def extract_type_info(source, ri, tr=None):
+    if tr == None:
+        tr = trace(source, ri)
 
     bv = BindingVisitor()
     bv.visit(ast.parse(source))
@@ -556,3 +568,9 @@ def extract_type_info(source, ri):
 
 
     return ident_to_type
+
+def type_and_slice(source, ri):
+    tr = trace(source, ri)
+    type_info = extract_type_info(source, ri, tr=tr)
+    slice_info = slice(source, ri, tr=tr)
+    return (type_info, slice_info)

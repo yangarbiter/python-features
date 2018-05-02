@@ -8,20 +8,22 @@ LANG = 'py3'
 EVENT_TYPE = 'web_exec'
 
 def checkList(dctlist):
-    '''Returns True if at least two dictionaries in the list have "PF_parses" as True'''
-    parses = 0
+    '''Returns True if at least two dictionaries in the list have not been filtered out'''
+    ok = 0
     for dct in dctlist:
-        if dct["PF_parses"]:
-            parses += 1
-    return (parses > 1)
+        if "PF_exitPipelineReason" not in dct:
+            ok += 1
+    return (ok > 1)
 
 def handleFile(dct, results):
     if 'lang' not in dct or dct['lang'] != LANG or 'event_type' not in dct or dct['event_type'] != EVENT_TYPE or 'session_uuid' not in dct:
         return
     try:
         # py_compile.compile('temp.py', doraise=True) #TODO more accurate (rejects "Return"), but can timeout (e.g. on 'print(8 ** 1000000000000000)')
-        ast.parse(dct['user_script'])
+        x = ast.parse(dct['user_script'])
         dct['PF_parses'] = True
+        if x.body == []:
+            dct['PF_exitPipelineReason'] = ("Empty submission", None)
     except SyntaxError:
         dct['PF_parses'] = False
         dct['PF_exitPipelineReason'] = ("Does not parse", "Syntax Error")

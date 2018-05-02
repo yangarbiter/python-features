@@ -3,7 +3,7 @@ from subprocess import run, PIPE, CalledProcessError, TimeoutExpired
 from utils import doFunc, doPass
 import sys, os
 
-TIMEOUT=2  # max time per program (sec)
+TIMEOUT=10  # max time per program (sec)
 
 def sliceFunc(fileName, dataFolder, outFolder, ignoredFiles):
     doFunc(actualFunc, fileName, dataFolder, outFolder, ignoredFiles)
@@ -16,12 +16,9 @@ def actualFunc(line, dct, outFile):
         dct["PF_slicerOutput"] = x.stdout
     except CalledProcessError as e:
         msg = e.stderr
-        if "BadInputException: Sourcemap fail" in msg:
-            dct['PF_exitPipelineReason'] = ("ANF->slicer sourcemap", None)
-        elif "BadInputException: Insufficient raw input" in msg:
-            dct['PF_exitPipelineReason'] = ("Insufficient raw input", None)
-        elif "BadInputException: Runs more than 1000 steps" in msg:
-            dct['PF_exitPipelineReason'] = ("Runs more than 1000 steps", None)
+        if "BadInputException:" in msg:
+            err = msg.split("BadInputException: ")[-1].strip()
+            dct['PF_exitPipelineReason'] = (err, None)
         else:
             dct['PF_exitPipelineReason'] = ("Slicer error", e.stderr)
     except TimeoutExpired:
