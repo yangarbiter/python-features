@@ -200,7 +200,7 @@ def make_line_maps(source):
     control_visitor = ControlVisitor()
     control_visitor.visit(astree)
 
-    return map_visitor.the_map, control_visitor.line_to_controller
+    return map_visitor.the_map, control_visitor.line_to_controller, control_visitor.break_lines
 
 class UseVisitor(ast.NodeVisitor):
     def __init__(self, exec_point):
@@ -326,7 +326,10 @@ class ControlVisitor(ast.NodeVisitor):
     def __init__(self):
         # Maps statements to their immediate controllers
         self.line_to_controller = defaultdict(set)
-        self.enclosing_controller = 0
+        self.enclosing_controllers = [0] # 0 does not correspond to a statement.
+        self.enclosing_loops = [0] # Index in enclosing_controllers of innermost loop
+        self.break_guards = set() # Previous conditionals that may have avoided a break / continue
+        self.break_lines = set() # Also continues
 
     def die(self, node):
         raise ValueError('Unsupported node: ' + str(type(node)))
@@ -336,26 +339,43 @@ class ControlVisitor(ast.NodeVisitor):
 
     def visit(self, node):
         if isinstance(node, ast.stmt):
-            self.line_to_controller[node.lineno].add(self.enclosing_controller)
+            self.line_to_controller[node.lineno].add(self.enclosing_controllers[-1])
+            self.line_to_controller[node.lineno] |= self.break_guards
 
         super(ControlVisitor, self).visit(node)
 
     def enclosed_visit(self, lineno, node):
-        old_encloser = self.enclosing_controller
-
-        self.enclosing_controller = lineno
+        self.enclosing_controllers.append(lineno)
         self.visit(node)
-        self.enclosing_controller = old_encloser
+        self.enclosing_controllers.pop()
 
     def enclosed_visits(self, lineno, nodes):
-        old_encloser = self.enclosing_controller
-
-        self.enclosing_controller = lineno
+        self.enclosing_controllers.append(lineno)
 
         for node in nodes:
             self.visit(node)
 
-        self.enclosing_controller = old_encloser
+        self.enclosing_controllers.pop()
+
+    def loop_visit(self, lineno, node):
+        # Don't clear the old ones, just remove the new ones afterwards
+        old_break_guards = self.break_guards.copy()
+        
+        self.enclosing_loops.append(len(self.enclosing_controllers))
+        self.enclosed_visit(lineno, node)
+        self.enclosing_loops.pop()
+        
+        self.break_guards = old_break_guards
+
+    def loop_visits(self, lineno, nodes):
+        # Don't clear the old ones, just remove the new ones afterwards
+        old_break_guards = self.break_guards.copy()
+        
+        self.enclosing_loops.append(len(self.enclosing_controllers))
+        self.enclosed_visits(lineno, nodes)
+        self.enclosing_loops.pop()
+        
+        self.break_guards = old_break_guards
 
     def visit_FunctionDef(self, stmt):
         self.enclosed_visits(stmt.lineno, stmt.body)
@@ -369,11 +389,15 @@ class ControlVisitor(ast.NodeVisitor):
         self.enclosed_visits(stmt.lineno, stmt.body)
         self.enclosed_visits(stmt.lineno, stmt.orelse)
 
+    def visit_Loop(self, stmt):
+        self.loop_visits(stmt.lineno, stmt.body)
+        self.loop_visits(stmt.lineno, stmt.orelse)
+
     # TODO: {While, For} technically controls itself after the first iteration,
     # because it only executes if it didn't stop on the previous iteration
-    visit_For = visit_IfLike
+    visit_For = visit_Loop
     visit_AsyncFor = die
-    visit_While = visit_IfLike
+    visit_While = visit_Loop
     visit_If = visit_IfLike
 
     visit_With = die
@@ -382,8 +406,11 @@ class ControlVisitor(ast.NodeVisitor):
     visit_Raise = die
     visit_Try = die
 
-    visit_Break = die
-    visit_Continue = die
+    def visit_Break(self, stmt):
+        self.break_lines.add(stmt.lineno)
+        self.break_guards |= set(self.enclosing_controllers[self.enclosing_loops[-1]:])
+        
+    visit_Continue = visit_Break
 
 def used_stmt(exec_point, stmt):
     visitor = UseVisitor(exec_point)
@@ -397,7 +424,7 @@ def defined_stmt(exec_point, next_exec_point):
     return now_vars.diff(next_vars)
 
 # Returns a map from steps to lines and a combined UD and CT "multimap"
-def build_relations(line_map, line_to_control, tr):
+def build_relations(line_map, line_to_control, break_lines, tr):
     # UD instead of DU, so we can go use -> definition. Similarly, use CT
     # instead of TC
     UD_CT = defaultdict(set)
@@ -406,6 +433,8 @@ def build_relations(line_map, line_to_control, tr):
 
     # Reference to step
     last_definitions = {}
+
+    preceding_break = None # May also be a continue
 
     for step, exec_point in enumerate(tr):
         if exec_point['event'] not in ['step_line', 'exception', 'uncaught_exception']:
@@ -452,6 +481,12 @@ def build_relations(line_map, line_to_control, tr):
         if max_step >= 0:
             UD_CT[step].add(max_step)
 
+        if preceding_break:
+            UD_CT[step].add(preceding_break)
+
+        if line in break_lines:
+            preceding_break = step
+
     return step_to_line, line_to_step, UD_CT
 
 def find_exception(trace):
@@ -468,7 +503,7 @@ TODO: Guess or allow specification of specific values to track.
 """
 
 def slice(source, ri, line=None, debug=False, tr=None, raw=False):
-    line_map, line_to_control = make_line_maps(source)
+    line_map, line_to_control, break_lines = make_line_maps(source)
     if tr == None:
         tr = trace(source, ri)
 
@@ -477,7 +512,8 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
         bv.visit(ast.parse(source))
         line_to_assignment = bv.line_to_assignment
 
-    step_to_line, line_to_step, UD_CT = build_relations(line_map, line_to_control, tr)
+    a = build_relations(line_map, line_to_control, break_lines, tr)
+    step_to_line, line_to_step, UD_CT = a
 
     visited = set()
     queue = Queue()
