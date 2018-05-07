@@ -316,7 +316,7 @@ class UseVisitor(ast.NodeVisitor):
 class ControlVisitor(ast.NodeVisitor):
     def __init__(self):
         # Maps statements to their immediate controllers
-        self.line_to_controller = {}
+        self.line_to_controller = defaultdict(set)
         self.enclosing_controller = 0
 
     def die(self, node):
@@ -327,7 +327,7 @@ class ControlVisitor(ast.NodeVisitor):
 
     def visit(self, node):
         if isinstance(node, ast.stmt):
-            self.line_to_controller[node.lineno] = self.enclosing_controller
+            self.line_to_controller[node.lineno].add(self.enclosing_controller)
 
         super(ControlVisitor, self).visit(node)
 
@@ -425,10 +425,16 @@ def build_relations(line_map, line_to_control, tr):
 
         # Test-Control processing
         # TODO: Support control dependencies caused by function calls
-        control = line_to_control[line]
-        if line_to_step[control]:
-            control_step = max(line_to_step[control])
-            UD_CT[step].add(control_step)
+
+        # Go through all the possible control dependencies and choose the most
+        # recent one
+        max_step = -1;
+        controls = line_to_control[line] # Possible dependencies
+        for control in controls:
+            if line_to_step[control]:
+                max_step = max([max_step, max(line_to_step[control])])
+        if max_step >= 0:
+            UD_CT[step].add(max_step)
 
     return step_to_line, line_to_step, UD_CT
 
@@ -445,13 +451,14 @@ Returns a set of line numbers.
 TODO: Guess or allow specification of specific values to track.
 """
 
-def slice(source, ri, line=None, debug=False):
+def slice(source, ri, line=None, debug=False, raw=False):
     line_map, line_to_control = make_line_maps(source)
     tr = trace(source, ri)
 
-    # bv = BindingVisitor()
-    # bv.visit(ast.parse(source))
-    # line_to_assignment = bv.line_to_assignment
+    if not raw:
+        bv = BindingVisitor()
+        bv.visit(ast.parse(source))
+        line_to_assignment = bv.line_to_assignment
 
     step_to_line, line_to_step, UD_CT = build_relations(line_map, line_to_control, tr)
 
@@ -463,7 +470,10 @@ def slice(source, ri, line=None, debug=False):
         if debug:
             print('Exception at line ' + str(step_to_line[exception_step]))
     elif not line:
-        return None
+        if raw:
+            return None
+        else:
+            return None, None, None
 
     for step in [exception_step] if exception_step else line_to_step[line]:
         queue.put(step)
@@ -481,25 +491,30 @@ def slice(source, ri, line=None, debug=False):
     span_slice = []
     lines = source.split('\n')
     for lineNum in keep_these:
-        line = lines[lineNum-1].split("#  interaction:")
-        if len(line) == 2:
-            span_slice.append(line[1])
+        if raw:
+            line = lines[lineNum-1].split("#  interaction:")
+            if len(line) == 2:
+                span_slice.append(line[1])
+            else:
+                raise Exception("Sourcemap fail")
         else:
-            raise Exception("Sourcemap fail")
-        # if line in line_to_assignment:
-        #     match = span_rexp.match(line_to_assignment[line])
-        #     if match:
-        #         span_slice.append([int(s) for s in match.groups()])
+            if line in line_to_assignment:
+                match = span_rexp.match(line_to_assignment[line])
+                if match:
+                    span_slice.append([int(s) for s in match.groups()])
     stmt_count = float(len(line_map))
 
     exceptionLine = step_to_line[exception_step]
-    line = lines[exceptionLine-1].split("#  interaction:")
-    if len(line) == 2:
-        exceptionSpan = line[1]
-    else:
-        raise Exception("Sourcemap fail")
+    if raw:
+        line = lines[exceptionLine-1].split("#  interaction:")
+        if len(line) == 2:
+            exceptionSpan = line[1]
+        else:
+            raise Exception("Sourcemap fail")
 
-    return exceptionSpan, span_slice
+        return exceptionSpan, span_slice
+    else:
+        return list(keep_these), len(keep_these) / stmt_count, span_slice
 
 # Assumes one assignment per line max
 class BindingVisitor(ast.NodeVisitor):

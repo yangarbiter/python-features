@@ -11,7 +11,7 @@ def process_one(string):
     if result == None:
         return (None, type_info, [])
     else:
-        exceptionSpan, slice_spans = make_trace.slice(source, ri)
+        exceptionSpan, slice_spans = make_trace.slice(source, ri, raw=True)
         return (exceptionSpan, type_info, slice_spans)
 
 if __name__ == '__main__':
