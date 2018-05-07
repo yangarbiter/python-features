@@ -35,8 +35,9 @@ makeAnfStat s@FromImport{} = pure [s]
 makeAnfStat While{..} = do
   (condStmts, condExpr) <- makeAnfExpr while_cond
   newBody <- fmap (++ condStmts) $ makeAnfStats while_body
+  let newBody' = updateContinues condStmts newBody
   newElse <- makeAnfStats while_else
-  pure $ condStmts ++ [While condExpr newBody newElse stmt_annot]
+  pure $ condStmts ++ [While condExpr newBody' newElse stmt_annot]
 makeAnfStat For{..} = do
   (genStmts, genExpr) <- makeAnfExpr for_generator
   newBody <- makeAnfStats for_body
@@ -97,6 +98,19 @@ makeAnfStat s = pure [s]
 
 makeAnfStats :: [StatementSpan] -> Fresh [StatementSpan]
 makeAnfStats stats = fmap concat $ traverse makeAnfStat stats
+
+updateContinue :: [StatementSpan] -> StatementSpan -> [StatementSpan]
+updateContinue condStats s@Continue{} = condStats ++ [s]
+updateContinue condStats Conditional{..} = [Conditional cond_guards' cond_else' stmt_annot] --TODO do this for other stmt types like Try
+  where
+    cond_guards' = updateContinuesGuard condStats <$> cond_guards
+    cond_else'   = updateContinues condStats cond_else
+    updateContinuesGuard :: [StatementSpan] -> (ExprSpan, Suite SrcSpan) -> (ExprSpan, Suite SrcSpan)
+    updateContinuesGuard condStats (e, stmts) = (e, updateContinues condStats stmts)
+updateContinue _         s = [s]
+
+updateContinues :: [StatementSpan] -> [StatementSpan] -> [StatementSpan]
+updateContinues condStats suite = concatMap (updateContinue condStats) suite
 
 idFromNumbers :: Int -> Int -> Int -> Int -> String
 idFromNumbers sr sc er ec =
