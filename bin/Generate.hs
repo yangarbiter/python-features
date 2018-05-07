@@ -63,7 +63,7 @@ main = do
     "op+slice"
       -> mkBadFeaturesWithSlice All out cls (requestTypeMap (preds_tis ++ op_tis) [type_tis]) jsons
     "op+context"
-      -> mkBadFeatures out cls (requestTypeMap (preds_tis ++ op_tis ++ map only_ctx preds_tis_ctx ++ map only_ctx op_tis_ctx) [type_tis, type_tis_ctx]) jsons
+      -> mkBadFeatures out cls (requestTypeMap (preds_tis ++ op_tis ++ map only_ctx preds_tis_ctx ++ map only_ctx op_tis_ctx) [type_tis, only_ctx' type_tis_ctx]) jsons
     -- "op+context+size"
     --   -> mkBadFeatures out cls (preds_tsize ++ preds_tis ++ map only_ctx preds_tis_ctx) jsons
     -- "op+size"

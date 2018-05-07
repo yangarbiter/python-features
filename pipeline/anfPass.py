@@ -5,8 +5,8 @@ from utils import doFunc
 TIMEOUT=3
 ANF_BIN="../.stack-work/install/x86_64-osx/lts-8.14/8.0.2/bin/make-anf-raw"
 
-def anfFunc(fileName, dataFolder, outFolder):
-    doFunc(actualFunc, fileName, dataFolder, outFolder)
+def anfFunc(fileName, dataFolder, outFolder, ignoredFiles):
+    doFunc(actualFunc, fileName, dataFolder, outFolder, ignoredFiles)
 
 def actualFunc(line, dct, outFile):
     code = dct['user_script']

@@ -6,6 +6,7 @@ module NanoML.ExampleFeatures
   , op_tis
   , op_tis_ctx
   , only_ctx
+  , only_ctx'
   , Feature
   , TypeMap
   , spanToTuple
@@ -35,6 +36,9 @@ mkContextFeatures mkF p e =
 
 only_ctx :: Feature -> Feature
 only_ctx = first (drop 1) . second (fmap (fmap (drop 1)))
+
+only_ctx' :: (TypeMap -> [Feature]) -> (TypeMap -> [Feature])
+only_ctx' f tm = map only_ctx (f tm)
 
 preds_tis :: [Feature]
 preds_tis = map (first (take 1) . second (fmap (fmap (take 1))))

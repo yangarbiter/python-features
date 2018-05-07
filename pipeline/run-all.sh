@@ -38,7 +38,7 @@ foo "Create output folder" "mkdir $outDir"
 
 foo "Stack build" "stack build"
 
-foo "Filter raw logs" "python3 dispatch.py filter $inDir $outDir"
+foo "Filter raw logs" "python3 filterPass.py $inDir $outDir"
 
 foo "ANF transformation" "python3 dispatch.py anf $2/py3-web_exec"
 

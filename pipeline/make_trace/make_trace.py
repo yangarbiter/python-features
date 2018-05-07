@@ -3,9 +3,18 @@ import pg_logger
 from collections import defaultdict
 from queue import Queue
 
+class BadInputException(Exception):
+    pass
+
 class VarEnvironment():
     def __init__(self, execution_point):
-        self.heap = execution_point['heap'] # TODO: routinely raises "KeyError: 'heap'"
+        if execution_point['event'] == 'instruction_limit_reached':
+            raise BadInputException("Runs more than 1000 steps")
+        if execution_point['event'] == 'exception' and execution_point['exception_msg'][:9] == 'NameError':
+            raise BadInputException("Input has NameError")
+        if execution_point['event'] == 'uncaught_exception' and execution_point['exception_msg'][:38] == "SyntaxError: 'return' outside function":
+            raise BadInputException("Input has return outside function")
+        self.heap = execution_point['heap']
         self.globals = execution_point['globals']
         if len(execution_point['stack_to_render']) > 0:
             frame = execution_point['stack_to_render'][-1]
@@ -404,7 +413,14 @@ def build_relations(line_map, line_to_control, tr):
 
         line = exec_point['line']
         line_to_step[line].add(step)
-        stmt = line_map[line]
+        try:
+            stmt = line_map[line]
+        except KeyError:
+            # TODO: as far as I can tell this happens only with multi-line strings
+            # or blank input. There's no reason blank programs need to make it
+            # this far, and we should support multiline strings eventually
+            # but they're not particularly interesting
+            raise BadInputException("multi-line strings are not supported")
 
         step_to_line[step] = line
 
@@ -419,7 +435,7 @@ def build_relations(line_map, line_to_control, tr):
                 stmt_defineds = defined_stmt(tr[step], tr[step + 1])
             except IndexError:
                 # TODO: find a better way of detecting this issue
-                raise Exception("Insufficient raw input")
+                raise BadInputException("Insufficient raw input")
             for ref in stmt_defineds:
                 last_definitions[ref] = step
 
@@ -451,9 +467,10 @@ Returns a set of line numbers.
 TODO: Guess or allow specification of specific values to track.
 """
 
-def slice(source, ri, line=None, debug=False, raw=False):
+def slice(source, ri, line=None, debug=False, tr=None, raw=False):
     line_map, line_to_control = make_line_maps(source)
-    tr = trace(source, ri)
+    if tr == None:
+        tr = trace(source, ri)
 
     if not raw:
         bv = BindingVisitor()
@@ -496,7 +513,7 @@ def slice(source, ri, line=None, debug=False, raw=False):
             if len(line) == 2:
                 span_slice.append(line[1])
             else:
-                raise Exception("Sourcemap fail")
+                raise BadInputException("Sourcemap fail")
         else:
             if line in line_to_assignment:
                 match = span_rexp.match(line_to_assignment[line])
@@ -510,7 +527,7 @@ def slice(source, ri, line=None, debug=False, raw=False):
         if len(line) == 2:
             exceptionSpan = line[1]
         else:
-            raise Exception("Sourcemap fail")
+            raise BadInputException("Sourcemap fail")
 
         return exceptionSpan, span_slice
     else:
@@ -535,9 +552,9 @@ class BindingVisitor(ast.NodeVisitor):
 Returns a dictionary mapping identifiers to types
 """
 
-def extract_type_info(source, ri):
-    line_map, line_to_control = make_line_maps(source)
-    tr = trace(source, ri)
+def extract_type_info(source, ri, tr=None):
+    if tr == None:
+        tr = trace(source, ri)
 
     bv = BindingVisitor()
     bv.visit(ast.parse(source))
@@ -566,3 +583,9 @@ def extract_type_info(source, ri):
 
 
     return ident_to_type
+
+def type_and_slice(source, ri):
+    tr = trace(source, ri)
+    type_info = extract_type_info(source, ri, tr=tr)
+    slice_info = slice(source, ri, tr=tr)
+    return (type_info, slice_info)
