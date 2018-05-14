@@ -360,21 +360,21 @@ class ControlVisitor(ast.NodeVisitor):
     def loop_visit(self, lineno, node):
         # Don't clear the old ones, just remove the new ones afterwards
         old_break_guards = self.break_guards.copy()
-        
+
         self.enclosing_loops.append(len(self.enclosing_controllers))
         self.enclosed_visit(lineno, node)
         self.enclosing_loops.pop()
-        
+
         self.break_guards = old_break_guards
 
     def loop_visits(self, lineno, nodes):
         # Don't clear the old ones, just remove the new ones afterwards
         old_break_guards = self.break_guards.copy()
-        
+
         self.enclosing_loops.append(len(self.enclosing_controllers))
         self.enclosed_visits(lineno, nodes)
         self.enclosing_loops.pop()
-        
+
         self.break_guards = old_break_guards
 
     def visit_FunctionDef(self, stmt):
@@ -409,7 +409,7 @@ class ControlVisitor(ast.NodeVisitor):
     def visit_Break(self, stmt):
         self.break_lines.add(stmt.lineno)
         self.break_guards |= set(self.enclosing_controllers[self.enclosing_loops[-1]:])
-        
+
     visit_Continue = visit_Break
 
 def used_stmt(exec_point, stmt):
@@ -627,6 +627,6 @@ def extract_type_info(source, ri, tr=None):
 
 def type_and_slice(source, ri):
     tr = trace(source, ri)
-    slice_info = slice(source, ri, tr=tr)
+    slice_info = slice(source, ri, tr=tr, raw=True)
     type_info = extract_type_info(source, ri, tr=tr)
     return (type_info, slice_info)

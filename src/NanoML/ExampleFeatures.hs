@@ -1,19 +1,17 @@
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+
 module NanoML.ExampleFeatures
-  ( preds_tis
-  , preds_tis_ctx
-  , type_tis
-  , type_tis_ctx
-  , op_tis
-  , op_tis_ctx
-  , only_ctx
-  , only_ctx'
-  , Feature
+  ( Feature
   , TypeMap
   , spanToTuple
-  , boolToDouble
+  , fsNormalCtx
+  , fTypeCtx
+  , noCtx
   ) where
 
 import Data.Bifunctor
+import Data.Default
 import Data.Typeable
 import Data.Data
 import qualified Data.HashMap.Strict as HashMap
@@ -24,102 +22,64 @@ import Language.Python.Common
 
 import Debug.Trace
 
-type Feature = ([String], (ES -> ES -> [Double]))
+type Feature a = ([String], (ES -> ES -> [a]))
 type TypeMap = (HashMap.HashMap String String, HashMap.HashMap (Int, Int, Int, Int) String)
+
+instance Default Bool where
+  def = False
 
 mkContextLabels :: String -> [String]
 mkContextLabels l = [l, l++"-P", l++"-C1", l++"-C2", l++"-C3"]
 
-mkContextFeatures :: (ES -> Double) -> ES -> ES -> [Double]
+mkContextFeatures :: (Default a) => (ES -> a) -> ES -> ES -> [a]
 mkContextFeatures mkF p e =
-  [mkF e, mkF p] ++ take 3 (map mkF (subESes e) ++ repeat 0)
+  [mkF e, mkF p] ++ take 3 (map mkF (subESes' e) ++ repeat def)
 
-only_ctx :: Feature -> Feature
-only_ctx = first (drop 1) . second (fmap (fmap (drop 1)))
+noCtx :: Feature a -> Feature a
+noCtx = first (take 1) . second (fmap (fmap (take 1)))
 
-only_ctx' :: (TypeMap -> [Feature]) -> (TypeMap -> [Feature])
-only_ctx' f tm = map only_ctx (f tm)
+noCtx' :: (b -> Feature a) -> (b -> Feature a)
+noCtx' = (.) noCtx
 
-preds_tis :: [Feature]
-preds_tis = map (first (take 1) . second (fmap (fmap (take 1))))
-            preds_tis_ctx
+collapseStmtExpr :: (ES -> a) -> (ES -> a)
+collapseStmtExpr f (St (StmtExpr e _)) = f (Ex e)
+collapseStmtExpr f x = f x
 
-type_tis :: TypeMap -> [Feature]
-type_tis tm = map (first (take 1) . second (fmap (fmap (take 1))))
-              (type_tis_ctx tm)
-type_tis_ctx :: TypeMap -> [Feature]
-type_tis_ctx tm = ($ tm) <$> ((tis_type_ctx <$> slicerTypes) ++ [tis_other_type_ctx, tis_unknown_type_ctx])
+getExprConstr :: ES -> Maybe Constr
+getExprConstr = collapseStmtExpr getExprConstr'
 
-preds_tis_ctx :: [Feature]
-preds_tis_ctx = tis_kind_ctx_list <$> constructors
+getExprConstr' (Ex e) = Just $ toConstr e
+getExprConstr' (St s) = Nothing
 
-op_tis :: [Feature]
-op_tis = map (first (take 1) . second (fmap (fmap (take 1))))
-            op_tis_ctx
+getStmtConstr :: ES -> Maybe Constr
+getStmtConstr (Ex _) = Nothing
+getStmtConstr (St s) = Just $ toConstr s
 
-op_tis_ctx :: [Feature]
-op_tis_ctx = tis_op_ctx <$> dataTypeConstrs (dataTypeOf (And ()))
+getOpConstr :: ES -> Maybe Constr
+getOpConstr = collapseStmtExpr getOpConstr'
 
-eisToTis :: (ExprSpan -> Double) -> ES -> Double
-eisToTis _ (St _) = 0
-eisToTis f (Ex e) = f e
-
-
-data ESConstr = ExC Constr | StC Constr
-
-exprConstructors = ExC <$> dataTypeConstrs (dataTypeOf (None ()))
-stmtConstructors = StC <$> dataTypeConstrs (dataTypeOf (Pass ()))
-constructors = exprConstructors ++ stmtConstructors
-
-boolToDouble :: Bool -> Double
-boolToDouble b = if b then 1 else 0
-
-eis_kind :: ESConstr -> ES -> Double
-eis_kind (ExC c) (Ex e) = boolToDouble $ c == toConstr e
-eis_kind (StC c) (St s) = boolToDouble $ c == toConstr s
-eis_kind _ _            = boolToDouble False
-
-eis_op :: Constr -> ES -> Double
-eis_op c (Ex (BinaryOp op _ _ _)) = boolToDouble $ c == toConstr op
-eis_op c (Ex (UnaryOp op _ _))      = boolToDouble $ c == toConstr op
-eis_op _ _                        = boolToDouble False
-
-kindToString :: ES -> String
-kindToString (Ex e) = showConstr $ toConstr e
+getOpConstr' (Ex (BinaryOp op _ _ _)) = Just $ toConstr op
+getOpConstr' (Ex (UnaryOp op _ _))    = Just $ toConstr op
+getOpConstr' _                        = Nothing
 
 -- primitive types and OBJECT types
 slicerTypes :: [String]
 slicerTypes = ["LIST", "TUPLE", "SET", "DICT", "INSTANCE", "CLASS", "FUNCTION",
   "module", "int", "long", "float", "str", "unicode", "bool", "NoneType"]
 
-eis_type :: String -> TypeMap -> ExprSpan -> Double
-eis_type t (mVar, mSpan) e = case HashMap.lookup (spanToTuple $ annot e) mSpan of
-  Just t' | t' == t -> 1
-  Just t' | t' /= t -> 0
-  Nothing -> case e of
-    Var (Ident x _) _ -> case HashMap.lookup x mVar of
-      Just t' | t' == t -> 1
-      _ -> 0
-    _ -> 0
+getType :: TypeMap -> ES -> Maybe String
+getType m = collapseStmtExpr (getType' m)
 
-eis_other_type :: TypeMap -> ExprSpan -> Double
-eis_other_type (mVar, mSpan) e = case HashMap.lookup (spanToTuple $ annot e) mSpan of
-  Just t' | notElem t' slicerTypes -> 1
-  Just t' | elem t' slicerTypes -> 0
+getType' _ (St _) = Nothing
+getType' (mVar, mSpan) (Ex e) = Just $ case HashMap.lookup (spanToTuple $ annot e) mSpan of
+  Just t' | elem t' slicerTypes -> t'
+  Just t' | otherwise -> "other"
   Nothing -> case e of
     Var (Ident x _) _ -> case HashMap.lookup x mVar of
-      Just t' | notElem t' slicerTypes -> 1
-      _ -> 0
-    _ -> 0
-
-eis_unknown_type :: TypeMap -> ExprSpan -> Double
-eis_unknown_type (mVar, mSpan) e = case HashMap.lookup (spanToTuple $ annot e) mSpan of
-  Just t' -> 0
-  Nothing -> case e of
-    Var (Ident x _) _ -> case HashMap.lookup x mVar of
-      Just t' -> 0
-      Nothing -> 1
-    _ -> 1
+      Just t' | elem t' slicerTypes -> t'
+      Just t' | otherwise -> "other"
+      Nothing -> "unknown"
+    _ -> "unknown"
 
 spanToTuple :: SrcSpan -> (Int, Int, Int, Int)
 spanToTuple (SpanCoLinear _ r c1 c2) = (r, c1, r, c2)
@@ -127,21 +87,24 @@ spanToTuple (SpanMultiLine _ r1 c1 r2 c2) = (r1, c1, r2, c2)
 spanToTuple (SpanPoint _ r c) = (r, c, r, c)
 spanToTuple SpanEmpty = error "empty span"
 
-tis_type_ctx :: String -> TypeMap -> Feature
-tis_type_ctx t tm = ( mkContextLabels ("Is-T-"++t), mkContextFeatures (eisToTis (eis_type t tm)) )
+fTypeCtx :: TypeMap -> Feature (Maybe String)
+fTypeCtx tm = ( mkContextLabels ("Type"), mkContextFeatures (getType tm) )
 
-tis_other_type_ctx :: TypeMap -> Feature
-tis_other_type_ctx tm = ( mkContextLabels ("Is-T-Other"), mkContextFeatures (eisToTis (eis_other_type tm)) )
+fStmtConstrCtx :: Feature (Maybe Constr)
+fStmtConstrCtx = ( mkContextLabels "Stmt-Constr", mkContextFeatures getStmtConstr )
 
-tis_unknown_type_ctx :: TypeMap -> Feature
-tis_unknown_type_ctx tm = ( mkContextLabels ("Is-T-Unknown"), mkContextFeatures (eisToTis (eis_unknown_type tm)) )
+fExprConstrCtx :: Feature (Maybe Constr)
+fExprConstrCtx = ( mkContextLabels "Expr-Constr", mkContextFeatures getExprConstr )
 
-tis_kind_ctx_list :: ESConstr -> Feature
-tis_kind_ctx_list c = ( mkContextLabels ("Is-"++(showConstr' c)), mkContextFeatures (eis_kind c) )
+fOpConstrCtx :: Feature (Maybe Constr)
+fOpConstrCtx = ( mkContextLabels "Op-Contr", mkContextFeatures getOpConstr )
 
-tis_op_ctx :: Constr -> Feature
-tis_op_ctx c = ( mkContextLabels ("Is-"++(showConstr c)), mkContextFeatures (eis_op c) )
+-- fsNormalCtx :: [Feature (Maybe Constr)]
+-- fsNormalCtx = [fStmtConstrCtx, fExprConstrCtx, fOpConstrCtx]
+fsNormalCtx :: [Feature (Maybe String)]
+fsNormalCtx = fmap (fmap' (fmap showConstr)) [fStmtConstrCtx, fExprConstrCtx, fOpConstrCtx]
 
-showConstr' :: ESConstr -> String
-showConstr' (ExC c) = showConstr c
-showConstr' (StC c) = showConstr c
+fmap' :: (a -> b) -> Feature a -> Feature b
+fmap' f (ls, feat) = (ls, feat')
+  where
+    feat' x y = f <$> feat x y

@@ -24,7 +24,7 @@ data Literal
   | LS [String]
   deriving (Show, Eq)
 
-foldExpr :: Monoid a => (ExprSpan -> a -> a) -> a -> ExprSpan -> a
+foldExpr :: (Monoid a, Show b) => (Expr b -> a -> a) -> a -> Expr b -> a
 foldExpr f z = go
   where
   go e = f e $ case e of
@@ -124,15 +124,13 @@ diff e1 e2 = case (e1, e2) of
   where
     merge = mconcat
 
-type TExpr = ExprSpan
-
 ctfold :: Monoid a => (ES {- parent -} -> ES -> a -> a) -> a -> ES -> a
 --NOTE: hack using Print as top level just because Print isn't used in Python3
 ctfold f z r = go (St (Print False [] False SpanEmpty)) r
   where
     go p x = f p x (if null subs then z else mconcat (map (go x) subs))
       where
-        subs = subESes x
+        subs = subESes' x -- subESes' skips Expr that is child of StmtExpr
 
 data Diff
   = Ins ES Diff
@@ -174,17 +172,13 @@ diffSpans d' es = Set.fromList $ go d' (concatMap allSubESes es)
   where
   go _ [] = []
   go d' (x:xs) = case d' of
-    Ins e d -> getSrcSpan x : go d (x:xs)
+    Ins e d -> getSpan x : go d (x:xs)
     -- TODO: should we collapse `del e (ins* es)`, e.g.
     -- if a leaf is replaced by an entire tree?
-    Del e (Ins _ d) -> getSrcSpan e : go d xs
-    Del e d -> getSrcSpan e : go d xs
+    Del e (Ins _ d) -> getSpan e : go d xs
+    Del e d -> getSpan e : go d xs
     Cpy e d -> go d xs
     End -> [] -- WEIRD
-
-getSrcSpan :: ES -> SrcSpan
-getSrcSpan (Ex e) = annot e
-getSrcSpan (St s) = annot s
 
 allSubESes :: ES -> [ES]
 allSubESes x = x : (concatMap allSubESes $ subESes x)
@@ -427,6 +421,13 @@ exprKind = \case
   StringConversion {} -> StringConversionK
   e -> error $ "unhandled case of exprKind: " ++ (show e)
 
+subESes' :: ES -> [ES]
+subESes' = \case
+  Ex e -> subESes (Ex e)
+  St s -> case s of
+    StmtExpr e _ -> subESes (Ex e)
+    _ -> subESes (St s)
+
 subESes :: ES -> [ES]
 subESes = \case
   Ex e -> Ex <$> subExprs e
@@ -457,7 +458,7 @@ subESes = \case
     Print _ es _ _ -> Ex <$> es
     --Exec
 
-subExprs :: ExprSpan -> [ExprSpan]
+subExprs :: (Show a) => Expr a -> [Expr a]
 subExprs = \case
   Var {} -> []
   Int {} -> []

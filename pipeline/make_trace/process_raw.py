@@ -6,7 +6,7 @@ def process_one(string):
     source = obj['PF_anf_user_script']
     ri = json.dumps(obj['raw_input']) if 'raw_input' in obj else '[]'
 
-    (type_info, result) = make_trace.type_and_slice(source, ri, raw=True)
+    (type_info, result) = make_trace.type_and_slice(source, ri)
     if result == None:
         return (None, type_info, [])
     else:

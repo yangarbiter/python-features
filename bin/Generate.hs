@@ -12,6 +12,7 @@ import qualified Data.Algorithm.Diff as Diff
 import qualified Data.ByteString.Char8 as BSC
 import qualified Data.ByteString.Lazy.Char8 as LBSC
 import Data.Csv
+import Data.Data (Constr, showConstr)
 import Data.Either
 import Data.Function
 import Data.List
@@ -59,25 +60,27 @@ main = do
   jsons <- lines <$> readFile src
   case cls of
     "op"
-      -> mkBadFeatures out cls (requestTypeMap (preds_tis ++ op_tis) [type_tis]) jsons
+      -> mkBadFeatures out cls (requestTypeMap (noCtx <$> fsNormalCtx) (noCtx . fTypeCtx)) jsons
     "op+slice"
-      -> mkBadFeaturesWithSlice All out cls (requestTypeMap (preds_tis ++ op_tis) [type_tis]) jsons
+      -> mkBadFeaturesWithSlice All out cls (requestTypeMap (noCtx <$> fsNormalCtx) (noCtx . fTypeCtx)) jsons
     "op+context"
-      -> mkBadFeatures out cls (requestTypeMap (preds_tis ++ op_tis ++ map only_ctx preds_tis_ctx ++ map only_ctx op_tis_ctx) [type_tis, only_ctx' type_tis_ctx]) jsons
+      -> mkBadFeatures out cls (requestTypeMap fsNormalCtx fTypeCtx) jsons
+    "op+context+slice"
+      -> mkBadFeaturesWithSlice All out cls (requestTypeMap fsNormalCtx fTypeCtx) jsons
     -- "op+context+size"
     --   -> mkBadFeatures out cls (preds_tsize ++ preds_tis ++ map only_ctx preds_tis_ctx) jsons
     -- "op+size"
     --   -> mkBadFeatures out cls (preds_tsize ++ preds_tis) jsons
 
-requestTypeMap :: [Feature] -> [(TypeMap -> [Feature])] -> TypeMap -> [Feature]
-requestTypeMap fs tfs tm = fs ++ concatMap ($ tm) tfs
+requestTypeMap :: [Feature a] -> (TypeMap -> Feature a) -> TypeMap -> [Feature a]
+requestTypeMap fs tf tm = fs ++ [tf tm]
 
 data WithSlice = JustSlice | All deriving Eq
 
-mkBadFeatures :: String -> String -> (TypeMap -> [Feature]) -> [String] -> IO ()
+mkBadFeatures :: (ToField a) => String -> String -> (TypeMap -> [Feature a]) -> [String] -> IO ()
 mkBadFeatures = mkBadFeaturesWithSlice JustSlice
 
-mkBadFeaturesWithSlice :: WithSlice -> String -> String -> (TypeMap -> [Feature]) -> [String] -> IO ()
+mkBadFeaturesWithSlice :: (ToField a) => WithSlice -> String -> String -> (TypeMap -> [Feature a]) -> [String] -> IO ()
 mkBadFeaturesWithSlice withSlice out nm fs jsons = do
   let uniqs = concatMap mkDiffs jsons
   let feats = [ ((h, f'), (ss, bad, fix, exceptionSpan, slice, all, idx))
@@ -86,7 +89,7 @@ mkBadFeaturesWithSlice withSlice out nm fs jsons = do
               , let f' = filter (\r -> withSlice == All || r HashMap.! "F-InSlice" == "1.0") f
                 -- a one-constraint core is bogus, this should be impossible
               -- , length f' > 1
-              , let all = nub $ map getSrcSpan (concatMap allSubESes $ St <$> p)
+              , let all = nub $ map getSpan (concatMap allSubESes $ St <$> p)
               ]
   --let feats' = filter (\(_, (_,_,_,cs,_,_)) -> not (null cs)) feats
   let mkMean f xs = sum (map f xs) / genericLength xs
@@ -175,7 +178,7 @@ mkDiff'' bad fix
   x = Set.toList (diffSpans (getDiff $ diffExprsT (St <$> bad) (St <$> fix)) (St <$> bad))
 
 runTFeaturesDiff
-  :: ErrorSlice -> MySpan -> [Feature] -> ([SrcSpan], Prog)
+  :: (ToField a) => ErrorSlice -> MySpan -> [Feature a] -> ([SrcSpan], Prog)
   -> Maybe (Header, [NamedRecord])
 runTFeaturesDiff slice exceptionSpan fs (ls, bad)
   | null samples
@@ -200,29 +203,23 @@ runTFeaturesDiff slice exceptionSpan fs (ls, bad)
   mkTypeOut te = ctfold f [] (St te)
     where
     f p e acc = (:acc) . namedRecord $
-                ["SourceSpan" .= show (spanToTuple $ getSrcSpan e)]
-             ++ didChange (getSrcSpan e)
+                ["SourceSpan" .= show (spanToTuple $ getSpan e)]
+             ++ didChange (getSpan e)
              ++ inSlice e slice
              ++ concatMap (\(ls,c) -> zipWith (.=) (map mkFeature ls) (c p e)) fs
              ++ pythonBlame e exceptionSpan
 
-inSlice e slice = ["F-InSlice" .= (x::Double)]
-  where
-    x = boolToDouble $ inSlice' e slice
+inSlice e slice = ["F-InSlice" .= inSlice' e slice]
+pythonBlame e exceptionSpan = ["F-PythonBlame" .= inSlice' e [exceptionSpan]]
 
 inSlice' :: ES -> ErrorSlice -> Bool
 inSlice' e spanSlice = elem (spanToTuple $ getSpan e) spanSlice
-
-pythonBlame e exceptionSpan = ["F-PythonBlame" .= (x::Double)]
-  where
-    x = boolToDouble $ inSlice' e [exceptionSpan]
 
 mkLabel :: String -> BSC.ByteString
 mkLabel s = BSC.pack ("L-" ++ s)
 
 mkFeature :: String -> BSC.ByteString
 mkFeature s = BSC.pack ("F-" ++ s)
-
 
 data InSample = MkInSample { bad :: String,
                              fix :: String,
@@ -235,3 +232,8 @@ data InSample = MkInSample { bad :: String,
                            }
   deriving (Show, Generic)
 instance FromJSON InSample
+
+instance ToField Constr where
+  toField = toField . showConstr
+instance ToField Bool where
+  toField = toField . show
