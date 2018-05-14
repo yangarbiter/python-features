@@ -627,6 +627,6 @@ def extract_type_info(source, ri, tr=None):
 
 def type_and_slice(source, ri):
     tr = trace(source, ri)
-    type_info = extract_type_info(source, ri, tr=tr)
     slice_info = slice(source, ri, tr=tr)
+    type_info = extract_type_info(source, ri, tr=tr)
     return (type_info, slice_info)
