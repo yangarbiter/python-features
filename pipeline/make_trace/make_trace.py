@@ -603,7 +603,12 @@ def extract_type_info(source, ri, tr=None):
             line = exec_point['line']
             if line in line_to_assignment:
                 ident = line_to_assignment[line]
-                next_vars = VarEnvironment(tr[step + 1])
+
+                try:
+                    next_vars = VarEnvironment(tr[step + 1])
+                except IndexError:
+                    # TODO: find a better way of detecting this issue
+                    raise BadInputException("Insufficient raw input")
 
                 val = next_vars.get_val(ident)
                 if val:
