@@ -32,7 +32,7 @@ import System.IO
 import Text.Printf
 
 import NanoML.Classify
-import NanoML.ExampleFeatures
+import NanoML.Features
 
 import qualified Language.Python.Version2.Parser as Py2
 import qualified Language.Python.Version3.Parser as Py3

@@ -1,7 +1,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module NanoML.ExampleFeatures
+module NanoML.Features
   ( Feature
   , TypeMap
   , spanToTuple
