@@ -96,15 +96,38 @@ def find_attribute(var_env, val, identifier):
 
     return None, None
 
+def is_heap_int(val):
+    return val[0] == 'HEAP_PRIMITIVE' and val[1] == 'int'
+
+def resolve_index(container_len, index):
+    if index >= 0:
+        return index
+    else:
+        return container_len + index
+
 # Attempts to find a value by subscripting a value
 # Returns a heap ref and a value
-def find_subscript(var_env, container, index):
+# Can return None for ref if the value is a new object
+def find_subscript(var_env, container, index, upper_index = None):
     if container[0] ==  'LIST':
-        if index[0] == 'HEAP_PRIMITIVE' and index[1] == 'int' and len(container) > index[2] + 1:
-            ref = container[index[2] + 1]
-            assert(ref[0] == 'REF')
-            value = var_env.heap[ref[1]]
-            return ref[1], value
+        if is_heap_int(index) and len(container) > index[2] + 1:
+            actual_index = resolve_index(len(container) - 1, index[2])
+
+            if upper_index and is_heap_int(upper_index):
+                actual_upper_index = resolve_index(len(container) - 1, upper_index[2])
+                if len(container) > max(actual_index + 1, actual_upper_index) and min(actual_index, actual_upper_index - 1) >= 0:
+                    value = ['LIST']
+                    for ref in container[actual_index + 1 : actual_upper_index + 1]:
+                        assert(ref[0] == 'REF')
+                        value.append(ref)
+                    return None, value
+            elif not upper_index:
+                if len(container) > actual_index + 1 and actual_index >= 0:
+                    ref = container[actual_index + 1]
+                    assert(ref[0] == 'REF')
+                    value = var_env.heap[ref[1]]
+                    return ref[1], value
+                    
     elif container[0] == 'TUPLE':
         if index[0] == 'HEAP_PRIMITIVE' and index[1] == 'int' and len(container) > index[2] + 1:
             ref = container[index[2] + 1]
@@ -146,21 +169,33 @@ def find_refs(var_env, expr):
             return instance_refs, None
     elif isinstance(expr, ast.Subscript):
         s = expr.slice
-        if not isinstance(s, ast.Index):
-            raise ValueError('TODO: support slicing')
 
         container_refs, container = find_refs(var_env, expr.value)
 
         if not container:
             return container_refs, None
 
-        index_refs, index = find_refs(var_env, s.value)
-        if not index:
-            return container_refs | index_refs, None
+        if isinstance(s, ast.Index):
+            index_refs, index = find_refs(var_env, s.value)
+            if not index:
+                return container_refs | index_refs, None
 
-        sub_ref, sub_value = find_subscript(var_env, container, index)
+            sub_ref, sub_value = find_subscript(var_env, container, index)
+        elif isinstance(s, ast.Slice):
+            upper_refs, upper = find_refs(var_env, s.upper)
+            lower_refs, lower = find_refs(var_env, s.lower)
+            if not upper or not lower:
+                return container_refs | upper_refs | lower_refs, None
 
-        return container_refs | index_refs | set([sub_ref]), sub_value
+            sub_ref, sub_value = find_subscript(var_env, container, lower, upper)
+        else:
+            raise ValueError("TODO: Support extended slicing")
+            
+        sub_refs = set()
+        if sub_ref:
+            sub_refs.add(sub_ref)
+
+        return container_refs | index_refs | sub_refs, sub_value
     else:
         # raise 'Unsupported find_refs argument'
         return set(), None
