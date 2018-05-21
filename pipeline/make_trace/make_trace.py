@@ -129,7 +129,7 @@ def find_subscript(var_env, container, index, upper_index = None):
                     assert(ref[0] == 'REF')
                     value = var_env.heap[ref[1]]
                     return ref[1], value
-                    
+
     elif container[0] == 'TUPLE':
         if index[0] == 'HEAP_PRIMITIVE' and index[1] == 'int' and len(container) > index[2] + 1:
             ref = container[index[2] + 1]
@@ -192,7 +192,7 @@ def find_refs(var_env, expr):
             sub_ref, sub_value = find_subscript(var_env, container, lower, upper)
         else:
             raise ValueError("TODO: Support extended slicing")
-            
+
         sub_refs = set()
         if sub_ref:
             sub_refs.add(sub_ref)
@@ -462,7 +462,6 @@ def defined_stmt(exec_point, next_exec_point):
 
 # Returns a map from steps to lines and a combined UD and CT "multimap"
 def build_relations(line_map, line_to_control, break_lines, tr):
-    print(tr)
     # UD instead of DU, so we can go use -> definition. Similarly, use CT
     # instead of TC
     UD_CT = defaultdict(set)
