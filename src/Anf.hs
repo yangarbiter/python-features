@@ -10,6 +10,7 @@ import Control.Monad.State.Strict
 import Language.Python.Common
 import Language.Python.Common.Pretty
 import Language.Python.Version3.Parser
+import Data.String.Utils (replace)
 
 import MyPretty
 
@@ -164,8 +165,9 @@ makeAnfExpr e@Imaginary{} = namedExpr e
 makeAnfExpr e@Bool{} = namedExpr e
 makeAnfExpr e@None{} = namedExpr e
 makeAnfExpr e@Ellipsis{} = namedExpr e
-makeAnfExpr e@ByteStrings{} = namedExpr e
-makeAnfExpr e@Strings{} = namedExpr e
+-- Slicer can't handle multi-line strings, so force them into a single line of code:
+makeAnfExpr (ByteStrings ss ann) = namedExpr (ByteStrings (replace "\n" "\\n" <$> ss) ann)
+makeAnfExpr (Strings ss ann) = namedExpr (Strings (replace "\n" "\\n" <$> ss) ann)
 makeAnfExpr e@UnicodeStrings{} = namedExpr e
 makeAnfExpr Call{..} = do
   (funStmts, funExpr) <- makeAnfExpr call_fun

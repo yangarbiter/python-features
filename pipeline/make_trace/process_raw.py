@@ -10,8 +10,8 @@ def process_one(string):
     if result == None:
         return (None, type_info, [])
     else:
-        exceptionSpan, slice_spans = result
-        return (exceptionSpan, type_info, slice_spans)
+        exceptionSpan, slice_spans, exceptionMsg = result
+        return (exceptionSpan, type_info, slice_spans, exceptionMsg)
 
 if __name__ == '__main__':
     print(process_one(sys.argv[1]))

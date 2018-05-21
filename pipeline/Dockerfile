@@ -16,5 +16,5 @@ ADD . /app
 # Define environment variable
 # ENV NAME World
 
-# Run app.py when the container launches
-ENTRYPOINT ["python", "dispatch.py"]
+# Run slicePass.py when the container launches
+ENTRYPOINT ["python", "slicePass.py"]

@@ -40,15 +40,15 @@ foo "Stack build" "stack build"
 
 foo "Filter raw logs" "python3 filterPass.py $inDir $outDir"
 
-foo "ANF transformation" "python3 dispatch.py anf $2/py3-web_exec"
+foo "ANF transformation" "python3 anfPass.py $outDir/py3-web_exec $outDir/updated-with-anf"
 
 foo "Docker build" "docker build -t python-pipeline ."
-foo "Run slicer" "docker run -v $(realpath $outDir/py3-web_exec/updated-with-anf):/app/data python-pipeline slice"
+foo "Run slicer" "docker run -v $(realpath $outDir/updated-with-anf):/app/data -v $(realpath $outDir/sliced):/app/sliced python-pipeline data sliced"
 
-foo "Make pairs" "python3 3-make-pairs.py $outDir/py3-web_exec/updated-with-anf/sliced"
+foo "Make pairs" "python3 3-make-pairs.py $outDir/sliced $outDir/pairs"
 
-foo "Filter pairs" "python3 4-run-on-single-lines.py $outDir/py3-web_exec/updated-with-anf/sliced/pairs $outDir"
+foo "Filter pairs" "python3 4-run-on-single-lines.py $outDir/pairs $outDir"
 
-foo "Generate features" "stack exec -- generate-features --source $outDir/goodPairs.jsonl --features op+context --out $outDir/foo"
+foo "Generate features" "stack exec -- generate-features --source $outDir/goodPairs.jsonl --features op+context+slice --out $outDir/foo"
 
-foo "Filter results" "python3 twoSided.py $outDir/foo/op+context $outDir"
+foo "Filter results" "python3 twoSided.py $outDir/foo/op+context+slice $outDir"

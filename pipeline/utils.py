@@ -13,8 +13,11 @@ def doForNonDirs(dataFolder, func, outArg, loud=False):
             print(fileName)
         with open(fullPath, 'r') as logFile:
             for line in logFile:
-                dct = json.loads(line)
-                func(dct, outArg)
+                try:
+                    dct = json.loads(line)
+                    func(dct, outArg)
+                except json.decoder.JSONDecodeError:
+                    print("WEIRD JSON DECODE IN FILE: %s" % logFile)
 
 def doFunc(func, fileName, dataFolder, outFolder, ignoredFiles):
     fullPath = os.path.join(dataFolder,fileName)
@@ -37,8 +40,7 @@ def doFunc(func, fileName, dataFolder, outFolder, ignoredFiles):
 
     # os.remove(fullPath)
 
-def doPass(func, dataFolder, outSuffix):
-    outFolder = os.path.join(dataFolder, outSuffix)
+def doPass(func, dataFolder, outFolder):
     os.makedirs(outFolder, exist_ok=True)
     ignoredFiles = os.listdir(outFolder)
     argsIter = zip(os.listdir(dataFolder), repeat(dataFolder), repeat(outFolder), repeat(ignoredFiles))

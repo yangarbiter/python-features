@@ -29,4 +29,4 @@ def actualFunc(line, dct, outFile):
 # docker run -v PF_DATA:/data python-pipeline
 
 if __name__ == '__main__':
-    doPass(sliceFunc, sys.argv[1], 'sliced')
+    doPass(sliceFunc, sys.argv[1], sys.argv[2])

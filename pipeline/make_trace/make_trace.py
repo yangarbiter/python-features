@@ -12,6 +12,8 @@ class VarEnvironment():
             raise BadInputException("Runs more than 1000 steps")
         if execution_point['event'] == 'exception' and execution_point['exception_msg'][:9] == 'NameError':
             raise BadInputException("Input has NameError")
+        if execution_point['event'] == 'exception' and execution_point['exception_msg'][:17] == 'UnboundLocalError':
+            raise BadInputException("Input has UnboundLocalError")
         if execution_point['event'] == 'uncaught_exception' and execution_point['exception_msg'][:38] == "SyntaxError: 'return' outside function":
             raise BadInputException("Input has return outside function")
         self.heap = execution_point['heap']
@@ -460,6 +462,7 @@ def defined_stmt(exec_point, next_exec_point):
 
 # Returns a map from steps to lines and a combined UD and CT "multimap"
 def build_relations(line_map, line_to_control, break_lines, tr):
+    print(tr)
     # UD instead of DU, so we can go use -> definition. Similarly, use CT
     # instead of TC
     UD_CT = defaultdict(set)
@@ -527,7 +530,12 @@ def build_relations(line_map, line_to_control, break_lines, tr):
 def find_exception(trace):
     for step, exec_point in enumerate(trace):
         if exec_point['event'] in ['uncaught_exception', 'exception']:
-            return step
+            if 'exception_msg' not in exec_point:
+                print(exec_point)
+                return (step, "")
+            else:
+                return (step, exec_point['exception_msg'])
+    return (None, None)
 
 span_rexp = re.compile('span_([0-9]*)_([0-9]*)_([0-9]*)_([0-9]*)')
 
@@ -552,7 +560,7 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
 
     visited = set()
     queue = Queue()
-    exception_step = find_exception(tr)
+    exception_step, exceptionMsg = find_exception(tr)
 
     if exception_step:
         if debug:
@@ -600,7 +608,7 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
         else:
             raise BadInputException("Sourcemap fail")
 
-        return exceptionSpan, span_slice
+        return exceptionSpan, span_slice, exceptionMsg
     else:
         return list(keep_these), len(keep_these) / stmt_count, span_slice
 
