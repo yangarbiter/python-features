@@ -10,7 +10,7 @@ def process_one(string):
     if result == None:
         return (None, type_info, [])
     else:
-        exceptionSpan, slice_spans, exceptionMsg = result
+        exceptionSpan, slice_spans, exceptionMsg, UD_1 = result
         return (exceptionSpan, type_info, slice_spans, exceptionMsg)
 
 if __name__ == '__main__':

@@ -465,6 +465,7 @@ def build_relations(line_map, line_to_control, break_lines, tr):
     # UD instead of DU, so we can go use -> definition. Similarly, use CT
     # instead of TC
     UD_CT = defaultdict(set)
+    UD_1 = {} # The most recent definitions, maps lines to lists of lines
     step_to_line = {}
     line_to_step = defaultdict(set)
 
@@ -492,9 +493,12 @@ def build_relations(line_map, line_to_control, break_lines, tr):
 
         # Use-Definition processing
         stmt_useds = used_stmt(exec_point,  stmt)
+        new_ud = set()
         for ref in stmt_useds:
             if ref in last_definitions:
-                UD_CT[step].add(last_definitions[ref])
+                new_ud.add(last_definitions[ref])
+        UD_CT[step] |= new_ud
+        UD_1[line] = [step_to_line[s] for s in new_ud]
 
         if exec_point['event'] == 'step_line':
             try:
@@ -524,7 +528,7 @@ def build_relations(line_map, line_to_control, break_lines, tr):
         if line in break_lines:
             preceding_break = step
 
-    return step_to_line, line_to_step, UD_CT
+    return step_to_line, line_to_step, UD_CT, UD_1
 
 def find_exception(trace):
     for step, exec_point in enumerate(trace):
@@ -555,7 +559,7 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
         line_to_assignment = bv.line_to_assignment
 
     a = build_relations(line_map, line_to_control, break_lines, tr)
-    step_to_line, line_to_step, UD_CT = a
+    step_to_line, line_to_step, UD_CT, UD_1 = a
 
     visited = set()
     queue = Queue()
@@ -607,7 +611,7 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
         else:
             raise BadInputException("Sourcemap fail")
 
-        return exceptionSpan, span_slice, exceptionMsg
+        return exceptionSpan, span_slice, exceptionMsg, UD_1
     else:
         return list(keep_these), len(keep_these) / stmt_count, span_slice
 
