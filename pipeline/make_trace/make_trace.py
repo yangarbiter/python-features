@@ -483,11 +483,10 @@ def build_relations(line_map, line_to_control, break_lines, tr):
         try:
             stmt = line_map[line]
         except KeyError:
-            # TODO: as far as I can tell this happens only with multi-line strings
-            # or blank input. There's no reason blank programs need to make it
-            # this far, and we should support multiline strings eventually
-            # but they're not particularly interesting
-            raise BadInputException("multi-line strings are not supported")
+            # TODO: this seems to happen only with decorators.
+            # (other known causes like blank input and multi-line strings should
+            # be handled in an earlier stage)
+            raise BadInputException("decorators are not supported")
 
         step_to_line[step] = line
 

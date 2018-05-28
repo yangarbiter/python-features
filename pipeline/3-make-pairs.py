@@ -21,13 +21,16 @@ def spanToTuple(s):
     '''Converts "span_5_10_6_14" to "(5,10,6,14)"'''
     return tuple([int(n) for n in s.split("_")[1:]])
 
-def findTriple(slicerOutput):
+def findTuple(slicerOutput):
     '''Returns the important triple in slicer output since it sometimes outputs
     extra stuff'''
     outLines = slicerOutput.split('\n')
     for line in outLines:
         if line[0] == '(': #TODO harden this
             return ast.literal_eval(line)
+
+from collections import defaultdict
+debugDict = defaultdict(int)
 
 os.makedirs(OUT_FOLDER, exist_ok=True)
 for fileName in os.listdir(DATA_FOLDER):
@@ -48,10 +51,17 @@ for fileName in os.listdir(DATA_FOLDER):
                         # badProgs = []
                     continue
                 newProg = dct['user_script']
-                (result, types, slice) = findTriple(dct['PF_slicerOutput'])
+                tup = findTuple(dct['PF_slicerOutput'])
+                if (len(tup) == 3): # this should be removed in the next run
+                    (result, types, slice) = tup
+                else:
+                    (result, types, slice, msg) = tup
+                    if msg != None:
+                        msg = msg.split(":")[0]
+                    debugDict[msg] += 1
                 if result == None:
                     # found a good program!
-                    for (badProg, badSlice, badTypes, badExceptionSpan) in badProgs:
+                    for (badProg, badSlice, badTypes, badExceptionSpan, badMsg) in badProgs:
                         varTypes = {}
                         spanTypes = {}
                         for key in badTypes:
@@ -75,7 +85,8 @@ for fileName in os.listdir(DATA_FOLDER):
                                     # "varSlice": varSlice,
                                     "spanSlice": [convertSpan(span) for span in badSlice],
                                     "varTypes": varTypes,
-                                    "spanTypes": spanTypes,})
+                                    "spanTypes": spanTypes,
+                                    "errMsg": badMsg})
                         universalCounter += 1
                     badProgs = []
                 else:
@@ -84,10 +95,12 @@ for fileName in os.listdir(DATA_FOLDER):
                     # slice = []
                     # for lineNum in result:
                     #     slice.append(anf_lines[lineNum-1].split(" = ")[0].strip())
-                    badProgs.append((newProg, slice, types, result))
+                    badProgs.append((newProg, slice, types, result, msg))
         if len(pairs) > 0:
             with open(os.path.join(OUT_FOLDER,fileName), 'w') as outFile:
                 for pair in pairs:
                     outFile.write(json.dumps(pair) + "\n")
     except json.decoder.JSONDecodeError:
         print("JSONDecodeError in: %s" % fileName)
+
+print(debugDict)

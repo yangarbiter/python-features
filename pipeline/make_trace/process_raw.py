@@ -8,7 +8,7 @@ def process_one(string):
 
     (type_info, result) = make_trace.type_and_slice(source, ri)
     if result == None:
-        return (None, type_info, [])
+        return (None, type_info, [], None)
     else:
         exceptionSpan, slice_spans, exceptionMsg, UD_1 = result
         return (exceptionSpan, type_info, slice_spans, exceptionMsg)

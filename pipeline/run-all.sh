@@ -1,6 +1,6 @@
 #!/bin/bash
 
-inDir=$1
+inFile=$1
 outDir=$2
 passNum=$3
 if [[ $passNum == "" ]]; then
@@ -38,7 +38,15 @@ foo "Create output folder" "mkdir $outDir"
 
 foo "Stack build" "stack build"
 
-foo "Filter raw logs" "python3 filterPass.py $inDir $outDir"
+# foo "Filter raw logs" "gunzip -c $inFile | python3 filterPass.py $outDir"
+let "counter += 1"
+if [ $counter -ge $passNum ]; then
+    makeHeader "$counter: Filter raw logs"
+    gunzip -c $inFile | python3 filterPass.py $outDir
+    assertOk
+else
+    echo "skipping Filter raw logs"
+fi
 
 foo "ANF transformation" "python3 anfPass.py $outDir/py3-web_exec $outDir/updated-with-anf"
 
@@ -49,6 +57,7 @@ foo "Make pairs" "python3 3-make-pairs.py $outDir/sliced $outDir/pairs"
 
 foo "Filter pairs" "python3 4-run-on-single-lines.py $outDir/pairs $outDir"
 
-foo "Generate features" "stack exec -- generate-features --source $outDir/goodPairs.jsonl --features op+context+slice --out $outDir/foo"
+# foo "Generate features (oneHot)" "stack exec -- generate-features --source $outDir/goodPairs.jsonl --oneHot --context --slice --size --out $outDir/foo"
+foo "Generate features (categorical)" "stack exec -- generate-features --source $outDir/goodPairs.jsonl --context --slice --size --out $outDir/foo"
 
-foo "Filter results" "python3 twoSided.py $outDir/foo/op+context+slice $outDir"
+# foo "Filter results" "python3 twoSided.py $outDir/foo/op+context+slice $outDir"

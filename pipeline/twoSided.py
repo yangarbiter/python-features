@@ -12,7 +12,6 @@ os.mkdir(failCsvsFolder)
 files = 0
 runningTotal = 0
 for fileName in os.listdir(DATA_FOLDER):
-    sys.stdout.flush()
     fullPath = os.path.join(DATA_FOLDER,fileName)
     noChange = 0
     didChange = 0

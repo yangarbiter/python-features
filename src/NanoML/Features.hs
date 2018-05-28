@@ -7,7 +7,10 @@ module NanoML.Features
   , spanToTuple
   , fsNormalCtx
   , fTypeCtx
+  , fSizeCtx
   , noCtx
+  , toOneHot
+  , boolToDouble
   ) where
 
 import Data.Bifunctor
@@ -22,7 +25,7 @@ import Language.Python.Common
 
 import Debug.Trace
 
-type Feature a = ([String], (ES -> ES -> [a]))
+type Feature a = ([String], (ES -> ES -> [a]), [a])
 type TypeMap = (HashMap.HashMap String String, HashMap.HashMap (Int, Int, Int, Int) String)
 
 instance Default Bool where
@@ -36,7 +39,14 @@ mkContextFeatures mkF p e =
   [mkF e, mkF p] ++ take 3 (map mkF (subESes' e) ++ repeat def)
 
 noCtx :: Feature a -> Feature a
-noCtx = first (take 1) . second (fmap (fmap (take 1)))
+noCtx = fst3 (take 1) . snd3 (fmap (fmap (take 1)))
+
+fst3 :: (a -> z) -> (a,b,c) -> (z,b,c)
+fst3 f (a, b, c) = (f a, b, c)
+snd3 :: (b -> z) -> (a,b,c) -> (a,z,c)
+snd3 f (a, b, c) = (a, f b, c)
+thd3 :: (c -> z) -> (a,b,c) -> (a,b,z)
+thd3 f (a, b, c) = (a, b, f c)
 
 noCtx' :: (b -> Feature a) -> (b -> Feature a)
 noCtx' = (.) noCtx
@@ -81,6 +91,9 @@ getType' (mVar, mSpan) (Ex e) = Just $ case HashMap.lookup (spanToTuple $ annot 
       Nothing -> "unknown"
     _ -> "unknown"
 
+getSize :: ES -> Int
+getSize x = 1 + (sum $ getSize <$> subESes' x)
+
 spanToTuple :: SrcSpan -> (Int, Int, Int, Int)
 spanToTuple (SpanCoLinear _ r c1 c2) = (r, c1, r, c2)
 spanToTuple (SpanMultiLine _ r1 c1 r2 c2) = (r1, c1, r2, c2)
@@ -88,16 +101,19 @@ spanToTuple (SpanPoint _ r c) = (r, c, r, c)
 spanToTuple SpanEmpty = error "empty span"
 
 fTypeCtx :: TypeMap -> Feature (Maybe String)
-fTypeCtx tm = ( mkContextLabels ("Type"), mkContextFeatures (getType tm) )
+fTypeCtx tm = ( mkContextLabels ("Type"), mkContextFeatures (getType tm), Nothing : (Just <$> (slicerTypes ++ ["other, unknkown"])) )
 
 fStmtConstrCtx :: Feature (Maybe Constr)
-fStmtConstrCtx = ( mkContextLabels "Stmt-Constr", mkContextFeatures getStmtConstr )
+fStmtConstrCtx = ( mkContextLabels "Stmt-Constr", mkContextFeatures getStmtConstr, Nothing : (Just <$> dataTypeConstrs (dataTypeOf (Pass ()))) )
 
 fExprConstrCtx :: Feature (Maybe Constr)
-fExprConstrCtx = ( mkContextLabels "Expr-Constr", mkContextFeatures getExprConstr )
+fExprConstrCtx = ( mkContextLabels "Expr-Constr", mkContextFeatures getExprConstr, Nothing : (Just <$> dataTypeConstrs (dataTypeOf (None ()))) )
 
 fOpConstrCtx :: Feature (Maybe Constr)
-fOpConstrCtx = ( mkContextLabels "Op-Contr", mkContextFeatures getOpConstr )
+fOpConstrCtx = ( mkContextLabels "Op-Contr", mkContextFeatures getOpConstr, Nothing : (Just <$> dataTypeConstrs (dataTypeOf (And ()))) )
+
+fSizeCtx :: Feature (Maybe String)
+fSizeCtx = ( mkContextLabels "Size", mkContextFeatures (Just . show . getSize), (Just . show) <$> [1..])
 
 -- fsNormalCtx :: [Feature (Maybe Constr)]
 -- fsNormalCtx = [fStmtConstrCtx, fExprConstrCtx, fOpConstrCtx]
@@ -105,6 +121,18 @@ fsNormalCtx :: [Feature (Maybe String)]
 fsNormalCtx = fmap (fmap' (fmap showConstr)) [fStmtConstrCtx, fExprConstrCtx, fOpConstrCtx]
 
 fmap' :: (a -> b) -> Feature a -> Feature b
-fmap' f (ls, feat) = (ls, feat')
+fmap' f (ls, feat, options) = (ls, feat', f <$> options)
   where
     feat' x y = f <$> feat x y
+
+toOneHot :: (Show a, Eq a) => Feature a -> [Feature (Maybe String)]
+toOneHot fs@(names, f, options) = (fmap' (Just . show . boolToDouble)) <$> (toOneHot' fs <$> options)
+
+boolToDouble :: Bool -> Double
+boolToDouble b = if b then 1.0 else 0.0
+
+toOneHot' :: (Show a, Eq a) => Feature a -> a -> Feature Bool
+toOneHot' (names, f, options) x = (names', f', [True, False])
+  where
+    names' = (++ "-Is-"++(show x)) <$> names
+    f' a b = (== x) <$> f a b

@@ -2,7 +2,6 @@
 # according to whether they parse, filters them by event type, and sorts them
 # by server time
 import json, ast, os, sys, collections
-from utils import doForNonDirs
 
 LANG = 'py3'
 EVENT_TYPE = 'web_exec'
@@ -15,7 +14,7 @@ def checkList(dctlist):
             ok += 1
     return (ok > 1)
 
-def handleFile(dct, results):
+def handleLine(dct, results):
     if 'lang' not in dct or dct['lang'] != LANG or 'event_type' not in dct or dct['event_type'] != EVENT_TYPE or 'session_uuid' not in dct:
         return
     try:
@@ -32,11 +31,16 @@ def handleFile(dct, results):
         dct['PF_exitPipelineReason'] = ("Does not parse", "Value Error")
     results[dct['session_uuid']].append(dct)
 
-def filterPass(dataFolder, outFolder):
+def filterPass(outFolder):
     outFolder = outFolder+'/'+LANG+'-'+EVENT_TYPE
     os.makedirs(outFolder)
     results = collections.defaultdict(list)
-    doForNonDirs(dataFolder, handleFile, results)
+    for line in sys.stdin:
+        try:
+            dct = json.loads(line)
+            handleLine(dct, results)
+        except json.decoder.JSONDecodeError:
+            print("WEIRD JSON DECODE IN LINE: %s" % line)
     for uuid in results.keys():
         if checkList(results[uuid]):
             results[uuid].sort(key=lambda x: x['serverTimeUTC'])
@@ -45,4 +49,4 @@ def filterPass(dataFolder, outFolder):
                     outFile.write(json.dumps(dct)+'\n')
 
 if __name__ == '__main__':
-    filterPass(sys.argv[1], sys.argv[2])
+    filterPass(sys.argv[1])
