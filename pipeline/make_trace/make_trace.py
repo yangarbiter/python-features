@@ -1,6 +1,7 @@
 import sys, os, ast, re
 import pg_logger
 from collections import defaultdict
+from copy import deepcopy
 from queue import Queue
 
 class BadInputException(Exception):
@@ -18,6 +19,7 @@ class VarEnvironment():
             raise BadInputException("Input has return outside function")
         self.heap = execution_point['heap']
         self.globals = execution_point['globals']
+        self.masked = set()
         if len(execution_point['stack_to_render']) > 0:
             frame = execution_point['stack_to_render'][-1]
             self.locals = frame['encoded_locals']
@@ -26,6 +28,9 @@ class VarEnvironment():
             self.locals = {}
 
     def get_var(self, name):
+        if name in self.masked:
+            return 'undefined' + name
+        
         if name in self.locals:
             return self.frame_hash + ':' + name
         elif name in self.globals:
@@ -33,7 +38,13 @@ class VarEnvironment():
         else:
             return 'undefined:' + name
 
+    def mask_var(self, name):
+        self.masked.add(name)
+
     def get_ref(self, name):
+        if name in self.masked:
+            return None
+        
         if name in self.locals:
             [tag, ref] = self.locals[name]
             assert(tag == 'REF') # Ref primitives
@@ -56,10 +67,12 @@ class VarEnvironment():
         my_vars = self.heap.copy()
 
         for name in self.globals:
-            my_vars['global:' + name] = self.globals[name]
+            if name not in self.masked:
+                my_vars['global:' + name] = self.globals[name]
 
         for name in self.locals:
-            my_vars[self.frame_hash + ':' + name] = self.locals[name]
+            if name not in self.masked:
+                my_vars[self.frame_hash + ':' + name] = self.locals[name]
 
         return my_vars
 
@@ -239,6 +252,13 @@ def make_line_maps(source):
 
     return map_visitor.the_map, control_visitor.line_to_controller, control_visitor.break_lines
 
+class NameVisitor(ast.NodeVisitor):
+    def __init__(self):
+        self.names = set()
+
+    def visit_Name(self, node):
+        self.names.add(node.id)
+
 class UseVisitor(ast.NodeVisitor):
     def __init__(self, exec_point):
         self.exec_point = exec_point
@@ -274,7 +294,31 @@ class UseVisitor(ast.NodeVisitor):
     # IfExp
     # Dict
     # Set
-    visit_ListComp = die
+    def visit_ListComp(self, node):
+        # Modify the env for some visits, so save the old one
+        old_env = self.env
+        self.env = deepcopy(old_env)
+
+        for comp in node.generators:
+            # Range expression
+            self.visit(comp.iter)
+
+            # Get the bindings made by the comprehension and mask them for the
+            # rest of the expression, since they are internal
+            name_visitor = NameVisitor()
+            name_visitor.visit(comp.target)
+            for name in name_visitor.names:
+                self.env.mask_var(name)
+
+            # Get use info from conditions
+            for expr in comp.ifs:
+                self.visit(expr)
+
+        self.env = old_env
+            
+
+            
+    
     visit_SetComp = die
     visit_DictComp = die
     visit_GeneratorExp = die
@@ -354,7 +398,7 @@ class UseVisitor(ast.NodeVisitor):
     # Pass
     # Break
     # Continue
-
+    
 # Creates a map from statement lines to the lines of the immediately-enclosing
 # controller.
 #
