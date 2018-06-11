@@ -150,7 +150,7 @@ def find_subscript(var_env, container, index, upper_index = None):
             value = var_env.heap[ref[1]]
             return ref[1], value
     elif container[0] == 'DICT':
-        ass_list = container[1]
+        ass_list = container[1:0]
         for pair in ass_list:
             key_ref = pair[0]
             assert(key_ref[0] == 'REF')
