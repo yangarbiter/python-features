@@ -232,7 +232,7 @@ class LineMapVisitor(ast.NodeVisitor):
         self.the_map = {}
 
     def visit(self, node):
-        if isinstance(node, ast.stmt):
+        if isinstance(node, (ast.stmt, ast.excepthandler)):
             self.the_map[node.lineno] = node
         self.generic_visit(node)
 
@@ -250,7 +250,7 @@ def make_line_maps(source):
     control_visitor = ControlVisitor()
     control_visitor.visit(astree)
 
-    return map_visitor.the_map, control_visitor.line_to_controller, control_visitor.break_lines
+    return map_visitor.the_map, control_visitor.line_to_controller, control_visitor.break_lines, control_visitor.handler_lines
 
 class NameVisitor(ast.NodeVisitor):
     def __init__(self):
@@ -388,7 +388,9 @@ class UseVisitor(ast.NodeVisitor):
     visit_With = die
     visit_AsyncWith = die
     # Raise
-    visit_Try = die
+    
+    # Try(self, stmt):
+    
     # Assert
     visit_Import = nothing
     visit_ImportFrom = nothing
@@ -411,6 +413,7 @@ class ControlVisitor(ast.NodeVisitor):
         self.enclosing_loops = [0] # Index in enclosing_controllers of innermost loop
         self.break_guards = set() # Previous conditionals that may have avoided a break / continue
         self.break_lines = set() # Also continues
+        self.handler_lines = set() # Exception handlers
 
     def die(self, node):
         raise ValueError('Unsupported node: ' + str(type(node)))
@@ -419,7 +422,7 @@ class ControlVisitor(ast.NodeVisitor):
         pass
 
     def visit(self, node):
-        if isinstance(node, ast.stmt):
+        if isinstance(node, (ast.stmt, ast.excepthandler)):
             self.line_to_controller[node.lineno].add(self.enclosing_controllers[-1])
             self.line_to_controller[node.lineno] |= self.break_guards
 
@@ -485,7 +488,17 @@ class ControlVisitor(ast.NodeVisitor):
     visit_AsyncWith = die
 
     visit_Raise = die
-    visit_Try = die
+    def visit_Try(self, stmt):
+        self.enclosed_visits(stmt.lineno, stmt.body)
+        self.enclosed_visits(stmt.lineno, stmt.finalbody)
+        self.enclosed_visits(stmt.lineno, stmt.handlers)
+
+        # Does there need to be any special control handling for the else suite?
+        self.enclosed_visits(stmt.lineno, stmt.orelse)
+
+    def visit_ExceptHandler(self, handler):
+        self.handler_lines.add(handler.lineno)
+        self.enclosed_visits(handler.lineno, handler.body)
 
     def visit_Break(self, stmt):
         self.break_lines.add(stmt.lineno)
@@ -505,7 +518,7 @@ def defined_stmt(exec_point, next_exec_point):
     return now_vars.diff(next_vars)
 
 # Returns a map from steps to lines and a combined UD and CT "multimap"
-def build_relations(line_map, line_to_control, break_lines, tr):
+def build_relations(line_map, line_to_control, break_lines, handler_lines, tr):
     # UD instead of DU, so we can go use -> definition. Similarly, use CT
     # instead of TC
     UD_CT = defaultdict(set)
@@ -517,6 +530,8 @@ def build_relations(line_map, line_to_control, break_lines, tr):
     last_definitions = {}
 
     preceding_break = None # May also be a continue
+    preceding_step = None
+    preceding_excepting_step = None
 
     for step, exec_point in enumerate(tr):
         if exec_point['event'] not in ['step_line', 'exception', 'uncaught_exception']:
@@ -571,10 +586,19 @@ def build_relations(line_map, line_to_control, break_lines, tr):
         if line in break_lines:
             preceding_break = step
 
+        if line in handler_lines and preceding_excepting_step:
+            UD_CT[step].add(preceding_excepting_step)
+
+        if exec_point['event'] == 'step_line':
+            preceding_step = step
+        elif exec_point['event'] == 'exception':
+            preceding_excepting_step = preceding_step
+
     return step_to_line, line_to_step, UD_CT, UD_1
 
 def find_exception(trace):
-    for step, exec_point in enumerate(trace):
+    # Iterate reversed, because we want the *last* exception
+    for step, exec_point in reversed(list(enumerate(trace))):
         if exec_point['event'] in ['uncaught_exception', 'exception']:
             if 'exception_msg' not in exec_point:
                 print(exec_point)
@@ -592,7 +616,7 @@ TODO: Guess or allow specification of specific values to track.
 """
 
 def slice(source, ri, line=None, debug=False, tr=None, raw=False):
-    line_map, line_to_control, break_lines = make_line_maps(source)
+    line_map, line_to_control, break_lines, handler_lines = make_line_maps(source)
     if tr == None:
         tr = trace(source, ri)
 
@@ -601,7 +625,7 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
         bv.visit(ast.parse(source))
         line_to_assignment = bv.line_to_assignment
 
-    a = build_relations(line_map, line_to_control, break_lines, tr)
+    a = build_relations(line_map, line_to_control, break_lines, handler_lines, tr)
     step_to_line, line_to_step, UD_CT, UD_1 = a
 
     visited = set()
@@ -617,7 +641,7 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
         else:
             return None, None, None
 
-    for step in [exception_step] if exception_step else line_to_step[line]:
+    for step in line_to_step[line] if line else [exception_step]:
         queue.put(step)
     while not queue.empty():
         step = queue.get()
