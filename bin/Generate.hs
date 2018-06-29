@@ -16,6 +16,7 @@ import Data.Data (Constr, showConstr)
 import Data.Either
 import Data.Function
 import Data.List
+import Data.Tuple (swap)
 import qualified Data.Map.Strict as Map
 import Data.Maybe
 import qualified Data.HashMap.Strict as HashMap
@@ -82,8 +83,8 @@ mkBadFeaturesWithSlice :: (ToField a) => WithSlice -> String -> String -> (TypeM
 mkBadFeaturesWithSlice withSlice out nm fs jsons = do
   let uniqs = concatMap mkDiffs jsons
   let feats = [ ((h, f'), (ss, bad, fix, exceptionSpan, slice, all, idx))
-              | (ss, p, bad, fix, exceptionSpan, slice, badTypes, idx, errMsg) <- uniqs
-              , (h, f) <- maybeToList $ runTFeaturesDiff slice exceptionSpan (fs badTypes) (ss,p) errMsg
+              | (ss, p, bad, fix, exceptionSpan, slice, badTypes, idx, errMsg, (ud, du)) <- uniqs
+              , (h, f) <- maybeToList $ runTFeaturesDiff slice exceptionSpan (fs badTypes) (ss,p) errMsg (ud, du)
               , let f' = filter (\r -> withSlice == All || r HashMap.! "F-InSlice" == "1.0") f
                 -- a one-constraint core is bogus, this should be impossible
               -- , length f' > 1
@@ -122,26 +123,26 @@ parseTopForm v code = case (parseModule v) code "foo.py" of
 parseModule 2 = Py2.parseModule
 parseModule 3 = Py3.parseModule
 
-mkDiffs :: String -> [([SrcSpan], Prog, String, String, MySpan, ErrorSlice, TypeMap, Int, String)]
+mkDiffs :: String -> [([SrcSpan], Prog, String, String, MySpan, ErrorSlice, TypeMap, Int, String, (HashMap.HashMap MySpan MySpan, HashMap.HashMap MySpan MySpan))]
 mkDiffs json = case eitherDecode (LBSC.pack json) of
   Left e -> {-trace e-} error "e1"
     -- -> HashSet.fromList . maybeToList $ mkDiff fix bad
-  Right (MkInSample bad' fix' v _ _ _ _ _ _)
+  Right (MkInSample bad' fix' v _ _ _ _ _ _ _)
   --Right (MkInSample bads' (fix':_))
     | Left e <- parseTopForm v fix'
     -> {-trace e-} error "e2"
-  Right (MkInSample bad' fix' v _ _ _ _ _ _)
+  Right (MkInSample bad' fix' v _ _ _ _ _ _ _)
   --Right (MkInSample bads' (fix':_))
     | Left e <- parseTopForm v bad'
     -> {-trace e-} error "e3"
-  Right (MkInSample bad' fix' v exceptionSpan spanSlice idx varTypes spanTypes errMsg)
+  Right (MkInSample bad' fix' v exceptionSpan spanSlice idx varTypes spanTypes errMsg ud)
   --Right (MkInSample bads' (fix':_))
     | Right fix <- parseTopForm v fix'
     , Right bad <- parseTopForm v bad'
     , let ss = mkDiff'' bad fix
     -- , not (null ss)
     -- -> maybeToList . fmap (,bad, bad', fix') $ mkDiff' bad' fix'
-    -> [(ss, bad, bad', fix', listToTuple exceptionSpan, listToTuple <$> spanSlice, foo (varTypes, spanTypes), idx, errMsg)]
+    -> [(ss, bad, bad', fix', listToTuple exceptionSpan, listToTuple <$> spanSlice, foo (varTypes, spanTypes), idx, errMsg, mkUdMaps ud)]
 
   -- _ -> mempty
   v -> error (show v)
@@ -165,9 +166,9 @@ mkDiff'' bad fix
   x = Set.toList (diffSpans (getDiff $ diffExprsT (St <$> bad) (St <$> fix)) (St <$> bad))
 
 runTFeaturesDiff
-  :: (ToField a) => ErrorSlice -> MySpan -> [Feature a] -> ([SrcSpan], Prog) -> String
+  :: (ToField a) => ErrorSlice -> MySpan -> [Feature a] -> ([SrcSpan], Prog) -> String -> (HashMap.HashMap MySpan MySpan, HashMap.HashMap MySpan MySpan)
   -> Maybe (Header, [NamedRecord])
-runTFeaturesDiff slice exceptionSpan fs (ls, bad) errMsg
+runTFeaturesDiff slice exceptionSpan fs (ls, bad) errMsg (ud, du)
   | null samples
   = error "why Nothing"
   | otherwise
@@ -176,7 +177,7 @@ runTFeaturesDiff slice exceptionSpan fs (ls, bad) errMsg
   header = Vector.fromList
          $ ["SourceSpan", "L-NoChange", "L-DidChange", "F-InSlice"]
         ++ concatMap (\(ls,_,_) -> map mkFeature ls) fs
-        ++ ["F-PythonBlame", "F-PythonMsg"]
+        ++ ["F-PythonBlame", "F-PythonMsg", "X-UD", "X-DU"]
 
   samples = concatMap mkTypeOut bad
 
@@ -196,6 +197,12 @@ runTFeaturesDiff slice exceptionSpan fs (ls, bad) errMsg
              ++ concatMap (\(ls,c,_) -> zipWith (.=) (map mkFeature ls) (c p e)) fs
              ++ pythonBlame e exceptionSpan
              ++ ["F-PythonMsg" .= errMsg]
+             ++ ["X-UD" .= maybeShow (HashMap.lookup (spanToTuple $ getSpan e) ud)]
+             ++ ["X-DU" .= maybeShow (HashMap.lookup (spanToTuple $ getSpan e) du)]
+
+maybeShow :: (Show a) => Maybe a -> String
+maybeShow Nothing = ""
+maybeShow (Just x) = show x
 
 inSlice e slice = ["F-InSlice" .= (show $ boolToDouble $ inSlice' e slice)]
 pythonBlame e exceptionSpan = ["F-PythonBlame" .= (show $ boolToDouble $ inSlice' e [exceptionSpan])]
@@ -209,6 +216,13 @@ mkLabel s = BSC.pack ("L-" ++ s)
 mkFeature :: String -> BSC.ByteString
 mkFeature s = BSC.pack ("F-" ++ s)
 
+mkUdMaps :: HashMap.HashMap String [[Int]] -> (HashMap.HashMap MySpan MySpan, HashMap.HashMap MySpan MySpan)
+mkUdMaps rawUd = (ud, du)
+  where
+    protoUd = [(read k, listToTuple v) | (k,vs) <- HashMap.toList rawUd, v <- vs]
+    ud = HashMap.fromList protoUd
+    du = HashMap.fromList $ swap <$> protoUd
+
 data InSample = MkInSample { bad :: String,
                              fix :: String,
                              pyVersion :: Int,
@@ -217,7 +231,8 @@ data InSample = MkInSample { bad :: String,
                              index :: Int,
                              varTypes :: HashMap.HashMap String String,
                              spanTypes :: HashMap.HashMap String String,
-                             errMsg :: String
+                             errMsg :: String,
+                             ud :: HashMap.HashMap String [[Int]]
                            }
   deriving (Show, Generic)
 instance FromJSON InSample
