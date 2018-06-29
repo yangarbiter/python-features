@@ -6,31 +6,17 @@ OUT_FOLDER=sys.argv[2]
 
 universalCounter = 0
 
-def convertSlice(slice):
-    '''Converts " (3,1)" to [3,1,3,1] and " (3,1)-(5,4)" to [3,1,5,4]'''
-    return [convertSpan(span) for span in slice]
-
-def convertSpan(span):
-    span = span.strip().split("-")
-    if len(span) == 1:
-        span.append(span[0])
-    [(a,b), (c,d)] = [ast.literal_eval(x) for x in span]
-    return [a,b,c,d]
-
 def spanToTuple(s):
     '''Converts "span_5_10_6_14" to "(5,10,6,14)"'''
     return tuple([int(n) for n in s.split("_")[1:]])
 
 def findTuple(slicerOutput):
-    '''Returns the important triple in slicer output since it sometimes outputs
+    '''Returns the important tuple in slicer output since it sometimes outputs
     extra stuff'''
     outLines = slicerOutput.split('\n')
     for line in outLines:
         if line[0] == '(': #TODO harden this
             return ast.literal_eval(line)
-
-from collections import defaultdict
-debugDict = defaultdict(int)
 
 os.makedirs(OUT_FOLDER, exist_ok=True)
 for fileName in os.listdir(DATA_FOLDER):
@@ -52,16 +38,13 @@ for fileName in os.listdir(DATA_FOLDER):
                     continue
                 newProg = dct['user_script']
                 tup = findTuple(dct['PF_slicerOutput'])
-                if (len(tup) == 3): # this should be removed in the next run
-                    (result, types, slice) = tup
-                else:
-                    (result, types, slice, msg) = tup
-                    if msg != None:
-                        msg = msg.split(":")[0]
-                    debugDict[msg] += 1
+                (result, types, slice, msg, UD_1, _) = tup
+                if msg != None:
+                    msg = msg.split(":")[0]
+                # debugDict[msg] += 1
                 if result == None:
                     # found a good program!
-                    for (badProg, badSlice, badTypes, badExceptionSpan, badMsg) in badProgs:
+                    for (badProg, badSlice, badTypes, badExceptionSpan, badMsg, badUD) in badProgs:
                         varTypes = {}
                         spanTypes = {}
                         for key in badTypes:
@@ -81,21 +64,19 @@ for fileName in os.listdir(DATA_FOLDER):
                                     "fix": newProg,
                                     "index": universalCounter,
                                     "pyVersion": 3,
-                                    "exceptionSpan": convertSpan(badExceptionSpan),
+                                    "exceptionSpan": badExceptionSpan,
                                     # "varSlice": varSlice,
-                                    "spanSlice": [convertSpan(span) for span in badSlice],
+                                    "spanSlice": badSlice,
                                     "varTypes": varTypes,
                                     "spanTypes": spanTypes,
-                                    "errMsg": badMsg})
+                                    "errMsg": badMsg,
+                                    "ud": {str(k):list(v) for (k,v) in badUD.items()}})
                         universalCounter += 1
                     badProgs = []
                 else:
                     # found a program with an error slice
-                    # anf_lines = dct["anf_user_script"].split('\n')
-                    # slice = []
-                    # for lineNum in result:
-                    #     slice.append(anf_lines[lineNum-1].split(" = ")[0].strip())
-                    badProgs.append((newProg, slice, types, result, msg))
+                    lines = dct['PF_anf_user_script'].split('\n')
+                    badProgs.append((newProg, slice, types, result, msg, UD_1))
         if len(pairs) > 0:
             with open(os.path.join(OUT_FOLDER,fileName), 'w') as outFile:
                 for pair in pairs:
@@ -103,4 +84,4 @@ for fileName in os.listdir(DATA_FOLDER):
     except json.decoder.JSONDecodeError:
         print("JSONDecodeError in: %s" % fileName)
 
-print(debugDict)
+# print(debugDict)

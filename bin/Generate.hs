@@ -90,18 +90,8 @@ mkBadFeaturesWithSlice withSlice out nm fs jsons = do
               , let all = nub $ map getSpan (concatMap allSubESes $ St <$> p)
               ]
   --let feats' = filter (\(_, (_,_,_,cs,_,_)) -> not (null cs)) feats
-  let mkMean f xs = sum (map f xs) / genericLength xs
-  let mkFrac (_, (ss, _, _, _, _, all, _)) = genericLength ss / genericLength all
-  -- For discarding outliers by fraction of error slice that changed rather than
-  -- whole program. Doesn't seem to make a huge difference overall.
-  -- let mkFrac (_, (ss, _, _, cs, _all, _)) = genericLength (ss `intersect` cs) / genericLength cs
-  let mean = mkMean mkFrac feats :: Double
-  let std  = sqrt $ mkMean (\x -> (mkFrac x - mean) ^ 2) feats
   forM_ feats $ \ f@((header, features), (ss, bad, fix, _, cs, allspans, i)) -> do
     if
-      | mkFrac f > mean+std -> do
-          -- printf "OUTLIER: %.2f > %.2f\n" (mkFrac f :: Double) (mean+std)
-          return ()
       | null ss -> do
         -- putStrLn "NO DIFF"
         -- putStrLn bad
@@ -122,7 +112,6 @@ mkBadFeaturesWithSlice withSlice out nm fs jsons = do
     -- let (header, features) = unzip $ map (runTFeaturesDiff fs) uniqs
     -- let path = "data/" ++ nm ++ ".csv"
     -- LBSC.writeFile path $ encodeByName (head header) (concat features)
-  printf "MEAN / STD frac: %.3f / %.3f\n" mean std
 
 
 parseTopForm :: Int -> String -> Either String [StatementSpan]

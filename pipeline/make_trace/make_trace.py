@@ -30,7 +30,7 @@ class VarEnvironment():
     def get_var(self, name):
         if name in self.masked:
             return 'undefined' + name
-        
+
         if name in self.locals:
             return self.frame_hash + ':' + name
         elif name in self.globals:
@@ -44,7 +44,7 @@ class VarEnvironment():
     def get_ref(self, name):
         if name in self.masked:
             return None
-        
+
         if name in self.locals:
             [tag, ref] = self.locals[name]
             assert(tag == 'REF') # Ref primitives
@@ -315,10 +315,10 @@ class UseVisitor(ast.NodeVisitor):
                 self.visit(expr)
 
         self.env = old_env
-            
 
-            
-    
+
+
+
     visit_SetComp = die
     visit_DictComp = die
     visit_GeneratorExp = die
@@ -388,9 +388,9 @@ class UseVisitor(ast.NodeVisitor):
     visit_With = die
     visit_AsyncWith = die
     # Raise
-    
+
     # Try(self, stmt):
-    
+
     # Assert
     visit_Import = nothing
     visit_ImportFrom = nothing
@@ -400,7 +400,7 @@ class UseVisitor(ast.NodeVisitor):
     # Pass
     # Break
     # Continue
-    
+
 # Creates a map from statement lines to the lines of the immediately-enclosing
 # controller.
 #
@@ -637,7 +637,7 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
             print('Exception at line ' + str(step_to_line[exception_step]))
     elif not line:
         if raw:
-            return None
+            return None, [], None, UD_1
         else:
             return None, None, None
 
@@ -656,29 +656,18 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
     keep_these = set([step_to_line[step] for step in visited])
     span_slice = []
     lines = source.split('\n')
-    for lineNum in keep_these:
-        if raw:
-            line = lines[lineNum-1].split("#  interaction:")
-            if len(line) == 2:
-                span_slice.append(line[1])
-            else:
-                raise BadInputException("Sourcemap fail")
-        else:
+    if raw:
+        span_slice = keep_these
+    else:
+        for lineNum in keep_these:
             if line in line_to_assignment:
                 match = span_rexp.match(line_to_assignment[line])
                 if match:
                     span_slice.append([int(s) for s in match.groups()])
     stmt_count = float(len(line_map))
-
-    exceptionLine = step_to_line[exception_step]
     if raw:
-        line = lines[exceptionLine-1].split("#  interaction:")
-        if len(line) == 2:
-            exceptionSpan = line[1]
-        else:
-            raise BadInputException("Sourcemap fail")
-
-        return exceptionSpan, span_slice, exceptionMsg, UD_1
+        exceptionLine = step_to_line[exception_step]
+        return exceptionLine, span_slice, exceptionMsg, UD_1
     else:
         return list(keep_these), len(keep_these) / stmt_count, span_slice
 
