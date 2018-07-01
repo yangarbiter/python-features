@@ -1,1 +1,132 @@
-% Empty file
+% 10+2 Due Fri 28 Aug anywhere-on-earth
+%
+% ICSE 2019 Technical Track submission must not exceed 10 pages,
+% including all text, figures, tables, and appendices; two additional pages
+% containing only references are permitted.
+%
+% ICSE 2019 Technical Track will employ a double-blind review process.
+% Thus, no submission may reveal its authors’ identities. 
+%
+% https://2019.icse-conferences.org/track/icse-2019-Technical-Papers#Call-for-Papers
+
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithmic}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
+    T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+\begin{document}
+
+% 
+\title{Blaming the Typeless: \\ Scalable, Human-Centric Python Localization} 
+
+\iffalse
+
+\author{\IEEEauthorblockN{Benjamin Cosman}
+\IEEEauthorblockA{\textit{UC San Digeo}\\
+blcosman@eng.ecsd.edu}
+\and
+\IEEEauthorblockN{Leon Medvinsky}
+\IEEEauthorblockA{\textit{UC San Digeo}\\
+lmedvinsky@eng.ecsd.edu}
+\and
+\IEEEauthorblockN{Ranjit Jhala} 
+\IEEEauthorblockA{\textit{UC San Digeo}\\
+jhala@cs.ecsd.edu}
+\and
+\IEEEauthorblockN{Westley Weimer} 
+\IEEEauthorblockA{\textit{University of Michigan}\\
+weimerw@umich.edu}
+}
+
+\fi
+
+\author{\IEEEauthorblockN{\emph{submitted for double-blind review}}}
+
+\maketitle
+
+\begin{abstract}
+Abstract 
+\end{abstract}
+
+\section{Introduction}
+
+\emph{Placeholder Outline.} This text is an informal placeholder outline
+only. 
+
+\emph{Identify an important problem.} Support the claim that Python fault
+localization for possibly-ill-typed student fragments is an important
+problem. Likely steps: fault localization is important, Python is
+important, incomplete code is important. First, software engineering is
+important and expensive; testing, maintenance, and debugging are the
+dominant activities in SE; localization and triage are key steps. Second, 
+Python is increasingly used for pedagogy and industrial deployment, here
+are some GitHub numbers about the rate of growth in Python projects
+compared to C or Java, etc. Third, IDE tool use requires operating on code
+fragments, here are some numbers from PythonTutor~\cite{Guo2013-vu}, generality, etc. 
+
+\emph{Identify the properties of a good solution.} Pick your favorite
+three. Some candidates: accuracy (cite Parnin/Orso paper an indicate that
+it must be found within top three, etc., since humans will not read long
+lists), generality (must apply to student code and incomplete fragments), 
+scalability (must apply to hundreds of thousands of fragments, must present
+real-time responses suitable for web/IDE use), agreement with subjective
+judgments (must handle ``ambiguity'' the same way humans would when you
+don't know whether to blame the use or the definition, etc.), efficiency
+(must operate using a small number of dynamic runs, unlike Tarantula,
+etc.). 
+
+\emph{Show that the current state of the art is inadequate.} For each $x$ of
+\{manual debugging, Python's default error messages,
+Mycroft/Sherrloc/Tarantula/whatever\}, show that $x$ lacks at least one of the
+desired properties listed above. 
+
+\emph{Insights and special sauce.} What are the two or three good ideas
+that we bring together to solve this problem? Some candidates: the use of
+modern machine learning techniques (deep learning, etc.); the use of
+tree-based contextual features to hit the sweet spot between syntax and semantics;
+special handling of unsatisfied use-def type constraints (TBA); etc. 
+
+\emph{What is our proposal?} We propose XYZ, an algorithm to do ABC. It
+takes as input DEF. It has stages P, Q and R. It produces as output GHI. It
+provides guarantees JKL. 
+
+\emph{How will we evaluate it?} For each of the properties of a good
+solution listed above, indicate how we will evaluate our contribution. What
+evidence will we provide? Typically, for each property $x$, we support our
+claim to $x$ with either a formal proof (e.g., our algorithm has $x$ by
+construction), an empirical evaluation on software artifacts, or an
+empirical evaluation on human subjects. In each case, indicate both the
+evaluation metrics (e.g., if we care about efficiency, is it measured in
+lines-per-second? if we care about precision, what is our non-standard
+top-three metric) and success criteria (e.g., how will we define success?
+what is the baseline we want to beat). For empirical evaluations, briefly
+and implicitly argue that the results are likely to generalize by giving
+the size of the sampled set. 
+
+\emph{Introduction wrap-up.} The contributions of this paper are as follows
+... 
+
+\section{Motivating Example} 
+
+\section{Overview} 
+
+\section{Approach} 
+
+\section{Evaluation} 
+
+\subsection{Methodology} 
+
+\section{Related Work} 
+
+\section{Conclusion} 
+
+\bibliographystyle{abbrv} 
+\bibliography{nanomaly,sw} 
+
+\end{document} 
