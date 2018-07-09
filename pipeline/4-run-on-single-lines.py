@@ -3,7 +3,9 @@ import json, sys, os
 
 DATA_FOLDER = sys.argv[1]
 OUT_FOLDER = sys.argv[2]
-GENERATE_FEATURES_BIN = "../.stack-work/install/x86_64-osx/lts-8.14/8.0.2/bin/generate-features"
+with open('.env', 'r') as envFile:
+    stackBinDir = envFile.readlines()[0]
+GENERATE_FEATURES_BIN = os.path.join(stackBinDir, "generate-features")
 
 with open(OUT_FOLDER+"/failPairs.jsonl", 'w') as failFile, open(OUT_FOLDER+"/goodPairs.jsonl", 'w') as goodFile:
     for fileName in os.listdir(DATA_FOLDER):
