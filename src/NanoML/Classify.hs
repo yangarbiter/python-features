@@ -5,7 +5,7 @@ import Control.Monad
 import Data.Monoid
 import qualified Data.Set as Set
 import Data.Set (Set)
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, isJust)
 
 import Language.Python.Common hiding ((<>))
 
@@ -24,47 +24,61 @@ data Literal
   | LS [String]
   deriving (Show, Eq)
 
-foldExpr :: (Monoid a, Show b) => (Expr b -> a -> a) -> a -> Expr b -> a
-foldExpr f z = go
-  where
-  go e = f e $ case e of
-    Var {} -> z
-    Int {} -> z
-    LongInt {} -> z
-    Float {} -> z
-    Imaginary {} -> z
-    Bool {} -> z
-    None {} -> z
-    -- Ellipsis
-    ByteStrings {} -> z
-    Strings {} -> z
-    UnicodeStrings {} -> z
-    Call e args _ -> mconcat $ map go (e:(argExpr <$> args))
-    Subscript x y _ -> mappend (go x) (go y)
-    -- SlicedExpr
-    CondExpr t b f _ -> go b <> go t <> go f
-    BinaryOp _ x y _ -> mappend (go x) (go y)
-    UnaryOp _ x _ -> go x
-    -- Dot
-    Lambda _ e _ -> go e
-    Tuple es _ -> mconcat (map go es)
-    -- Yield
-    -- Generator
-    -- ListComp
-    List es _ -> mconcat (map go es)
-    -- Dictionary
-    -- DictComp
-    Set es _ -> mconcat (map go es)
-    -- SetComp
-    -- Starred
-    Paren e _ -> go e
-    StringConversion e _ -> go e
-    e -> error $ "unhandled case of foldExpr: " ++ (show e)
+-- foldExpr :: (Monoid a, Show b) => (Expr b -> a -> a) -> a -> Expr b -> a
+-- foldExpr f z = go
+--   where
+--   go e = f e $ case e of
+--     Var {} -> z
+--     Int {} -> z
+--     LongInt {} -> z
+--     Float {} -> z
+--     Imaginary {} -> z
+--     Bool {} -> z
+--     None {} -> z
+--     Ellipsis _ -> z
+--     ByteStrings {} -> z
+--     Strings {} -> z
+--     UnicodeStrings {} -> z
+--     Call e args _ -> mconcat $ map go (e:(argExpr <$> args))
+--     Subscript x y _ -> mappend (go x) (go y)
+--     SlicedExpr e ss _ -> go e <> mconcat (map go $ concat (foo <$> ss))
+--     CondExpr t b f _ -> go b <> go t <> go f
+--     BinaryOp _ x y _ -> mappend (go x) (go y)
+--     UnaryOp _ x _ -> go x
+--     -- Dot
+--     Lambda _ e _ -> go e
+--     Tuple es _ -> mconcat (map go es)
+--     -- Yield
+--     -- Generator
+--     -- ListComp
+--     List es _ -> mconcat (map go es)
+--     -- Dictionary
+--     -- DictComp
+--     Set es _ -> mconcat (map go es)
+--     -- SetComp
+--     -- Starred
+--     Paren e _ -> go e
+--     StringConversion e _ -> go e
+--     e -> error $ "unhandled case of foldExpr: " ++ (show e)
+
+-- foo :: Slice a -> [Expr a]
+-- foo (SliceProper l u Nothing _) = catMaybes [l, u]
+-- foo (SliceProper l u (Just s) _) = catMaybes [l, u, s]
+-- foo (SliceExpr e _) = [e]
+-- foo (SliceEllipsis _) = []
 
 diff :: ExprSpan -> ExprSpan -> Set SrcSpan
 diff e1 e2 = case (e1, e2) of
+  (Lambda {}, _)
+    -> error "Lambda unhandled in diff"
+  (_, Lambda {})
+    -> error "Lambda unhandled in diff"
+  (Yield {}, _)
+    -> error "Yield unhandled in diff"
+  (_, Yield {})
+    -> error "Yield unhandled in diff"
   (Var x _, Var y _)
-    | x == y
+    | void x == void y
       -> mempty
   (Int i1 s1 _, Int i2 s2 _) --TODO could the string versions matter?
     | i1 == i2
@@ -83,7 +97,8 @@ diff e1 e2 = case (e1, e2) of
       -> mempty
   (None _, None _)
       -> mempty
-  -- Ellipsis
+  (Ellipsis _, Ellipsis _)
+      -> mempty
   (ByteStrings i1 _, ByteStrings i2 _)
     | i1 == i2
       -> mempty
@@ -94,35 +109,121 @@ diff e1 e2 = case (e1, e2) of
     | i1 == i2
       -> mempty
   (Call f1 a1 _, Call f2 a2 _)
-    | length a1 == length a2
+    | (length a1 == length a2) && sameArgTypes a1 a2
       -> merge $ (diff f1 f2) : (zipWith diff (argExpr <$> a1) (argExpr <$> a2))
-  -- Subscript x y _ ->
-  -- -- SlicedExpr
-  -- CondExpr t b f _ ->
+  (Subscript x1 x2 _, Subscript y1 y2 _)
+      -> merge [diff x1 y1, diff x2 y2]
+  (SlicedExpr e1 ss1 _, SlicedExpr e2 ss2 _)
+    | length ss1 == length ss2,
+      let sliceDiffs = zipWith diffSlice ss1 ss2,
+      all isJust sliceDiffs
+      -> merge $ (diff e1 e2) : catMaybes sliceDiffs
+  (CondExpr t1 b1 f1 _, CondExpr t2 b2 f2 _)
+      -> merge [diff t1 t2, diff b1 b2, diff f1 f2]
   (BinaryOp bx x1 x2 _, BinaryOp by y1 y2 _)
-    | bx == by
+    | void bx == void by
       -> merge [diff x1 y1, diff x2 y2]
   (UnaryOp ux x _, UnaryOp uy y _)
-    | ux == uy
+    | void ux == void uy
       -> diff x y
-  -- Dot
+  (Dot x1 a1 _, Dot x2 a2 _)
+    | void a1 == void a2
+      -> diff x1 x2
   -- Lambda _ e _
-  -- Tuple es _
+  (Tuple es1 _, Tuple es2 _)
+    | length es1 == length es2
+      -> merge $ zipWith diff es1 es2
   -- Yield
-  -- Generator
-  -- ListComp
-  -- List es _
-  -- Dictionary
-  -- DictComp
-  -- Set es _
-  -- SetComp
-  -- Starred
-  -- Paren e _
-  -- StringConversion e _
-  -- _ -> error $ "unhandled case of diff: " ++ (show e1) ++ (show e2)
-  _ -> Set.singleton $ annot e1 --TODO as new exprs are supported, remember to add them here!!
+  (Generator c1 _, Generator c2 _)
+    | Just ss <- diffComprehension c1 c2
+      -> ss
+  (ListComp c1 _, ListComp c2 _)
+    | Just ss <- diffComprehension c1 c2
+      -> ss
+  (List es1 _, List es2 _)
+    | length es1 == length es2
+      -> merge $ zipWith diff es1 es2
+  (Dictionary es1 _, Dictionary es2 _)
+    | length es1 == length es2
+      -> merge $ zipWith diffDictPair es1 es2
+  (DictComp c1 _, DictComp c2 _)
+    | Just ss <- diffComprehension c1 c2
+      -> ss
+  (Set es1 _, Set es2 _)
+    | length es1 == length es2
+      -> merge $ zipWith diff es1 es2
+  (SetComp c1 _, SetComp c2 _)
+    | Just ss <- diffComprehension c1 c2
+      -> ss
+  (Starred x1 _, Starred x2 _)
+      -> diff x1 x2
+  (Paren x1 _, Paren x2 _)
+      -> diff x1 x2
+  -- StringConversion e _   --(Version 2 only)
+  _ -> Set.singleton $ annot e1
   where
     merge = mconcat
+
+diffComprehension :: ComprehensionSpan -> ComprehensionSpan -> Maybe (Set SrcSpan)
+diffComprehension e1@(Comprehension x1 f1 _) e2@(Comprehension x2 f2 _) = do
+  ssX <- diffComprehensionExpr x1 x2
+  ssF <- diffCompFor f1 f2
+  return $ mconcat [ssX, ssF]
+
+diffComprehensionExpr :: ComprehensionExprSpan -> ComprehensionExprSpan -> Maybe (Set SrcSpan)
+diffComprehensionExpr (ComprehensionExpr e1) (ComprehensionExpr e2) = Just $ diff e1 e2
+diffComprehensionExpr (ComprehensionDict (DictMappingPair k1 v1)) (ComprehensionDict (DictMappingPair k2 v2)) = Just $ mconcat [diff k1 k2, diff v1 v2]
+diffComprehensionExpr _ _ = Nothing
+
+diffCompFor :: CompForSpan -> CompForSpan -> Maybe (Set SrcSpan)
+diffCompFor (CompFor fs1 i1 iter1 _) (CompFor fs2 i2 iter2 _)
+  | isJust iter1 || isJust iter2
+    = error "diffCompFor unhandled case"
+  | length fs1 /= length fs2
+    = Nothing
+  | otherwise
+    = Just $ mconcat $ (diff i1 i2) : zipWith diff fs1 fs2
+
+diffDictPair :: DictMappingPairSpan -> DictMappingPairSpan -> Set SrcSpan
+diffDictPair (DictMappingPair x1 y1) (DictMappingPair x2 y2) = mconcat [diff x1 x2, diff y1 y2]
+
+sameArgTypes :: [Argument a] -> [Argument a] -> Bool
+sameArgTypes as1 as2 = all sameArgType (zip as1 as2)
+  where
+    sameArgType (ArgExpr _ _, ArgExpr _ _) = True
+    sameArgType (ArgVarArgsPos _ _, ArgVarArgsPos _ _) = True
+    sameArgType (ArgVarArgsKeyword _ _, ArgVarArgsKeyword _ _) = True
+    sameArgType (ArgKeyword k1 _ _, ArgKeyword k2 _ _) = void k1 == void k2
+
+diffSlice :: SliceSpan -> SliceSpan -> Maybe (Set SrcSpan)
+diffSlice e1 e2 = case (e1, e2) of
+  (SliceProper l1 u1 s1 _, SliceProper l2 u2 s2 _)
+    | comparable e1 e2
+      -> Just $ mconcat [diffMaybe l1 l2, diffMaybe u1 u2, diffMaybe2 s1 s2]
+  (SliceExpr e1 _, SliceExpr e2 _)
+      -> Just $ diff e1 e2
+  (SliceEllipsis _, SliceEllipsis _)
+      -> Just $ mempty
+  _ -> Nothing
+
+diffMaybe :: Maybe ExprSpan -> Maybe ExprSpan -> Set SrcSpan
+diffMaybe Nothing Nothing = mempty
+diffMaybe (Just e1) (Just e2) = diff e1 e2
+diffMaybe (Just e1) Nothing = Set.singleton $ annot e1
+diffMaybe _ _ = error "diffMaybe: this shouldn't happen"
+
+diffMaybe2 :: Maybe (Maybe ExprSpan) -> Maybe (Maybe ExprSpan) -> Set SrcSpan
+diffMaybe2 Nothing Nothing = mempty
+diffMaybe2 (Just Nothing) (Just Nothing) = mempty
+diffMaybe2 (Just (Just e1)) (Just (Just e2)) = diff e1 e2
+diffMaybe2 (Just (Just e1)) _ = Set.singleton $ annot e1
+diffMaybe2 _ _ = error "diffMaybe2: this shouldn't happen"
+
+comparable :: SliceSpan -> SliceSpan -> Bool
+comparable (SliceProper l1 u1 s1 _) (SliceProper l2 u2 s2 _) =
+     (l1 /= Nothing || l1 == l2)
+  && (u1 /= Nothing || u1 == u2)
+  && ((s1 /= Nothing && s1 /= Just Nothing) || s1 == s2)
 
 ctfold :: Monoid a => (ES {- parent -} -> ES -> a -> a) -> a -> ES -> a
 --NOTE: hack using Print as top level just because Print isn't used in Python3
