@@ -24,49 +24,6 @@ data Literal
   | LS [String]
   deriving (Show, Eq)
 
--- foldExpr :: (Monoid a, Show b) => (Expr b -> a -> a) -> a -> Expr b -> a
--- foldExpr f z = go
---   where
---   go e = f e $ case e of
---     Var {} -> z
---     Int {} -> z
---     LongInt {} -> z
---     Float {} -> z
---     Imaginary {} -> z
---     Bool {} -> z
---     None {} -> z
---     Ellipsis _ -> z
---     ByteStrings {} -> z
---     Strings {} -> z
---     UnicodeStrings {} -> z
---     Call e args _ -> mconcat $ map go (e:(argExpr <$> args))
---     Subscript x y _ -> mappend (go x) (go y)
---     SlicedExpr e ss _ -> go e <> mconcat (map go $ concat (foo <$> ss))
---     CondExpr t b f _ -> go b <> go t <> go f
---     BinaryOp _ x y _ -> mappend (go x) (go y)
---     UnaryOp _ x _ -> go x
---     -- Dot
---     Lambda _ e _ -> go e
---     Tuple es _ -> mconcat (map go es)
---     -- Yield
---     -- Generator
---     -- ListComp
---     List es _ -> mconcat (map go es)
---     -- Dictionary
---     -- DictComp
---     Set es _ -> mconcat (map go es)
---     -- SetComp
---     -- Starred
---     Paren e _ -> go e
---     StringConversion e _ -> go e
---     e -> error $ "unhandled case of foldExpr: " ++ (show e)
-
--- foo :: Slice a -> [Expr a]
--- foo (SliceProper l u Nothing _) = catMaybes [l, u]
--- foo (SliceProper l u (Just s) _) = catMaybes [l, u, s]
--- foo (SliceExpr e _) = [e]
--- foo (SliceEllipsis _) = []
-
 diff :: ExprSpan -> ExprSpan -> Set SrcSpan
 diff e1 e2 = case (e1, e2) of
   (Lambda {}, _)
@@ -80,16 +37,16 @@ diff e1 e2 = case (e1, e2) of
   (Var x _, Var y _)
     | void x == void y
       -> mempty
-  (Int i1 s1 _, Int i2 s2 _) --TODO could the string versions matter?
+  (Int i1 _ _, Int i2 _ _)
     | i1 == i2
       -> mempty
-  (LongInt i1 s1 _, LongInt i2 s2 _)
+  (LongInt i1 _ _, LongInt i2 _ _)
     | i1 == i2
       -> mempty
-  (Float i1 s1 _, Float i2 s2 _)
+  (Float i1 _ _, Float i2 _ _)
     | i1 == i2
       -> mempty
-  (Imaginary i1 s1 _, Imaginary i2 s2 _)
+  (Imaginary i1 _ _, Imaginary i2 _ _)
     | i1 == i2
       -> mempty
   (Bool i1 _, Bool i2 _)
@@ -283,68 +240,6 @@ diffSpans d' es = Set.fromList $ go d' (concatMap allSubESes es)
 
 allSubESes :: ES -> [ES]
 allSubESes x = x : (concatMap allSubESes $ subESes x)
--- allSubESes :: ES -> [ES]
--- allSubESes (Ex e) = Ex <$> allSubExprs e
--- allSubESes (St s) = (St s) : case s of --NOTE: returns in different order?
---   Import {} -> []
---   FromImport {} -> []
---   While cond body els _ -> concatMap allSubESes $ (Ex cond) : (St <$> (body ++ els))
---   For vs gen body els _ -> concatMap allSubESes $ (Ex <$> vs ++ [gen]) ++ (St <$> (body ++ els))
---   Fun _ _ Nothing body _ -> concatMap allSubESes $ St <$> body --TODO we do not yet support annotations or default values on function Parameters (or result annotations)
---   Class _ args body _ -> concatMap allSubESes $ (Ex <$> (argExpr <$> args)) ++ (St <$> body)
---   Conditional gs els _ -> concatMap allSubESes $ concatMap (\(e, ss) -> [Ex e] ++ (St <$> ss)) gs ++ (St <$> els)
---   Assign xs e _ -> concatMap allSubESes $ (Ex <$> xs ++ [e])
---   AugmentedAssign x _ e _ -> concatMap allSubESes $ (Ex <$> [x,e])
---   -- --Decorated
---   -- Return Nothing _ -> []
---   -- Return (Just e) _ -> [Ex e]
---   -- --Try
---   -- --Raise
---   -- --With
---   -- Pass _ -> []
---   -- Break _ -> []
---   -- Continue _ -> []
---   -- Delete es _ -> Ex <$> es
---   -- StmtExpr e _ -> [Ex e]
---   -- Global _ _ -> []
---   -- NonLocal _ _ -> []
---   -- Assert es _ -> Ex <$> es
---   -- Print _ es _ _ -> Ex <$> es
---   --Exec
---
--- allSubExprs e = e : case e of
---   Var {} -> []
---   Int {} -> []
---   LongInt {} -> []
---   Float {} -> []
---   Imaginary {} -> []
---   Bool {} -> []
---   None {} -> []
---   -- Ellipsis
---   ByteStrings {} -> []
---   Strings {} -> []
---   UnicodeStrings {} -> []
---   Call e args _ -> allSubExprs e ++ concatMap allSubExprs (argExpr <$> args)
---   Subscript x y _ -> allSubExprs x ++ allSubExprs y
---   -- SlicedExpr
---   CondExpr t b f _ -> allSubExprs t ++ allSubExprs b ++ allSubExprs f
---   BinaryOp _ x y _ -> allSubExprs x ++ allSubExprs y
---   UnaryOp _ x _ -> allSubExprs x
---   -- Dot
---   Lambda _ e _ -> allSubExprs e
---   Tuple es _ -> concatMap allSubExprs es
---   -- Yield
---   -- Generator
---   -- ListComp
---   List es _ -> concatMap allSubExprs es
---   -- Dictionary
---   -- DictComp
---   Set es _ -> concatMap allSubExprs es
---   -- SetComp
---   -- Starred
---   Paren e _ -> allSubExprs e
---   StringConversion e _ -> allSubExprs e
---   e -> error $ "unhandled case of allSubExprs: " ++ (show e)
 
 data DiffT
   = CC ES ES Diff DiffT DiffT DiffT
@@ -537,7 +432,7 @@ subESes = \case
     FromImport {} -> []
     While cond body els _ -> (Ex cond) : (St <$> (body ++ els))
     For vs gen body els _ -> (Ex <$> vs ++ [gen]) ++ (St <$> (body ++ els))
-    Fun _ _ Nothing body _ -> St <$> body --TODO we do not yet support annotations or default values on function Parameters (or result annotations)
+    Fun _ _ Nothing body _ -> St <$> body --TODO support annotations or default values on function/lambda Parameters (or result annotations)
     Class _ args body _ -> (Ex <$> (argExpr <$> args)) ++ (St <$> body)
     Conditional gs els _ -> concatMap (\(e, ss) -> [Ex e] ++ (St <$> ss)) gs ++ (St <$> els)
     Assign xs e _ -> (Ex <$> xs ++ [e])
@@ -568,7 +463,7 @@ subExprs = \case
   Imaginary {} -> []
   Bool {} -> []
   None {} -> []
-  -- Ellipsis
+  Ellipsis {} -> []
   ByteStrings {} -> []
   Strings {} -> []
   UnicodeStrings {} -> []
@@ -582,17 +477,26 @@ subExprs = \case
   Lambda _ e _ -> [e]
   Tuple es _ -> es
   -- Yield
-  -- Generator
-  -- ListComp
+  Generator c _ -> comprehensionSubExprs c
+  ListComp c _ -> comprehensionSubExprs c
   List es _ -> es
-  -- Dictionary
-  -- DictComp
+  Dictionary pairs _ -> concatMap dictMappingPairSubExprs pairs
+  DictComp c _ -> comprehensionSubExprs c
   Set es _ -> es
-  -- SetComp
-  -- Starred
+  SetComp c _ -> comprehensionSubExprs c
+  Starred e _ -> [e]
   Paren e _ -> [e]
   StringConversion e _ -> [e]
   e -> error $ "unhandled case of subExprs: " ++ (show e)
+
+comprehensionSubExprs (Comprehension ce cf _) = ceSubExprs ce ++ cfSubExprs cf
+  where
+    ceSubExprs (ComprehensionExpr e) = [e]
+    ceSubExprs (ComprehensionDict pair) = dictMappingPairSubExprs pair
+    cfSubExprs (CompFor es e Nothing _) = es ++ [e]
+    cfSubExprs _ = error "unhandled case of comprehensionSubExprs"
+
+dictMappingPairSubExprs (DictMappingPair e1 e2) = [e1, e2]
 
 argExpr :: Argument a -> Expr a
 argExpr (ArgExpr e _) = e
