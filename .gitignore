@@ -1,3 +1,12 @@
 *.pyc
 .venv
 .stack-work
+
+paper/*.aux
+paper/*.bbl
+paper/*.blg
+paper/*.fdb_latexmk
+paper/*.fls
+paper/*.log
+paper/*.pdf
+paper/*.synctex.gz

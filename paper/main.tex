@@ -5,7 +5,7 @@
 % containing only references are permitted.
 %
 % ICSE 2019 Technical Track will employ a double-blind review process.
-% Thus, no submission may reveal its authors’ identities. 
+% Thus, no submission may reveal its authors’ identities.
 %
 % https://2019.icse-conferences.org/track/icse-2019-Technical-Papers#Call-for-Papers
 
@@ -22,8 +22,8 @@
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
 
-% 
-\title{Blaming the Typeless: \\ Scalable, Human-Centric Python Localization} 
+%
+\title{Blaming the Typeless: \\ Scalable, Human-Centric Python Localization}
 
 \iffalse
 
@@ -35,11 +35,11 @@ blcosman@eng.ecsd.edu}
 \IEEEauthorblockA{\textit{UC San Digeo}\\
 lmedvinsky@eng.ecsd.edu}
 \and
-\IEEEauthorblockN{Ranjit Jhala} 
+\IEEEauthorblockN{Ranjit Jhala}
 \IEEEauthorblockA{\textit{UC San Digeo}\\
 jhala@cs.ecsd.edu}
 \and
-\IEEEauthorblockN{Westley Weimer} 
+\IEEEauthorblockN{Westley Weimer}
 \IEEEauthorblockA{\textit{University of Michigan}\\
 weimerw@umich.edu}
 }
@@ -51,50 +51,50 @@ weimerw@umich.edu}
 \maketitle
 
 \begin{abstract}
-Abstract 
+Abstract
 \end{abstract}
 
 \section{Introduction}
 
 \emph{Placeholder Outline.} This text is an informal placeholder outline
-only. 
+only.
 
 \emph{Identify an important problem.} Support the claim that Python fault
 localization for possibly-ill-typed student fragments is an important
 problem. Likely steps: fault localization is important, Python is
 important, incomplete code is important. First, software engineering is
 important and expensive; testing, maintenance, and debugging are the
-dominant activities in SE; localization and triage are key steps. Second, 
+dominant activities in SE; localization and triage are key steps. Second,
 Python is increasingly used for pedagogy and industrial deployment, here
 are some GitHub numbers about the rate of growth in Python projects
 compared to C or Java, etc. Third, IDE tool use requires operating on code
-fragments, here are some numbers from PythonTutor~\cite{Guo2013-vu}, generality, etc. 
+fragments, here are some numbers from PythonTutor~\cite{Guo2013-vu}, generality, etc.
 
 \emph{Identify the properties of a good solution.} Pick your favorite
 three. Some candidates: accuracy (cite Parnin/Orso paper an indicate that
 it must be found within top three, etc., since humans will not read long
-lists), generality (must apply to student code and incomplete fragments), 
+lists), generality (must apply to student code and incomplete fragments),
 scalability (must apply to hundreds of thousands of fragments, must present
 real-time responses suitable for web/IDE use), agreement with subjective
 judgments (must handle ``ambiguity'' the same way humans would when you
 don't know whether to blame the use or the definition, etc.), efficiency
 (must operate using a small number of dynamic runs, unlike Tarantula,
-etc.). 
+etc.).
 
 \emph{Show that the current state of the art is inadequate.} For each $x$ of
 \{manual debugging, Python's default error messages,
 Mycroft/Sherrloc/Tarantula/whatever\}, show that $x$ lacks at least one of the
-desired properties listed above. 
+desired properties listed above.
 
 \emph{Insights and special sauce.} What are the two or three good ideas
 that we bring together to solve this problem? Some candidates: the use of
 modern machine learning techniques (deep learning, etc.); the use of
 tree-based contextual features to hit the sweet spot between syntax and semantics;
-special handling of unsatisfied use-def type constraints (TBA); etc. 
+special handling of unsatisfied use-def type constraints (TBA); etc.
 
 \emph{What is our proposal?} We propose XYZ, an algorithm to do ABC. It
 takes as input DEF. It has stages P, Q and R. It produces as output GHI. It
-provides guarantees JKL. 
+provides guarantees JKL.
 
 \emph{How will we evaluate it?} For each of the properties of a good
 solution listed above, indicate how we will evaluate our contribution. What
@@ -107,26 +107,87 @@ lines-per-second? if we care about precision, what is our non-standard
 top-three metric) and success criteria (e.g., how will we define success?
 what is the baseline we want to beat). For empirical evaluations, briefly
 and implicitly argue that the results are likely to generalize by giving
-the size of the sampled set. 
+the size of the sampled set.
 
 \emph{Introduction wrap-up.} The contributions of this paper are as follows
-... 
+...
 
-\section{Motivating Example} 
+\section{Motivating Example}
 
-\section{Overview} 
+\section{Overview}
 
-\section{Approach} 
+\emph{(Data pipeline summary)} Our raw data consist of every Python 3 program
+that a user executed on PythonTutor.com (not in "live" mode) during 2017, which
+comes to around 5 million programs. Each program which crashes is paired with
+the next program (by the same user) that does not crash. We discard pairs where the
+difference between crashing and fixed versions is too high (more than a stddev
+above average).
 
-\section{Evaluation} 
+For each statement and expression in each
+program, we compute features including the following:
 
-\subsection{Methodology} 
+\begin{itemize}
 
-\section{Related Work} 
+\item \emph{Static / syntactic features}
+\begin{enumerate}
+    \item What kind of statement/expression it is, e.g. assignment / return
+     / import (for statements) or variable / literal / application (expressions).
+    \item Size (the number of AST nodes in the subtree rooted at this node)
+\end{enumerate}
 
-\section{Conclusion} 
+\item \emph{Dynamic features}
+We run each program through an instrumented interpreter (i.e. a modified PythonTutor
+backend, which itself is based on the BDB debugging library). This lets us
+compute the following features:
+\begin{enumerate}
+    \item What type(s) does the expression have at runtime?
+    \item Is it part of the error slice?
+\end{enumerate}
+(Since this interpreter works at the granularity of lines and we want to work with
+expressions as well, we first convert each program to ANF.)
 
-\bibliographystyle{abbrv} 
-\bibliography{nanomaly,sw} 
+We compute the error slice by running the program and building a dependency
+graph where node A depends on node B if either B defines a variable that A uses,
+or B affects control flow allowing A to run.
 
-\end{document} 
+We also check what exception is thrown (TypeError, KeyError, etc), and add that
+as a feature to all vectors derived from that program.
+
+\item \emph{Contextual features} After all other features are computed so we have a
+vector $v_e$ representing expression $e$, we set $v_e^{+context} = v_e \circ
+v_p \circ v_{c_1} \circ v_{c_2} \circ v_{c_3}$ where $p$ is the expression's parent
+in the AST and $c_i$ are its children. This allows us to recover some of the
+program structure that would otherwise be completely lost when we convert the
+structured program into an unstructured bag of feature vectors.
+
+\item \emph{Label} Each feature vector is labeled by whether that expression/statement
+changed between the crashing and fixed versions. (This is our proxy for whether
+that node is to blame for the crash).
+
+\end{itemize}
+
+Each vector is then one-hot encoded (e.g. feature "Type : Int" becomes set
+of features "Type-Int : 1", "Type-Bool : 0", "Type-Str : 0", etc.) for use with
+standard machine learning tools. The models we train (inc. decision trees/forests,
+MLP, GBM) can then rank expressions of a test program in order of how likely they
+are to be the source of the bug, so we can compute Top-k accuracies: how often
+is the true program change located in the model's first k outputs. We report Top-1
+and Top-3...
+
+
+
+
+\section{Approach}
+
+\section{Evaluation}
+
+\subsection{Methodology}
+
+\section{Related Work}
+
+\section{Conclusion}
+
+\bibliographystyle{abbrv}
+\bibliography{nanomaly,sw}
+
+\end{document}
