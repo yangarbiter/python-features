@@ -58,5 +58,3 @@ foo "Filter pairs" "python3 4-run-on-single-lines.py $outDir/pairs $outDir"
 foo "Generate features (categorical)" "stack exec -- generate-features --source $outDir/goodPairs.jsonl --context --slice --size --out $outDir/foo"
 
 foo "Remove outliers" "python3 removeOutliers.py $outDir/foo/blah+context+slice+size $outDir/outliersRemoved"
-
-# foo "Filter results" "python3 twoSided.py $outDir/foo/op+context+slice $outDir"

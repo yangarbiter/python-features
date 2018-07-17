@@ -326,15 +326,18 @@ data ESKind
   | TerminalStatementK (Statement ())
   | AssignK
   | AugmentedAssignK (AssignOp ())
+  | DecoratedK [Decorator ()]
+  | RaiseK
+  | WithK [Bool]
   | ReturnK
+  | TryK Int [(Int, Int)] Int
   | DeleteK
   | StmtExprK
   | AssertK
-  -- | PrintK Bool Bool
-  | ConditionalK
+  | ConditionalK [Int]
   | ClassK (Ident ()) Int
-  | WhileK
-  | ForK Int
+  | WhileK Int
+  | ForK Int Int
   | ParenK
   | FunK (Ident ()) Int
   | DotK (Ident ())
@@ -356,19 +359,18 @@ stmtKind :: Statement () -> ESKind
 stmtKind s = case s of
   Import {} -> TerminalStatementK s
   FromImport {} -> TerminalStatementK s
-  While _ body _ _ -> WhileK
-  For vs _ body _ _ -> ForK (length vs)
+  While _ body _ _ -> WhileK (length body)
+  For vs _ body _ _ -> ForK (length vs) (length body)
   Fun name args Nothing _ _ -> FunK name (length args) --TODO args have idents
   Class name args body _ -> ClassK name (length args) --TODO args have idents
-  Conditional gs _ _ -> ConditionalK --TODO handle varying number of if/elifs?
+  Conditional gs _ _ -> ConditionalK (length . snd <$> gs)
   Assign {} -> AssignK
   AugmentedAssign _ op _ _ -> AugmentedAssignK op
-  -- --Decorated
-  Return Nothing _ -> TerminalStatementK s
-  Return (Just e) _ -> ReturnK
-  -- --Try
-  -- --Raise
-  -- --With
+  Decorated ds _ _ -> DecoratedK ds
+  Return {} -> ReturnK
+  Try body excepts els _ _ -> TryK (length body) (handlerClassifier <$> excepts) (length els)
+  Raise {} -> RaiseK
+  With ctx _ _ -> WithK (isJust . snd <$> ctx)
   Pass _ -> TerminalStatementK s
   Break _ -> TerminalStatementK s
   Continue _ -> TerminalStatementK s
@@ -380,6 +382,13 @@ stmtKind s = case s of
   -- Print b1 _ b2 _ -> PrintK b1 b2
   --Exec
   e -> error $ "unhandled case of stmtKind: " ++ (show e)
+
+handlerClassifier :: Handler a -> (Int, Int)
+handlerClassifier (Handler (ExceptClause c _) ss _) = (countJusts c, length ss)
+  where
+    countJusts Nothing = 0
+    countJusts (Just (_, Nothing)) = 1
+    countJusts _ = 2
 
 -- NOTE: ignores "expr_literal"s
 exprKind :: Expr () -> ESKind
