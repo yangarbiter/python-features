@@ -7,17 +7,13 @@ OUT_FOLDER = sys.argv[2]
 fracs = {}
 for fileName in os.listdir(DATA_FOLDER):
     with open(os.path.join(DATA_FOLDER,fileName), 'r') as inFile:
-        csvFile = csv.reader(inFile)
-        skippedHeader = False
+        csvFile = csv.DictReader(inFile)
         noChange = 0
         didChange = 0
         for row in csvFile:
-            if not skippedHeader:
-                skippedHeader = True
-                continue
-            if row[1] == '1.0' and row[2] == '0.0':
+            if row['L-NoChange'] == '1.0' and row['L-DidChange'] == '0.0':
                 noChange += 1
-            elif row[1] == '0.0' and row[2] == '1.0':
+            elif row['L-NoChange'] == '0.0' and row['L-DidChange'] == '1.0':
                 didChange += 1
             else:
                 raise hell #this should never happen

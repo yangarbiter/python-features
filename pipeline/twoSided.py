@@ -16,15 +16,11 @@ for fileName in os.listdir(DATA_FOLDER):
     noChange = 0
     didChange = 0
     with open(fullPath, 'r') as csvFile:
-        foo = csv.reader(csvFile)
-        skippedHeader = False
+        foo = csv.DictReader(csvFile)
         for row in foo:
-            if not skippedHeader:
-                skippedHeader = True
-                continue
-            if row[1] == '1.0' and row[2] == '0.0':
+            if row['L-NoChange'] == '1.0' and row['L-DidChange'] == '0.0':
                 noChange += 1
-            elif row[1] == '0.0' and row[2] == '1.0':
+            elif row['L-NoChange'] == '0.0' and row['L-DidChange'] == '1.0':
                 didChange += 1
             else:
                 raise hell #this should never happen
