@@ -117,11 +117,15 @@ the size of the sampled set.
 \section{Overview}
 
 \emph{(Data pipeline summary)} Our raw data consist of every Python 3 program
-that a user executed on PythonTutor.com (not in "live" mode) during 2017, which
-comes to around 5 million programs. Each program which crashes is paired with
-the next program (by the same user) that does not crash. We discard pairs where the
+that a user executed on PythonTutor.com (not in "live" mode) during 2017, other
+than those with syntax errors or undefined variables. Each program which crashes
+(throws an uncaught Python exception) is paired with
+the next program (by the same user) that does not crash, under the assumption
+that the latter is the fixed version of the former. We discard pairs where the
 difference between crashing and fixed versions is too high (more than a stddev
-above average).
+above average), since these are most likely to be violations of that
+assumption (i.e. the program that does not crash is unrelated to the crashing
+program).
 
 For each statement and expression in each
 program, we compute features including the following:
@@ -140,8 +144,11 @@ We run each program through an instrumented interpreter (i.e. a modified PythonT
 backend, which itself is based on the BDB debugging library). This lets us
 compute the following features:
 \begin{enumerate}
-    \item What type(s) does the expression have at runtime?
+    \item What type(s) does the expression have at runtime? (The values of this feature
+    can be a type like int, or the special values "unknown" if the expression is
+    never successfully evaluated and "multiple" if it changes type.)
     \item Is it part of the error slice?
+    \item Is it the node at which the program actually crashes?
 \end{enumerate}
 (Since this interpreter works at the granularity of lines and we want to work with
 expressions as well, we first convert each program to ANF.)
@@ -150,8 +157,8 @@ We compute the error slice by running the program and building a dependency
 graph where node A depends on node B if either B defines a variable that A uses,
 or B affects control flow allowing A to run.
 
-We also check what exception is thrown (TypeError, KeyError, etc), and add that
-as a feature to all vectors derived from that program.
+We also check what uncaught exception is thrown by the program (TypeError,
+KeyError, etc), and add that as a constant feature to all vectors derived from that program.
 
 \item \emph{Contextual features} After all other features are computed so we have a
 vector $v_e$ representing expression $e$, we set $v_e^{+context} = v_e \circ
