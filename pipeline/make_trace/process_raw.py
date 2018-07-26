@@ -62,10 +62,10 @@ def process_one(string):
     ri = json.dumps(obj['raw_input']) if 'raw_input' in obj else '[]'
 
     (type_info, result) = type_and_slice(source, ri)
-    exceptionSpanANF, slice_spansANF, exceptionMsg, UD_1ANF = result
-    if exceptionSpanANF == None:
-        exceptionSpan, slice_spans, UD_1 = exceptionSpanANF, slice_spansANF, None
+    if result == None:
+        exceptionSpan, slice_spans, exceptionMsg, UD_1 = None, [], None, None
     else:
+        exceptionSpanANF, slice_spansANF, exceptionMsg, UD_1ANF = result
         exceptionSpan, slice_spans, UD_1 = unANF(source, exceptionSpanANF, slice_spansANF, UD_1ANF)
     return (exceptionSpan, type_info, slice_spans, exceptionMsg, UD_1, UD_1ANF)
 

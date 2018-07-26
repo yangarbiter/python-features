@@ -637,7 +637,7 @@ def slice(source, ri, line=None, debug=False, tr=None, raw=False):
             print('Exception at line ' + str(step_to_line[exception_step]))
     elif not line:
         if raw:
-            return None, [], None, UD_1
+            return None
         else:
             return None, None, None
 
