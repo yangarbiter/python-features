@@ -3,8 +3,6 @@ import scipy.cluster.hierarchy
 from scipy.spatial.distance import pdist
 import zss
 
-from sklearn.cluster import AgglomerativeClustering
-
 def ast_children(node):
     return list(ast.iter_child_nodes(node))
 
