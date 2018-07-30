@@ -22,10 +22,14 @@ def ast_distance(a, b):
 def metric(a, b):
     return ast_distance(a[0], b[0])
 
-def cluster(asts, t):
-    distance_matrix = pdist(list(map(lambda x: [x], asts)), metric)
-    linkage = scipy.cluster.hierarchy.linkage(distance_matrix, method='single')
-    return scipy.cluster.hierarchy.fcluster(linkage, t, criterion='distance')
+def distance_matrix(asts):
+    return pdist(list(map(lambda x: [x], asts)), metric)
+
+def linkage(d_matrix):
+    return scipy.cluster.hierarchy.linkage(d_matrix, method='single')
+
+def cluster(link, t):
+    return scipy.cluster.hierarchy.fcluster(link, t, criterion='distance')
 
 # Takes a list of python source strings and produces an array where element i is
 # the cluster number of the string with index i in the iterable that was passed
@@ -34,5 +38,14 @@ def cluster(asts, t):
 # strings: Iterable of python source strings
 # t: Max edit distance for elements in the same cluster
 def cluster_strings(strings, t):
+    print('Parsing strings...')
     asts = map(ast.parse, strings)
-    return cluster(asts, t)
+
+    print('Computing distance matrix...')
+    dmat = distance_matrix(asts)
+
+    print('Computing linkage...')
+    link = linkage(dmat)
+
+    print('Computing clusters...')
+    return cluster(link, t)
