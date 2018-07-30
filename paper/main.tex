@@ -216,7 +216,7 @@ localization overall?}
 \item[RQ3]{Which features are the most important for various categories of
 Python defects?}
 
-\item[RQ4]{FIXME predicates?} 
+\item[RQ4]{Is our algorithm accurate on heterogeneous sets of programs?} 
 
 \item[RQ5]{FIXME clustering?} 
 
@@ -266,6 +266,9 @@ Goal: Establish that our algorithm works. This is the most basic question,
 but also the most relevant. If the reader takes away nothing else, they
 should conclude that our algorithm is effective. 
 
+Ranjit: ``our algorithms'' --- ``purely syntactic vs. with types'' 
+--- ``with or without slicing'' as extra ``bars'' 
+
 \subsection{RQ 2 --- Feature Predictive Power}
 
 prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
@@ -288,14 +291,27 @@ Give a simple narrative about our effectiveness: implicitly, we were smart
 for deciding to include these features, better ingredients make better
 results, we have great results. 
 
+TODO: what about turning on/off slicing? 
+
+TODO: what about turning on/off types? (is that separate from slicing?)
+
+TODO: do ANOVA or ReliefF
+
 \subsection{RQ 3 --- Defect Categories}
 
 prereq: define defect category. This could be either the raw python
 exception name or it could be clusters that we have manually created. 
+Ranjit notes: result could be ``we need everything for everything'', at
+which point this is useless and should be skipped. Per Ben's exam: may find
+that for different categories of errors we should use different ML
+classifiers. 
 
 PLOT Type: Bar Graph (three bars per point on the X axis) 
 
 PLOT Y Axis: Leave-One-In Accuracy (normalized per X axis point)
+Ranjit notes: on smaller subsets we could rebuild the classifier each time.
+Wes notes that if we do, it takes us longer. If we re-use the monolithic
+model we can do this very quickly. 
 
 PLOT X AXis: Defect Categories 
 
@@ -306,6 +322,46 @@ piece of the problem. We need ABC feature to handle DEF class of defects,
 but ABC feature does not work well on GHI class of defects, for those we
 need JKL features. Implicit: we were smart for including all of these
 categories. 
+
+\subsection{RQ 4 --- Diversity of Programs}
+
+In Nate there were 20 different functions. All the programs were doing the
+same 20 functions.
+
+Here, people are doing anything they want. Random stuff going on over here. 
+
+We want to show that we get high accuracy *over a heterogenous set of
+programs*. Leon? 
+
+prereq: cluster the programs based on similarity. Using agglomerative
+clustering plus python edit distance. How good the performance will be?
+right now it creates a clustering tree. binary tree, based on min distance. 
+can give it a threshhold for distance (elements w/in a group). don't forget
+to rename all variables to X, perhaps normalize (edit distance size). 
+
+leon: could also cluster by inconsistency coefficient
+
+PLOT Type: line graph (standard plot)
+
+PLOT X AXIS: clustering distance parameter
+
+PLOT Y AXIS: number of different clusters found
+
+PLOT LINES: line 1 is ``Nate programs'', line 2 is ``25\%, at random, of our dataset''
+
+Goal: show that ``no matter how you decide program differences'', our
+dataset is always more diverse/heterogeneous than is previous work. So our
+success is amazing.
+
+\subsection{RQ 5 --- Wishlist: Partitioning Kinds of Errors}
+
+Can we partition the kinds of errors that people make? What are common
+misconceptions? Do these correspond to paths of decision trees. 
+
+If we don't get to the source-sink thing, it could go here. 
+
+I don't think we have time, in this paper, to actually implement a
+two-level machine learning.  
 
 \subsection{Qualitative Analysis} 
 
