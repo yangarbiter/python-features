@@ -122,7 +122,7 @@ exceptions. We do not consider syntax errors or references to undefined
 variables. Our algorithm uses machine learning models based on static and
 dynamic features to implicate suspicious expressions. Since studies have
 found that voluminous fault localization output is not useful to
-developers~\cite{orso-parnin,orso-parnin2013}, we focus on producing
+developers~\cite{orso-parnin,orso-parnin2015}, we focus on producing
 Top-1 and Top-3 rankings. 
 
 Our algorithm first extracts static and dynamic features from Python
@@ -211,9 +211,14 @@ aim of addressing a number of research questions:
 programs?} 
 
 \item[RQ2]{Which features are the most important for Python fault
-localization?} 
+localization overall?} 
 
-\item[RQ3]{FIXME}
+\item[RQ3]{Which features are the most important for various categories of
+Python defects?}
+
+\item[RQ4]{FIXME predicates?} 
+
+\item[RQ5]{FIXME clustering?} 
 
 \end{enumerate} 
 
@@ -245,10 +250,178 @@ We report Top-1 and Top-3...
 We define FIXME-ACCURACY to be FIXME. 
 
 \subsection{RQ 1 --- Fault Localization Accuracy}
+
+prereq: define accuracy 
+
+PLOT Type: Bar Graph (with multiple bars) 
+
+PLOT Y Axis: Model Accuracy
+
+PLOT X Axis: Top-1, Top-2, Top3
+
+PLOT Bars: 1 for our algorithm, 1 for a weak baseline (such as the vanilla
+Python interpreter) 
+
+Goal: Establish that our algorithm works. This is the most basic question,
+but also the most relevant. If the reader takes away nothing else, they
+should conclude that our algorithm is effective. 
+
 \subsection{RQ 2 --- Feature Predictive Power}
-\subsection{RQ 3 --- FIXME}
+
+prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
+ANOVA, whatever)  
+
+PLOT Type: Table
+
+TABLE COLUMNS: Feature Name, Feature Category, Feature Predictive Power
+
+TABLE ROWS: top twelve features
+
+Use as a rough guide: Table 3 on Page 8 of 
+https://web.eecs.umich.edu/~weimerw/p/weimer-icsm2010.pdf
+
+Goal: Establish that we are smart for including all of these features. Note
+which individual features or feature categories were (not) included in
+previous work. 
+
+Give a simple narrative about our effectiveness: implicitly, we were smart
+for deciding to include these features, better ingredients make better
+results, we have great results. 
+
+\subsection{RQ 3 --- Defect Categories}
+
+prereq: define defect category. This could be either the raw python
+exception name or it could be clusters that we have manually created. 
+
+PLOT Type: Bar Graph (three bars per point on the X axis) 
+
+PLOT Y Axis: Leave-One-In Accuracy (normalized per X axis point)
+
+PLOT X AXis: Defect Categories 
+
+PLOT Bars: Static, Dynamic, Context 
+
+Goal: Demonstrate that each category of feature is essential for a certain
+piece of the problem. We need ABC feature to handle DEF class of defects,
+but ABC feature does not work well on GHI class of defects, for those we
+need JKL features. Implicit: we were smart for including all of these
+categories. 
+
+\subsection{Qualitative Analysis} 
+
+Pick out one example where we did poorly. Walk through why it is ``out of
+scope'', in some sense: we would need features that capture XYZ to handle
+it correctly, but those are either expensive or undecideable. Hint at
+future work. 
+
+Pick out a few examples where we did well and the baseline did poorly. Walk
+through how interesting and indicative they are and explain why we did well. 
+
+\subsection{Evaluation Summary}  
+
+Summarize the evaluation. One sentence per subsection.
 
 \section{Related Work}
+FIXME: This must all be rewritten or dropped, as it is directly copied from
+my previous papers. It serves as a placeholder to indicate length and to
+remind us of some Software Engineering bits we might cite.   
+
+There are several fault localization techniques that rely much more heavily
+on dynamic information\footnote{Note: we do not directly compare to these
+state-of-the-art fault localization techniques for several reasons.  First,
+the benchmarks used in this paper do not always have available the test
+suites needed by dynamic techniques and, conversely, those used in the
+previous work do not have the publicly available bug reports required
+by our technique.  Additionally, we return an answer only when confident in
+our result set and also employ a top list of all available results, while
+previous work is typically evaluated using a score metric.  We consider the
+techniques complimentary.}~\cite
+{harrold05,Renieris03,cleve05,wang09}.
+In general,
+these techniques leverage differences between passing and failing program
+executions.  While effective, this type of approach requires program traces
+for not only the specific fault at hand but also from a comprehensive regression
+test suite for comparison.
+A hybrid approach that considers both dynamic
+traces and static natural language similarity was recently proposed by
+Medini \textit{et al.}~\cite{Medini11}.
+In contrast to these approaches, our technique relies purely on static
+information that is readily available in most commercial systems with minimal
+additional developer effort.
+
+Prabhakararao and Ruthruff \emph{et al.} performed two human studies
+to gauge the effectiveness of an interactive fault localization tool
+developed for end users with little to no
+experience~\cite{Prabhakararao03,ruthruff05}.  The goal of their
+studies was to evaluate the use of feedback when locating faults and
+to generally study the process of fault localization, especially by
+users with no expert domain knowledge of the source.  By comparison,
+our human study also examines the fault localization process but for
+the purpose of evaluating software quality metrics.  We are less
+interested in the specific process and more concerned with the
+resulting accuracy and the human intuitions about the code in
+question.  Additionally, our human study is of a much broader scope and
+thus we hope it is more generalizable.
+%Additionally, their studies included 10 and 20
+%participants respectively using a spreadsheet-based visualization tool.
+%Our study of 61 humans looking at actual source code potentially provides
+%more generalizable results and targets specifically the area of software
+%maintenance completed by trained programmers.
+
+
+Ashok \textit{et al.} propose a similar natural language search technique
+in which users can match an incoming report to previous reports,
+programmers and source code~\cite{Ashok09}.  By comparison, our technique
+is more lightweight and focuses only on searching the code and the
+defect report.  
+
+Jones \textit{et al.} developed Tarantula, a technique that performs
+fault localization based on the insight that statements executed often
+during failed test cases likely account for potential fault
+locations~\cite{harrold05}. Their approach is quite effective when
+a rich, indicative test suite is available and can be run as part of
+the fault localization process. It thus requires the fault-inducing
+input but not any natural language defect report. By contrast,
+our approach is lightweight, does not require an indicative test
+suite or fault-inducing input, but does require a natural language
+defect report. Both approaches will yield comparable performance, and
+could even be used in tandem. 
+
+Cleve and Zeller localize faults by finding differences between
+correct and failing program execution states, limiting the scope of
+their search to only variables and values of interest to the fault in
+question~\cite{cleve05}. Notably, they focus on those variable and
+values that are relevant to the failure and to those program execution
+points where transitions occur and those variables become causes of
+failure. Their approach is in a strong sense finer-grained than ours:
+while nothing prevents our technique from being applied at the level
+of methods instead of files, their technique can give very precise
+information such as ``the transition to failure happened when $x$
+became 2.'' Our approach is lighter-weight and does not require
+that the program be run, but it does require defect reports. 
+
+Renieris and Rice use a ``nearest neighbor'' technique in their
+Whither tool to identify faults based on exposing differences in
+faulty and non-faulty runs that take very similar executions
+paths~\cite{Renieris03}. They assume a large number of correct runs
+(e.g., normal test cases) and one failing run. Their approach uses a
+distance criterion to select the correct run that is closest to the
+failing run and produces a report of ``suspicious'' parts of the
+program. By comparison, we chose to limit the programmatic information
+used by our technique to only that which was reported by users: we 
+do not use test case runs but do need natural language. 
+
+Liblit \textit{et al.} use Cooperative Bug Isolation, a statistical
+approach to isolate multiple bugs within a program given a deployed user
+base. By analyzing large amounts of collected execution data from real
+users, they can successfully differentiate between different causes of
+faults in failing software~\cite{liblit05}. Their technique produces
+a ranked list of very specific fault localizations (e.g., ``the fault
+occurs when $i > arrayLen$ on line 57''). In general, their technique
+can produce more precise results than ours, but it requires a set of
+deployed users and works best on those bugs experienced by many users.
+By contrast, we do not require that the program be runnable, much less
+deployed, and use only natural language defect report text. 
 
 \section{Conclusion}
 
