@@ -48,7 +48,7 @@ foo "Docker build" "docker build -t python-pipeline ."
 
 foo "Run slicer" "gunzip -c $outDir/py3-web_exec.jsonl.gz | docker run -i python-pipeline /bin/bash -c 'python3 slicePass.py $rerun' | gzip > $outDir/sliced.jsonl.gz"
 
-foo "Group by session" "gunzip -c $outDir/sliced.jsonl.gz | python3 groupAndSort.py $outDir/sessions"
+foo "Group by session" "gunzip -c $outDir/sliced.jsonl.gz | python3 groupBySession.py $outDir/sessions"
 
 foo "Make pairs" "python3 3-make-pairs.py $outDir/sessions $outDir/pairs"
 

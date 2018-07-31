@@ -22,29 +22,29 @@ os.makedirs(OUT_FOLDER, exist_ok=True)
 for fileName in os.listdir(DATA_FOLDER):
     try:
         fullPath = os.path.join(DATA_FOLDER,fileName)
-        if os.path.isdir(fullPath):
-            continue
-        pairs = []
         with open(fullPath, 'r') as logFile:
-            badProgs = []
-            for line in logFile:
-                dct = json.loads(line)
-                if "PF_exitPipelineReason" in dct:
-                    # if dct["PF_exitPipelineReason"] != 'Does not parse':
-                        # slicer or ANFer crashed or timed out
-                        # TODO Since we can't be sure if this program was good or bad,
-                        # throw out unpaired bad programs before this point
-                        # badProgs = []
-                    continue
-                newProg = dct['user_script']
-                tup = findTuple(dct['PF_slicerOutput'])
-                (result, types, slice, msg, UD_1, _) = tup
-                if msg != None:
-                    msg = msg.split(":")[0]
-                # debugDict[msg] += 1
-                if result == None:
-                    # found a good program!
-                    for (badProg, badSlice, badTypes, badExceptionSpan, badMsg, badUD) in badProgs:
+            lines = [json.loads(line) for line in logFile]
+            lines.sort(key=lambda x: x['serverTimeUTC'])
+        pairs = []
+        badProgs = []
+        for dct in lines:
+            if "PF_exitPipelineReason" in dct:
+                # if dct["PF_exitPipelineReason"] != 'Does not parse':
+                    # slicer or ANFer crashed or timed out
+                    # TODO Since we can't be sure if this program was good or bad,
+                    # throw out unpaired bad programs before this point
+                    # badProgs = []
+                continue
+            newProg = dct['user_script']
+            tup = findTuple(dct['PF_slicerOutput'])
+            (result, types, slice, msg, UD_1, _) = tup
+            if msg != None:
+                msg = msg.split(":")[0]
+            # debugDict[msg] += 1
+            if result == None:
+                # found a good program!
+                if len(badProgs) > 0:
+                    for ((badProg, badSlice, badTypes, badExceptionSpan, badMsg, badUD), isConsecutive) in zip(badProgs, [False]*(len(badProgs)-1)+[True]):
                         varTypes = {}
                         spanTypes = {}
                         for key in badTypes:
@@ -70,14 +70,17 @@ for fileName in os.listdir(DATA_FOLDER):
                                     "varTypes": varTypes,
                                     "spanTypes": spanTypes,
                                     "errMsg": badMsg,
-                                    "ud": {str(k):list(v) for (k,v) in badUD.items()}})
+                                    "ud": {str(k):list(v) for (k,v) in badUD.items()},
+                                    "isConsecutive": isConsecutive,
+                                    "isFinal": False})
                         universalCounter += 1
                     badProgs = []
-                else:
-                    # found a program with an error slice
-                    lines = dct['PF_anf_user_script'].split('\n')
-                    badProgs.append((newProg, slice, types, result, msg, UD_1))
+            else:
+                # found a program with an error slice
+                lines = dct['PF_anf_user_script'].split('\n')
+                badProgs.append((newProg, slice, types, result, msg, UD_1))
         if len(pairs) > 0:
+            pairs[-1]["isFinal"] = True
             with open(os.path.join(OUT_FOLDER,fileName), 'w') as outFile:
                 for pair in pairs:
                     outFile.write(json.dumps(pair) + "\n")
