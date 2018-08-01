@@ -65,6 +65,7 @@ main = do
   let features = if size then fsNormalCtx ++ [fSizeCtx] else fsNormalCtx
   let features' = if context then (requestTypeMap features fTypeCtx) else (requestTypeMap (noCtx <$> features) (noCtx . fTypeCtx))
   let features'' a = if oneHot then concatMap toOneHot (features' a) else (features' a)
+
   let useSlice = if slice then All else JustSlice
 
   let nm = "blah" ++ (if oneHot then "+oneHot" else "")
@@ -72,7 +73,7 @@ main = do
               ++ (if slice then "+slice" else "")
               ++ (if size then "+size" else "")
 
-  mkBadFeaturesWithSlice useSlice out nm features' jsons
+  mkBadFeaturesWithSlice useSlice out nm features'' jsons
 
 requestTypeMap :: [Feature a] -> (TypeMap -> Feature a) -> TypeMap -> [Feature a]
 requestTypeMap fs tf tm = fs ++ [tf tm]
@@ -100,7 +101,7 @@ mkBadFeaturesWithSlice withSlice out nm fs jsons = do
         -- putStrLn fix
         return ()
       | otherwise -> do
-        let fn = printf "%04d" (i :: Int)
+        let fn = printf "%05d" (i :: Int)
         let path = out </> nm </> fn <.> "csv"
         createDirectoryIfMissing True (takeDirectory path)
         LBSC.writeFile path $ encodeByName header features
