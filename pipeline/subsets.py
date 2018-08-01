@@ -1,20 +1,18 @@
 import os, sys, json
 
 dataDir = sys.argv[1]
-outDir = os.path.join(dataDir, 'categories')
-os.mkdir(outDir)
-finalDir = os.path.join(outDir, 'final')
-os.mkdir(finalDir)
-consecutiveDir = os.path.join(outDir, 'consecutive')
-os.mkdir(consecutiveDir)
 
+outDir = os.path.join(dataDir, 'subsets')
+os.mkdir(outDir)
+
+finalsFilename = os.path.join(outDir, 'finals.txt')
+consecutivesFilename = os.path.join(outDir, 'consecutives.txt')
 pairsFile = os.path.join(dataDir, 'goodPairs.jsonl')
-with open(pairsFile, 'r') as pairsList:
+with open(pairsFile, 'r') as pairsList, open(finalsFilename, 'w') as finalsFile, open(consecutivesFilename, 'w') as consecutivesFile:
     for line in pairsList:
         pair = json.loads(line)
         csvFilename = "%04d" % pair['index']+'.csv'
-        src = os.path.join(dataDir, 'foo', 'blah+context+slice+size', csvFilename)
         if pair['isFinal']:
-            os.symlink(src, os.path.join(finalDir, csvFilename))
+            finalsFile.write(csvFilename+'\n')
         if pair['isConsecutive']:
-            os.symlink(src, os.path.join(consecutiveDir, csvFilename))
+            consecutivesFile.write(csvFilename+'\n')
