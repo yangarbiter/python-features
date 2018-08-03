@@ -1,11 +1,14 @@
 import os, sys, json, csv
+import progressbar
+
+bar = progressbar.progressbar.ProgressBar()
 
 dataDir = sys.argv[1]
 
 inDir = os.path.join(dataDir, 'outliersRemoved')
 outDir = os.path.join(dataDir, 'subsets')
 
-for filename in os.listdir(inDir):
+for filename in bar(os.listdir(inDir)):
     src = os.path.join(inDir, filename)
     with open(src) as f:
         x = csv.DictReader(f)
