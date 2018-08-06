@@ -349,6 +349,9 @@ data ESKind
   | SetK
   | StarredK
   | StringConversionK
+  | ListCompK (Comprehension ())
+  | DictCompK (Comprehension ())
+  | SetCompK (Comprehension ())
   deriving (Eq, Show)
 
 --TODO a Suite should be alowed to change size without effectively changing Kind?
@@ -416,16 +419,39 @@ exprKind = \case
   Tuple {} -> TupleK
   -- Yield
   -- Generator
-  -- ListComp
+  ListComp c _ -> ListCompK $ canonicalComprehension c
   List {} -> ListK
-  Dictionary pairs _ -> DictionaryK (len pairs)
-  -- DictComp
+  Dictionary pairs _ -> DictionaryK (length pairs)
+  DictComp c _ -> DictCompK $ canonicalComprehension c
   Set {} -> SetK
-  -- SetComp
+  SetComp c _ -> SetCompK $ canonicalComprehension c
   Starred {} -> StarredK
   Paren {} -> ParenK
   StringConversion {} -> StringConversionK
   e -> error $ "unhandled case of exprKind: " ++ (show e)
+
+defaultExpr = None ()
+
+canonicalComprehension :: Comprehension () -> Comprehension ()
+canonicalComprehension (Comprehension e f _) = Comprehension e' f' ()
+  where
+    e' = case e of
+      ComprehensionExpr _ -> ComprehensionExpr (defaultExpr)
+      ComprehensionDict _ -> ComprehensionDict (DictMappingPair (defaultExpr) (defaultExpr))
+    f' = canonicalCompFor f
+
+canonicalCompFor :: CompFor () -> CompFor ()
+canonicalCompFor (CompFor es _ it _) = CompFor es' defaultExpr it' ()
+  where
+    es' = map (const defaultExpr) es
+    it' = canonicalCompIter <$> it
+
+canonicalCompIter :: CompIter () -> CompIter ()
+canonicalCompIter (IterFor cf _) = IterFor (canonicalCompFor cf) ()
+canonicalCompIter (IterIf ci _) = IterIf (canonicalCompIf ci) ()
+
+canonicalCompIf :: CompIf () -> CompIf ()
+canonicalCompIf (CompIf _ ci _) = CompIf defaultExpr (canonicalCompIter <$> ci) ()
 
 subESes' :: ES -> [ES]
 subESes' = \case
