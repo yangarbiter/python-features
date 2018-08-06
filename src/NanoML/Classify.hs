@@ -521,7 +521,9 @@ subExprs = \case
   Dot e _ _ -> [e]
   Lambda _ e _ -> [e]
   Tuple es _ -> es
-  -- Yield
+  Yield Nothing _ -> []
+  Yield (Just (YieldFrom e _)) _ -> [e]
+  Yield (Just (YieldExpr e)) _ -> [e]
   Generator c _ -> comprehensionSubExprs c
   ListComp c _ -> comprehensionSubExprs c
   List es _ -> es
@@ -532,7 +534,6 @@ subExprs = \case
   Starred e _ -> [e]
   Paren e _ -> [e]
   StringConversion e _ -> [e]
-  e -> error $ "unhandled case of subExprs: " ++ (show e)
 
 comprehensionSubExprs (Comprehension ce cf _) = ceSubExprs ce ++ cfSubExprs cf
   where
