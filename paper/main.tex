@@ -114,6 +114,38 @@ the size of the sampled set.
 
 \section{Motivating Example}
 
+\begin{figure}
+\begin{verbatim}
+year = int(time.strftime("%Y"))
+age = input("Enter your age")
+print("You will be twice as old in:")
+print(year + age)
+\end{verbatim}
+\caption{A buggy program}
+\end{figure}
+
+Consider the program in Fig. 1, adapted from our dataset. The program
+attempts to use the current year and the user's age to compute their
+birth year and the year they can vote. However, while line 1 correctly
+turns the current year from a string into an int, this `int' call is
+missing from line 2 so `age' remains a string, and thus the addition
+on line 4 causes the program to crash.
+
+Notice that while a correct fix (and the one that the programmer
+actually used) is to add an `int' call to line 2, another possible ``fix''
+would be to \textit{remove} the `int' call from line 1 - both year and
+age would then be strings, and the addition on line 4 would be interpreted
+as string concatenation. This shows the necessity of a heuristic, data-driven
+approach, since without test cases there is no way to tell for sure which
+fix is better.
+
+We can also start to see some features which will be
+important for finding bugs: we will need the \textit{type} of age, as
+well as some \textit{contextual} information about how it's used in the program.
+
+% TODO: would also be nice if the example showed that the place Python crashes
+% may not be a place that should be fixed?
+
 \section{Overview and Approach}
 
 We present an algorithm for accurately localizing faults~\cite{tarantula} in
@@ -123,7 +155,7 @@ variables. Our algorithm uses machine learning models based on static and
 dynamic features to implicate suspicious expressions. Since studies have
 found that voluminous fault localization output is not useful to
 developers~\cite{orso-parnin,orso-parnin2015}, we focus on producing
-Top-1 and Top-3 rankings. 
+Top-1 and Top-3 rankings.
 
 Our algorithm first extracts static and dynamic features from Python
 program (Section~\ref{sec-features}). Next, using a labeled training
@@ -133,7 +165,7 @@ faults in new Python programs by extracting their features and applying the
 model.
 
 \subsection{Feature Extraction}
-\label{sec-features} 
+\label{sec-features}
 
 Our key insight is that FIXME-INSIGHT. Are a result, we make use of
 static, dynamic and contextual information. Static features, such as FIXME,
@@ -141,9 +173,9 @@ are effective at capturing FIXME-INFORMATION. By contrast, dynamic
 features, such as FIXME, support the modeling of FIXME. Finally, we also
 include contextual information, such as FIXME, which allows our algorithm
 to accurately handle FIXME. We consider the empirical justification of
-these features in Section~\ref{sec-eval}. 
+these features in Section~\ref{sec-eval}.
 
-We calculate features for each statement and expression in the program. 
+We calculate features for each statement and expression in the program.
 
 \begin{itemize}
 
@@ -190,37 +222,37 @@ that node is to blame for the crash).
 
 Each vector is then one-hot encoded (e.g. feature "Type : Int" becomes set
 of features "Type-Int : 1", "Type-Bool : 0", "Type-Str : 0", etc.) for use with
-standard machine learning tools. 
+standard machine learning tools.
 
 \subsection{Machine Learning and Modeling}
-\label{sec-model} 
+\label{sec-model}
 
 The models we train (inc. decision trees/forests,
 MLP, GBM) can then rank expressions of a test program in order of how likely they
 are to be the source of the bug, so we can compute Top-k accuracies: how often
-is the true program change located in the model's first k outputs. 
+is the true program change located in the model's first k outputs.
 
 \section{Evaluation}
-\label{sec-eval} 
+\label{sec-eval}
 
 We conducted a large-scale empirical evaluation of our algorithm with the
-aim of addressing a number of research questions: 
+aim of addressing a number of research questions:
 \begin{enumerate}
 
 \item[RQ1]{Can we accurately localize non-trivial faults in Python
-programs?} 
+programs?}
 
 \item[RQ2]{Which features are the most important for Python fault
-localization overall?} 
+localization overall?}
 
 \item[RQ3]{Which features are the most important for various categories of
 Python defects?}
 
-\item[RQ4]{Is our algorithm accurate on heterogeneous sets of programs?} 
+\item[RQ4]{Is our algorithm accurate on heterogeneous sets of programs?}
 
-\item[RQ5]{FIXME clustering?} 
+\item[RQ5]{FIXME clustering?}
 
-\end{enumerate} 
+\end{enumerate}
 
 \subsection{Data Set}
 
@@ -237,42 +269,42 @@ crashing program).
 
 In our evaluation, we used FIXME as a training set and FIXME as a held-out
 evaluation set. We employed cross-validation~\cite{kohavi} to help address
-the potential threat of overfitting. 
+the potential threat of overfitting.
 
 \subsection{Methodology}
 
 For these evaluations, we employ machine learning algorithm FIXME, which
 provided the best balance of FIXME and FIXME (time? accuracy?) on our
-training set. 
+training set.
 
 We report Top-1 and Top-3...
 
-We define FIXME-ACCURACY to be FIXME. 
+We define FIXME-ACCURACY to be FIXME.
 
 \subsection{RQ 1 --- Fault Localization Accuracy}
 
-prereq: define accuracy 
+prereq: define accuracy
 
-PLOT Type: Bar Graph (with multiple bars) 
+PLOT Type: Bar Graph (with multiple bars)
 
 PLOT Y Axis: Model Accuracy
 
 PLOT X Axis: Top-1, Top-2, Top3
 
 PLOT Bars: 1 for our algorithm, 1 for a weak baseline (such as the vanilla
-Python interpreter) 
+Python interpreter)
 
 Goal: Establish that our algorithm works. This is the most basic question,
 but also the most relevant. If the reader takes away nothing else, they
-should conclude that our algorithm is effective. 
+should conclude that our algorithm is effective.
 
-Ranjit: ``our algorithms'' --- ``purely syntactic vs. with types'' 
---- ``with or without slicing'' as extra ``bars'' 
+Ranjit: ``our algorithms'' --- ``purely syntactic vs. with types''
+--- ``with or without slicing'' as extra ``bars''
 
 \subsection{RQ 2 --- Feature Predictive Power}
 
 prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
-ANOVA, whatever)  
+ANOVA, whatever)
 
 PLOT Type: Table
 
@@ -280,18 +312,18 @@ TABLE COLUMNS: Feature Name, Feature Category, Feature Predictive Power
 
 TABLE ROWS: top twelve features
 
-Use as a rough guide: Table 3 on Page 8 of 
+Use as a rough guide: Table 3 on Page 8 of
 https://web.eecs.umich.edu/~weimerw/p/weimer-icsm2010.pdf
 
 Goal: Establish that we are smart for including all of these features. Note
 which individual features or feature categories were (not) included in
-previous work. 
+previous work.
 
 Give a simple narrative about our effectiveness: implicitly, we were smart
 for deciding to include these features, better ingredients make better
-results, we have great results. 
+results, we have great results.
 
-TODO: what about turning on/off slicing? 
+TODO: what about turning on/off slicing?
 
 TODO: what about turning on/off types? (is that separate from slicing?)
 
@@ -300,44 +332,44 @@ TODO: do ANOVA or ReliefF
 \subsection{RQ 3 --- Defect Categories}
 
 prereq: define defect category. This could be either the raw python
-exception name or it could be clusters that we have manually created. 
+exception name or it could be clusters that we have manually created.
 Ranjit notes: result could be ``we need everything for everything'', at
 which point this is useless and should be skipped. Per Ben's exam: may find
 that for different categories of errors we should use different ML
-classifiers. 
+classifiers.
 
-PLOT Type: Bar Graph (three bars per point on the X axis) 
+PLOT Type: Bar Graph (three bars per point on the X axis)
 
 PLOT Y Axis: Leave-One-In Accuracy (normalized per X axis point)
 Ranjit notes: on smaller subsets we could rebuild the classifier each time.
 Wes notes that if we do, it takes us longer. If we re-use the monolithic
-model we can do this very quickly. 
+model we can do this very quickly.
 
-PLOT X AXis: Defect Categories 
+PLOT X AXis: Defect Categories
 
-PLOT Bars: Static, Dynamic, Context 
+PLOT Bars: Static, Dynamic, Context
 
 Goal: Demonstrate that each category of feature is essential for a certain
 piece of the problem. We need ABC feature to handle DEF class of defects,
 but ABC feature does not work well on GHI class of defects, for those we
 need JKL features. Implicit: we were smart for including all of these
-categories. 
+categories.
 
 \subsection{RQ 4 --- Diversity of Programs}
 
 In Nate there were 20 different functions. All the programs were doing the
 same 20 functions.
 
-Here, people are doing anything they want. Random stuff going on over here. 
+Here, people are doing anything they want. Random stuff going on over here.
 
 We want to show that we get high accuracy *over a heterogenous set of
-programs*. Leon? 
+programs*. Leon?
 
 prereq: cluster the programs based on similarity. Using agglomerative
 clustering plus python edit distance. How good the performance will be?
-right now it creates a clustering tree. binary tree, based on min distance. 
+right now it creates a clustering tree. binary tree, based on min distance.
 can give it a threshhold for distance (elements w/in a group). don't forget
-to rename all variables to X, perhaps normalize (edit distance size). 
+to rename all variables to X, perhaps normalize (edit distance size).
 
 leon: could also cluster by inconsistency coefficient
 
@@ -356,31 +388,31 @@ success is amazing.
 \subsection{RQ 5 --- Wishlist: Partitioning Kinds of Errors}
 
 Can we partition the kinds of errors that people make? What are common
-misconceptions? Do these correspond to paths of decision trees. 
+misconceptions? Do these correspond to paths of decision trees.
 
-If we don't get to the source-sink thing, it could go here. 
+If we don't get to the source-sink thing, it could go here.
 
 I don't think we have time, in this paper, to actually implement a
-two-level machine learning.  
+two-level machine learning.
 
-\subsection{Qualitative Analysis} 
+\subsection{Qualitative Analysis}
 
 Pick out one example where we did poorly. Walk through why it is ``out of
 scope'', in some sense: we would need features that capture XYZ to handle
 it correctly, but those are either expensive or undecideable. Hint at
-future work. 
+future work.
 
 Pick out a few examples where we did well and the baseline did poorly. Walk
-through how interesting and indicative they are and explain why we did well. 
+through how interesting and indicative they are and explain why we did well.
 
-\subsection{Evaluation Summary}  
+\subsection{Evaluation Summary}
 
 Summarize the evaluation. One sentence per subsection.
 
 \section{Related Work}
 FIXME: This must all be rewritten or dropped, as it is directly copied from
 my previous papers. It serves as a placeholder to indicate length and to
-remind us of some Software Engineering bits we might cite.   
+remind us of some Software Engineering bits we might cite.
 
 There are several fault localization techniques that rely much more heavily
 on dynamic information\footnote{Note: we do not directly compare to these
@@ -429,7 +461,7 @@ Ashok \textit{et al.} propose a similar natural language search technique
 in which users can match an incoming report to previous reports,
 programmers and source code~\cite{Ashok09}.  By comparison, our technique
 is more lightweight and focuses only on searching the code and the
-defect report.  
+defect report.
 
 Jones \textit{et al.} developed Tarantula, a technique that performs
 fault localization based on the insight that statements executed often
@@ -441,7 +473,7 @@ input but not any natural language defect report. By contrast,
 our approach is lightweight, does not require an indicative test
 suite or fault-inducing input, but does require a natural language
 defect report. Both approaches will yield comparable performance, and
-could even be used in tandem. 
+could even be used in tandem.
 
 Cleve and Zeller localize faults by finding differences between
 correct and failing program execution states, limiting the scope of
@@ -454,7 +486,7 @@ while nothing prevents our technique from being applied at the level
 of methods instead of files, their technique can give very precise
 information such as ``the transition to failure happened when $x$
 became 2.'' Our approach is lighter-weight and does not require
-that the program be run, but it does require defect reports. 
+that the program be run, but it does require defect reports.
 
 Renieris and Rice use a ``nearest neighbor'' technique in their
 Whither tool to identify faults based on exposing differences in
@@ -464,8 +496,8 @@ paths~\cite{Renieris03}. They assume a large number of correct runs
 distance criterion to select the correct run that is closest to the
 failing run and produces a report of ``suspicious'' parts of the
 program. By comparison, we chose to limit the programmatic information
-used by our technique to only that which was reported by users: we 
-do not use test case runs but do need natural language. 
+used by our technique to only that which was reported by users: we
+do not use test case runs but do need natural language.
 
 Liblit \textit{et al.} use Cooperative Bug Isolation, a statistical
 approach to isolate multiple bugs within a program given a deployed user
@@ -477,7 +509,7 @@ occurs when $i > arrayLen$ on line 57''). In general, their technique
 can produce more precise results than ours, but it requires a set of
 deployed users and works best on those bugs experienced by many users.
 By contrast, we do not require that the program be runnable, much less
-deployed, and use only natural language defect report text. 
+deployed, and use only natural language defect report text.
 
 \section{Conclusion}
 

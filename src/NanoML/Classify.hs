@@ -343,6 +343,7 @@ data ESKind
   | DotK (Ident ())
   | SliceK
   | SubscriptK
+  | DictionaryK Int
   | NoneK
   | EllipsisK
   | SetK
@@ -417,7 +418,7 @@ exprKind = \case
   -- Generator
   -- ListComp
   List {} -> ListK
-  -- Dictionary
+  Dictionary pairs _ -> DictionaryK (len pairs)
   -- DictComp
   Set {} -> SetK
   -- SetComp
