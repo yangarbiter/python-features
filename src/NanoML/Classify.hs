@@ -18,10 +18,14 @@ instance Span ES where
 
 data Literal
   = LI Integer
+  | LLI Integer
+  | LIm Double
   | LD Double
   | LB Bool
   | LC Char
   | LS [String]
+  | LBS [String]
+  | LUS [String]
   deriving (Show, Eq)
 
 diff :: ExprSpan -> ExprSpan -> Set SrcSpan
@@ -399,15 +403,15 @@ exprKind :: Expr () -> ESKind
 exprKind = \case
   Var v _ -> VarK v
   Int i _ _ -> LitK (LI i)
-  -- LongInt i _ _ -> LitK (LI i)
+  LongInt i _ _ -> LitK (LLI i)
   Float f _ _ -> LitK (LD f)
-  -- Imaginary {} -> []
+  Imaginary v _ _ -> LitK (LIm v)
   Bool b _ -> LitK (LB b)
   None _ -> NoneK
   Ellipsis _ -> EllipsisK
-  -- ByteStrings {} -> []
+  ByteStrings ss _ -> LitK (LBS ss)
   Strings ss _ -> LitK (LS ss)
-  -- UnicodeStrings {} -> []
+  UnicodeStrings ss _ -> LitK (LUS ss)
   Call {} -> AppK --TODO different kinds of arguments
   Subscript x y _ -> SubscriptK
   SlicedExpr {} -> SliceK --TODO different kinds of Slices
