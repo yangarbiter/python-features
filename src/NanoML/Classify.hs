@@ -356,6 +356,7 @@ data ESKind
   | ListCompK (Comprehension ())
   | DictCompK (Comprehension ())
   | SetCompK (Comprehension ())
+  | YieldK (Maybe (YieldArg ()))
   deriving (Eq, Show)
 
 --TODO a Suite should be alowed to change size without effectively changing Kind?
@@ -421,14 +422,14 @@ exprKind = \case
   Dot _ a _ -> DotK a
   -- Lambda _ e _ -> [e]
   Tuple {} -> TupleK
-  -- Yield
+  Yield a _ -> YieldK (defaultYieldArg <$> a)
   -- Generator
-  ListComp c _ -> ListCompK $ canonicalComprehension c
+  ListComp c _ -> ListCompK $ defaultComprehension c
   List {} -> ListK
   Dictionary pairs _ -> DictionaryK (length pairs)
-  DictComp c _ -> DictCompK $ canonicalComprehension c
+  DictComp c _ -> DictCompK $ defaultComprehension c
   Set {} -> SetK
-  SetComp c _ -> SetCompK $ canonicalComprehension c
+  SetComp c _ -> SetCompK $ defaultComprehension c
   Starred {} -> StarredK
   Paren {} -> ParenK
   StringConversion {} -> StringConversionK
@@ -436,26 +437,30 @@ exprKind = \case
 
 defaultExpr = None ()
 
-canonicalComprehension :: Comprehension () -> Comprehension ()
-canonicalComprehension (Comprehension e f _) = Comprehension e' f' ()
+defaultComprehension :: Comprehension () -> Comprehension ()
+defaultComprehension (Comprehension e f _) = Comprehension e' f' ()
   where
     e' = case e of
       ComprehensionExpr _ -> ComprehensionExpr (defaultExpr)
       ComprehensionDict _ -> ComprehensionDict (DictMappingPair (defaultExpr) (defaultExpr))
-    f' = canonicalCompFor f
+    f' = defaultCompFor f
 
-canonicalCompFor :: CompFor () -> CompFor ()
-canonicalCompFor (CompFor es _ it _) = CompFor es' defaultExpr it' ()
+defaultCompFor :: CompFor () -> CompFor ()
+defaultCompFor (CompFor es _ it _) = CompFor es' defaultExpr it' ()
   where
     es' = map (const defaultExpr) es
-    it' = canonicalCompIter <$> it
+    it' = defaultCompIter <$> it
 
-canonicalCompIter :: CompIter () -> CompIter ()
-canonicalCompIter (IterFor cf _) = IterFor (canonicalCompFor cf) ()
-canonicalCompIter (IterIf ci _) = IterIf (canonicalCompIf ci) ()
+defaultCompIter :: CompIter () -> CompIter ()
+defaultCompIter (IterFor cf _) = IterFor (defaultCompFor cf) ()
+defaultCompIter (IterIf ci _)  = IterIf (defaultCompIf ci) ()
 
-canonicalCompIf :: CompIf () -> CompIf ()
-canonicalCompIf (CompIf _ ci _) = CompIf defaultExpr (canonicalCompIter <$> ci) ()
+defaultCompIf :: CompIf () -> CompIf ()
+defaultCompIf (CompIf _ ci _) = CompIf defaultExpr (defaultCompIter <$> ci) ()
+
+defaultYieldArg :: YieldArg () -> YieldArg ()
+defaultYieldArg (YieldFrom e _) = YieldFrom defaultExpr ()
+defaultYieldArg (YieldExpr e)   = YieldExpr defaultExpr
 
 subESes' :: ES -> [ES]
 subESes' = \case
