@@ -5,7 +5,7 @@ import Control.Monad
 import Data.Monoid
 import qualified Data.Set as Set
 import Data.Set (Set)
-import Data.Maybe (catMaybes, isJust)
+import Data.Maybe (catMaybes, isJust, isNothing)
 
 import Language.Python.Common hiding ((<>))
 
@@ -30,14 +30,6 @@ data Literal
 
 diff :: ExprSpan -> ExprSpan -> Set SrcSpan
 diff e1 e2 = case (e1, e2) of
-  (Lambda {}, _)
-    -> error "Lambda unhandled in diff"
-  (_, Lambda {})
-    -> error "Lambda unhandled in diff"
-  (Yield {}, _)
-    -> error "Yield unhandled in diff"
-  (_, Yield {})
-    -> error "Yield unhandled in diff"
   (Var x _, Var y _)
     | void x == void y
       -> mempty
@@ -90,11 +82,18 @@ diff e1 e2 = case (e1, e2) of
   (Dot x1 a1 _, Dot x2 a2 _)
     | void a1 == void a2
       -> diff x1 x2
-  -- Lambda _ e _
+  (Lambda a1 e1 _, Lambda a2 e2 _)
+    | (length a1 == length a2) && sameParameterTypes a1 a2
+      -> merge $ (diff e1 e2) : (zipWith diffParameter a1 a2)
   (Tuple es1 _, Tuple es2 _)
     | length es1 == length es2
       -> merge $ zipWith diff es1 es2
-  -- Yield
+  (Yield Nothing _, Yield Nothing _)
+      -> mempty
+  (Yield (Just (YieldFrom e1 _)) _, Yield (Just (YieldFrom e2 _)) _)
+      -> diff e1 e2
+  (Yield (Just (YieldExpr e1)) _, Yield (Just (YieldExpr e2)) _)
+      -> diff e1 e2
   (Generator c1 _, Generator c2 _)
     | Just ss <- diffComprehension c1 c2
       -> ss
@@ -151,10 +150,11 @@ diffDictPair (DictMappingPair x1 y1) (DictMappingPair x2 y2) = mconcat [diff x1 
 sameArgTypes :: [Argument a] -> [Argument a] -> Bool
 sameArgTypes as1 as2 = all sameArgType (zip as1 as2)
   where
-    sameArgType (ArgExpr _ _, ArgExpr _ _) = True
-    sameArgType (ArgVarArgsPos _ _, ArgVarArgsPos _ _) = True
+    sameArgType (ArgExpr _ _, ArgExpr _ _)                     = True
+    sameArgType (ArgVarArgsPos _ _, ArgVarArgsPos _ _)         = True
     sameArgType (ArgVarArgsKeyword _ _, ArgVarArgsKeyword _ _) = True
-    sameArgType (ArgKeyword k1 _ _, ArgKeyword k2 _ _) = void k1 == void k2
+    sameArgType (ArgKeyword k1 _ _, ArgKeyword k2 _ _)         = void k1 == void k2
+    sameArgType _                                              = False
 
 diffSlice :: SliceSpan -> SliceSpan -> Maybe (Set SrcSpan)
 diffSlice e1 e2 = case (e1, e2) of
@@ -179,6 +179,23 @@ diffMaybe2 (Just Nothing) (Just Nothing) = mempty
 diffMaybe2 (Just (Just e1)) (Just (Just e2)) = diff e1 e2
 diffMaybe2 (Just (Just e1)) _ = Set.singleton $ annot e1
 diffMaybe2 _ _ = error "diffMaybe2: this shouldn't happen"
+
+sameParameterTypes :: [Parameter a] -> [Parameter a] -> Bool
+sameParameterTypes ps1 ps2 = all sameParameterType (zip (void <$> ps1) (void <$> ps2))
+  where
+    sameParameterType (Param i1 ann1 def1 _, Param i2 ann2 def2 _)         = (i1 == i2) && (isJust ann1 || isNothing ann2) && (isJust def1 || isNothing def2)
+    sameParameterType (VarArgsPos i1 ann1 _, VarArgsPos i2 ann2 _)         = (i1 == i2) && (isJust ann1 || isNothing ann2)
+    sameParameterType (VarArgsKeyword i1 ann1 _, VarArgsKeyword i2 ann2 _) = (i1 == i2) && (isJust ann1 || isNothing ann2)
+    sameParameterType (EndPositional _, EndPositional _)                   = True
+    sameParameterType (UnPackTuple tup1 def1 _, UnPackTuple tup2 def2 _)   = (tup1 == tup2) && (isJust def1 || isNothing def2)
+    sameParameterType _                                                    = False
+
+diffParameter :: ParameterSpan -> ParameterSpan -> Set SrcSpan
+diffParameter (Param _ x1 y1 _) (Param _ x2 y2 _)             = diffMaybe x1 x2 `Set.union` diffMaybe y1 y2
+diffParameter (VarArgsPos _ e1 _) (VarArgsPos _ e2 _)         = diffMaybe e1 e2
+diffParameter (VarArgsKeyword _ e1 _) (VarArgsKeyword _ e2 _) = diffMaybe e1 e2
+diffParameter (EndPositional _) (EndPositional _)             = Set.empty
+diffParameter (UnPackTuple _ e1 _) (UnPackTuple _ e2 _)       = diffMaybe e1 e2
 
 comparable :: SliceSpan -> SliceSpan -> Bool
 comparable (SliceProper l1 u1 s1 _) (SliceProper l2 u2 s2 _) =
@@ -336,6 +353,7 @@ data ESKind
   | ReturnK
   | TryK Int [(Int, Int)] Int
   | DeleteK
+  | LambdaK
   | StmtExprK
   | AssertK
   | ConditionalK [Int]
@@ -356,6 +374,7 @@ data ESKind
   | ListCompK (Comprehension ())
   | DictCompK (Comprehension ())
   | SetCompK (Comprehension ())
+  | GeneratorK (Comprehension ())
   | YieldK (Maybe (YieldArg ()))
   deriving (Eq, Show)
 
@@ -420,10 +439,10 @@ exprKind = \case
   BinaryOp o _ _ _ -> BopK o
   UnaryOp o _ _ -> UopK o
   Dot _ a _ -> DotK a
-  -- Lambda _ e _ -> [e]
+  Lambda {} -> LambdaK --TODO different kinds of parameters
   Tuple {} -> TupleK
   Yield a _ -> YieldK (defaultYieldArg <$> a)
-  -- Generator
+  Generator c _ -> GeneratorK $ defaultComprehension c
   ListComp c _ -> ListCompK $ defaultComprehension c
   List {} -> ListK
   Dictionary pairs _ -> DictionaryK (length pairs)
@@ -433,7 +452,6 @@ exprKind = \case
   Starred {} -> StarredK
   Paren {} -> ParenK
   StringConversion {} -> StringConversionK
-  e -> error $ "unhandled case of exprKind: " ++ (show e)
 
 defaultExpr = None ()
 
@@ -485,9 +503,10 @@ subESes = \case
     --Decorated
     Return Nothing _ -> []
     Return (Just e) _ -> [Ex e]
-    --Try
-    --Raise
-    --With
+    Try body exc els fin _ -> (St <$> body) ++ (concatMap subESesHandler exc) ++ (St <$> els) ++ (St <$> fin)
+    Raise (RaiseV3 Nothing) _ -> []
+    Raise (RaiseV3 (Just a)) _ -> Ex <$> subExprs' a
+    With ctx body _ -> (Ex <$> concatMap subExprs' ctx) ++ (St <$> body)
     Pass _ -> []
     Break _ -> []
     Continue _ -> []
@@ -498,6 +517,18 @@ subESes = \case
     Assert es _ -> Ex <$> es
     Print _ es _ _ -> Ex <$> es
     --Exec
+    _ -> error $ "unhandled case of subESes: " ++ (show s)
+
+subESesHandler :: Handler SrcSpan -> [ES]
+subESesHandler (Handler cl su _) = cl' ++ (St <$> su)
+  where
+    cl' = case cl of
+      ExceptClause Nothing _ -> []
+      ExceptClause (Just x) _ -> Ex <$> subExprs' x
+
+subExprs' :: (Expr a, Maybe (Expr a)) -> [Expr a]
+subExprs' (e, Nothing) = [e]
+subExprs' (e, Just e2) = [e, e2]
 
 subExprs :: (Show a) => Expr a -> [Expr a]
 subExprs = \case
