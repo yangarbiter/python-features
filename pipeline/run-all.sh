@@ -52,9 +52,6 @@ foo "Group by session" "gunzip -c $outDir/sliced.jsonl.gz | python3 groupBySessi
 
 foo "Make pairs" "python3 3-make-pairs.py $outDir/sessions $outDir/pairs"
 
-foo "Filter pairs" "python3 4-run-on-single-lines.py $outDir/pairs $outDir"
+foo "Generate features" "python3 4-run-on-single-lines.py $outDir/pairs $outDir"
 
-# foo "Generate features (oneHot)" "stack exec -- generate-features --source $outDir/goodPairs.jsonl --oneHot --context --slice --size --out $outDir/foo"
-foo "Generate features (categorical)" "stack exec -- generate-features --source $outDir/goodPairs.jsonl --context --slice --size --out $outDir/foo"
-
-foo "Remove outliers" "python3 removeOutliers.py $outDir/foo/blah+context+slice+size $outDir/outliersRemoved"
+foo "Remove outliers" "python3 removeOutliers.py $outDir/vectors/blah+context+slice+size $outDir/outliersRemoved"
