@@ -1,0 +1,21 @@
+Needed graphs:
+
+1) Accuracy
+Need:
+- p@1, p@2, p@3 scores for the full dataset for whatever our most powerful model is (currently being trained)
+
+2) Feature Predictive Power
+Need:
+- Yaoyuan is looking into ANOVA
+(Have:
+- "fet_value" field from our results shows most important features according to sklearn)
+
+3) Defect Categories
+Want:
+- good definition of category of defects (could use python error message, but might be better to use clusters once we have those)
+Need:
+- model retrained for each category. (Ideally, for each category x for each missing feature, but reusing monolithic model would be a lot faster)
+
+4) Diversity (Clustering)
+Need:
+- Leon is working on clustering
