@@ -1,1 +1,19 @@
-Requires packages scipy and zss
+# Clustering Scripts
+
+Requirements
+============
+Requires packages scipy / numpy and python-Levenshtein (python 3).
+
+Data
+====
+Python
+------
+Python data is not included in the repository. Python data should take the form
+of one file per program, where the last line of each file is a json object with
+the key 'fix' corresponding to a python source.
+
+OCaml
+-----
+OCaml data is included as the file ocaml-json. Each line has a json value
+representing the AST of an OCaml program, as output by the ocaml-to-json utility
+from nanomaly (https://github.com/ucsd-progsys/nanomaly)
