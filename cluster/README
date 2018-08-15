@@ -17,3 +17,29 @@ OCaml
 OCaml data is included as the file ocaml-json. Each line has a json value
 representing the AST of an OCaml program, as output by the ocaml-to-json utility
 from nanomaly (https://github.com/ucsd-progsys/nanomaly)
+
+Running
+=======
+There are two ways to invoke the script:
+- `python3 process.py`: If no arguments are given, the script clusters the
+programs in the included ocaml-json file.
+- `python3 process.py "path/to/data/dir/*"`: If one argument is given, the script
+expands it as a UNIX glob and reads the files to get one python program source
+from each (see Data section for format). It then clusters the programs.
+
+Output
+------
+The script outputs several files of the form [language]_cluster_counts_[method],
+where [language] is the programming language clustered and [method] is the
+linkage method used (one of the following):
+- single: Clusters with the lowest minimum distance between their elements are
+joined.
+- average: Clusters with the lowest average distance between their elements are
+joined.
+- complete: Clusters with the lowest maximum distance between their elements are
+joined.
+
+The files are text files containing one number per line, for 201 lines. The first
+line corresponds to the inconsistency threshold being set to 0, the last line to
+the threshold being set to 2, and the lines in between are for each threshold
+value in between 0 and 2, with increments of 0.01

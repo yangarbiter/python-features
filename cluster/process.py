@@ -47,4 +47,4 @@ selection = [transformeds[i] for i in indices]
 print('Clustering...')
 cluster.cluster_strings(selection, data_name)
 
-print('Done clustering. Cluster counts output to %s_cluster_counts.' % data_name)
+print('Done clustering. Cluster counts output to %s_cluster_counts_*.' % data_name)
