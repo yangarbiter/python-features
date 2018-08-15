@@ -18,6 +18,7 @@
 \usepackage{booktabs}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{pgfplots}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 \begin{document}
@@ -283,34 +284,84 @@ We define FIXME-ACCURACY to be FIXME.
 
 \subsection{RQ 1 --- Fault Localization Accuracy}
 
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    symbolic x coords={Top-1,Top-3},
+    xtick=data,
+    ymin=0,
+    ylabel=Model Accuracy,
+    enlarge x limits=0.5,
+    legend style={at={(0.5,-0.15)},anchor=north}
+]
+    \addplot table[x=scoreName, y=withEverything, col sep=comma]{fault-localization.csv};
+    \addplot table[x=scoreName, y=baseline, col sep=comma]{fault-localization.csv};
+\legend{Our best model,Python interpreter}
+\end{axis}
+\end{tikzpicture}
+\caption{Based on a decision tree on the largest
+dataset (272534 pairs). TODO: also train for Top-2}
+\label{fig:full-dataset-acc}
+\end{figure}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    symbolic x coords={Top-1,Top-3},
+    xtick=data,
+    ymin=0,
+    ylabel=Model Accuracy,
+    enlarge x limits=0.5,
+    legend style={at={(0.5,-0.15)},anchor=north}
+]
+    \addplot table[x=scoreName, y=all, col sep=comma]{removing-features.csv};
+    \addplot table[x=scoreName, y=noTypes, col sep=comma]{removing-features.csv};
+    \addplot table[x=scoreName, y=noContext, col sep=comma]{removing-features.csv};
+    \addplot table[x=scoreName, y=noSlice, col sep=comma]{removing-features.csv};
+\legend{All Features,No Types, No Context, No Slicing}
+\end{axis}
+\end{tikzpicture}
+\caption{Accuracy when features are removed, based on decision trees on a random subset of 20000 pairs.
+TODO: train better model and/or
+train on greater fraction of the data? TODO: Top-2. NOTE: removing slicing makes basically no difference...}
+\label{fig:removing-features}
+\end{figure}
+
 prereq: define accuracy
-
-PLOT Type: Bar Graph (with multiple bars)
-
-PLOT Y Axis: Model Accuracy
-
-PLOT X Axis: Top-1, Top-2, Top3
-
-PLOT Bars: 1 for our algorithm, 1 for a weak baseline (such as the vanilla
-Python interpreter)
 
 Goal: Establish that our algorithm works. This is the most basic question,
 but also the most relevant. If the reader takes away nothing else, they
 should conclude that our algorithm is effective.
 
-Ranjit: ``our algorithms'' --- ``purely syntactic vs. with types''
---- ``with or without slicing'' as extra ``bars''
+PLOT: See Figs. \ref{fig:full-dataset-acc} and \ref{fig:removing-features}
 
 \subsection{RQ 2 --- Feature Predictive Power}
+
+\begin{table}[]
+\begin{tabular}{l|l|l}
+Feature Name & Feature Category & Feature Predictive Power \\ \hline
+F-Type-C1=unknown & Contextual (Type) & 0.112 \\
+F-Type-P=TUPLE & Contextual (Type) & 0.108 \\
+F-Stmt-Constr-C2=Return & Contextual (Syntactic) & 0.068 \\
+F-Expr-Constr=Paren & Syntactic & 0.059 \\
+F-InSlice=0.0 & Slicing & 0.044 \\
+F-Type-P=str & Contextual (Type) & 0.036 \\
+F-Op-Contr-C3=BinaryAnd & Contextual (Syntactic) & 0.026 \\
+F-Type-C2= & Contextual (Type) & 0.025 \\
+F-Type-C1=str & Contextual (Type) & 0.023 \\
+F-Type-P=float & Contextual (Type) & 0.019 \\
+\end{tabular}
+\caption{Based on the Top-1 Decision Tree on the full dataset. Feature Predictive Power here is the Gini Importance. TODO: add
+better-known measure like ANOVA or ReliefF. TODO: add a couple more features?}
+\label{tab:feature-predictive-power}
+\end{table}
 
 prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
 ANOVA, whatever)
 
-PLOT Type: Table
-
-TABLE COLUMNS: Feature Name, Feature Category, Feature Predictive Power
-
-TABLE ROWS: top twelve features
+PLOT: See Table \ref{tab:feature-predictive-power}
 
 Use as a rough guide: Table 3 on Page 8 of
 https://web.eecs.umich.edu/~weimerw/p/weimer-icsm2010.pdf
@@ -326,8 +377,6 @@ results, we have great results.
 TODO: what about turning on/off slicing?
 
 TODO: what about turning on/off types? (is that separate from slicing?)
-
-TODO: do ANOVA or ReliefF
 
 \subsection{RQ 3 --- Defect Categories}
 
