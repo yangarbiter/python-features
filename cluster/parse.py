@@ -3,24 +3,14 @@ import glob
 
 decoder = json.JSONDecoder()
 
-def read_from_glob(fun, g):
+def read_files_from_glob(g):
     paths = glob.glob(g)
-    results = []
+    sources = []
     for path in paths:
         with open(path) as f:
-            try:
-                results.append(fun(f))
-            except Exception as e:
-                print(e)
-    return results
+            sources.append(f.read())
 
-def read_python(f):
-    last = next(f, "")
-    obj = decoder.decode(last)
-    return obj['fix']
-
-def python_sources_from_glob(g):
-    return read_from_glob(read_python, g)
+    return sources
 
 def python_sources_from_glob(g):
     paths = glob.glob(g)
