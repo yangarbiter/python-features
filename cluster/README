@@ -26,6 +26,10 @@ programs in the included ocaml-json file.
 - `python3 process.py "path/to/data/dir/*"`: If one argument is given, the script
 expands it as a UNIX glob and reads the files to get one python program source
 from each (see Data section for format). It then clusters the programs.
+- `python3 process.py "path/to/data/dir/*"` onecluster: Like the above, except
+it randomly selects one program and clusters a set of 5000 copies of that program.
+- `python3 process.py "path/to/sources/*"` twenty: Like the above, except it
+takes python source files rather than JSON data.
 
 Output
 ------
