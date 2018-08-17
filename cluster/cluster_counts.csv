@@ -1,4 +1,5 @@
-threshold,ocaml_cluster_counts_average,ocaml_cluster_counts_complete,ocaml_cluster_counts_single,python_cluster_counts_average,python_cluster_counts_complete,python_cluster_counts_single,python_onecluster_cluster_counts_average,python_onecluster_cluster_counts_complete,python_onecluster_cluster_counts_single,python_twenty_cluster_counts_average,python_twenty_cluster_counts_complete,python_twenty_cluster_counts_single0.0,2812,2752,2909,3237,3107,4314,1,1,1,15,15,17
+threshold,ocaml_cluster_counts_average,ocaml_cluster_counts_complete,ocaml_cluster_counts_single,python_cluster_counts_average,python_cluster_counts_complete,python_cluster_counts_single,python_onecluster_cluster_counts_average,python_onecluster_cluster_counts_complete,python_onecluster_cluster_counts_single,python_twenty_cluster_counts_average,python_twenty_cluster_counts_complete,python_twenty_cluster_counts_single
+0.0,2812,2752,2909,3237,3107,4314,1,1,1,15,15,17
 0.01,2812,2752,2909,3237,3107,4314,1,1,1,15,15,17
 0.02,2812,2752,2909,3237,3107,4314,1,1,1,15,15,17
 0.03,2812,2752,2909,3237,3107,4314,1,1,1,15,15,17
