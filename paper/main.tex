@@ -552,12 +552,13 @@ success is amazing.
       ytick distance=2,
       title=Linkage: \method
     ]
-    \addplot table[x=threshold, y=python_twenty_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
+    \addplot+[mark=none] table[x=threshold, y=python_twenty_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
 \end{axis}
 \end{tikzpicture}
 }
 \caption{The number of clusters when clustering a baseline of twenty dissimilar programs from
-  Rosetta Code.}
+  Rosetta Code. We give no plot for the baseline of 5000 identical programs, as they were
+  consistently placed in just 1 cluster.}
 \label{fig:diversity-baseline}
 \end{figure}
 
@@ -573,7 +574,7 @@ success is amazing.
     ]
     \foreach \language in {ocaml, python}
     {
-      \addplot table[x=threshold, y=\language_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
+      \addplot+[mark=none] table[x=threshold, y=\language_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
     }
 \legend{OCaml, Python}
 \end{axis}
