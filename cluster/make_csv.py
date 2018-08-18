@@ -15,6 +15,7 @@ with open('cluster_counts.csv', 'wt') as out_file:
     for path in paths:
         out_file.write(',')
         out_file.write(path)
+    out_file.write('\n')
     
     for i in range(200):
         out_file.write(str(i / 100.0))

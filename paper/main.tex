@@ -29,15 +29,15 @@
 \iffalse
 
 \author{\IEEEauthorblockN{Benjamin Cosman}
-\IEEEauthorblockA{\textit{UC San Digeo}\\
+\IEEEauthorblockA{\textit{UC San Diego}\\
 blcosman@eng.ecsd.edu}
 \and
 \IEEEauthorblockN{Leon Medvinsky}
-\IEEEauthorblockA{\textit{UC San Digeo}\\
+\IEEEauthorblockA{\textit{UC San Diego}\\
 lmedvinsky@eng.ecsd.edu}
 \and
 \IEEEauthorblockN{Ranjit Jhala}
-\IEEEauthorblockA{\textit{UC San Digeo}\\
+\IEEEauthorblockA{\textit{UC San Diego}\\
 jhala@cs.ecsd.edu}
 \and
 \IEEEauthorblockN{Westley Weimer}
@@ -541,6 +541,50 @@ PLOT LINES: line 1 is ``Nate programs'', line 2 is ``25\%, at random, of our dat
 Goal: show that ``no matter how you decide program differences'', our
 dataset is always more diverse/heterogeneous than is previous work. So our
 success is amazing.
+
+\begin{figure}
+\foreach \method in {single, complete, average}
+{
+\begin{tikzpicture}
+  \begin{axis}[
+      xlabel=Threshold,
+      ylabel=\# of clusters,
+      ytick distance=2,
+      title=Linkage: \method
+    ]
+    \addplot table[x=threshold, y=python_twenty_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
+\end{axis}
+\end{tikzpicture}
+}
+\caption{The number of clusters when clustering a baseline of twenty dissimilar programs from
+  Rosetta Code.}
+\label{fig:diversity-baseline}
+\end{figure}
+
+\begin{figure}
+\foreach \method in {single, complete, average}
+{
+\begin{tikzpicture}
+  \begin{axis}[
+      xlabel=Threshold,
+      ylabel=\# of clusters,
+      ytick distance=1000,
+      title=Linkage: \method
+    ]
+    \foreach \language in {ocaml, python}
+    {
+      \addplot table[x=threshold, y=\language_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
+    }
+\legend{OCaml, Python}
+\end{axis}
+\end{tikzpicture}
+}
+\caption{Number of clusters when data is clustered by single, complete, and average linkage.
+  A linkage tree is built using agglomerative clustering, and the resulting tree is broken up
+  into clusters by thresholding the inconsistency coefficient. The inconsistency coefficient
+  of a link is its distance, z-scored against other nearby links.}
+\label{fig:diversity}
+\end{figure}
 
 \subsection{RQ 5 --- Wishlist: Partitioning Kinds of Errors}
 
