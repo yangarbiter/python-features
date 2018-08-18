@@ -233,6 +233,114 @@ MLP, GBM) can then rank expressions of a test program in order of how likely the
 are to be the source of the bug, so we can compute Top-k accuracies: how often
 is the true program change located in the model's first k outputs.
 
+\section{Approach, in more detail}
+
+We follow the overall strategy of \cite{learning-to-blame} and represent each
+buggy program by a Bag of Abstracted Terms. In our setting, a `term' means either
+a statment or an expression. For each term in the program we compute the following features:
+
+\subsection{Dynamic features}
+
+We first convert each buggy program to an equivalent program that is closer
+to ANF, then run it through the PythonTutor backend. This backend is based on the
+Python debigging library BDB; it returns to us a trace of the program along with
+the state of the heap at each execution step. We use this information to compute
+the following features for each term:
+
+\emph{Type} The possible values for the Type feature include all the basic Python
+types (such as int and tuple) as well as a few special values:
+\begin{itemize}
+    \item IsStatement - Given to all statements, since our terms include both
+    statments and expressions but only expressions actually have types.
+    \item Unknown - Given to expressions that are never evaluated in the dynamic
+    trace.
+    \item Multiple - Given to expressions which are evaluated multiple times in
+    a trace and do not always have the same type.
+\end{itemize}
+
+\emph{Slice} (TODO - Leon can you expand this? What did you base our slicing on?)
+The goal of this feature is to help eliminate terms that cannot be the source of
+the crash. These include lines that are never run, lines that run successfully
+and don't affect any variables that are used later, and so on. More specifically, we
+build up a dependency graph of all lines in the program trace. Edges in the graph
+represent either def-use dependence or control-flow dependence. Then ideally,
+any node in the graph that is not a transitive dependency of the line that crashes
+can't be responsible for the crash. However dynamic slicing is not perfect (TODO
+include example?), so unlike in prior work, we do not treat membership in the slice
+as a hard constraint.
+
+\emph{Crash location} As discussed later in the evaluation, the precise term that
+causes Python to crash is in fact the one the user decides to change about 30\% of
+the time, so we use it as a feature (and expect it to be a high-signal one, too.)
+
+\emph{Exception type} The type of error thrown by the program is useful context for
+finding the error. For example, if asked how likely a random `0` is of being a bug, you'd give
+a higher answer if you knew that the program eventually crashes with a division by
+zero exception. Thus we attach the exception type as a feature to \emph{every}
+vector derived from that program.
+
+\subsection{Contextual features}
+
+The approach of representing a program by a Bag of Abstracted Terms, if implemented
+naively, runs into the problem that the terms lose their context in the program
+as a whole. For example, the features for the term `0` include its type (int) and
+syntactic description (int literal), but there is no way that's enough to decide
+if it's innocuous, like the 0 in `x = 0`, or clearly the source of a bug, like the
+0 in `x / 0`. To restore some of this context, we introduce contextual features.
+This involves duplicating all our other features four times - once for the parent
+and once each for a term's first three children in the AST. So since `x / 0` has
+the feature SyntacticForm = DivisionOp, the `0` of `x / 0` has the feature
+ParentSyntacticForm = DivisionOp. Similarly, since `0` has SyntacticForm = IntLiteral,
+`x / 0` has Child1SyntacticForm = IntLiteral. In order to make all feature vectors
+the same length, nodes that have no parent or fewer than three children have the
+relevant features filled out with a special NotApplicable value.
+
+\subsection{Static features}
+
+\emph{Syntactic form} The first feature we consider is what kind of node the term
+is in the AST. For statements this has values like Return or Import; for expressions
+Variable or Application.
+
+\emph{Size} We also count the number of descendent nodes in the subtree rooted at that node.
+
+\subsection{Machine learning}
+
+\emph{Pairing programs} For each PythonTutor user, we look at the sequence of
+programs they attempted to run. Each program that crashes is paired with the next
+program by that user which does not crash. Many programs do not make it to the
+end of our data pipeline; here are the most common reasons:
+\begin{itemize}
+    \item The user submitted only programs that crash or only programs that do
+    not crash, so we can't create any pairs for that user.
+    \item The program is out of scope for PythonTutor. For
+    example, the program imports forbidden libraries (like os), or the program
+    runs in over 1000 execution steps.
+    \item The proportion of the program that has changed between the buggy and
+    fixed versions is more than a standard deviation above the mean.
+\end{itemize}
+We end up with \textasciitilde270,000 usable pairs of programs.
+
+\emph{Training methodology} At this point we have feature vectors describing every term of every program in
+our dataset. The vectors from a random 30\% of the program pairs are set aside for testing and
+the other 70\% are used for training. Within the training data, we use 3-fold
+cross-validation to select the best parameters for our models, before training
+using those parameters on the full training set and then scoring the models
+using the testing set. Each trained model takes in any vector representing a term
+in a buggy program, and returns a confidence score representing how likely it is that
+that term was one of the terms changed between the fixed and buggy versions.
+Thus we can treat the model as providing a \emph{ranking} over all terms by
+confidence, where the top result is the one that the model deems most likely
+to be changed. For
+a given k, we score the model based on Top-k accuracy: for what proportion of the
+programs is a correct answer (i.e. a term that is actually changed) present in the
+top k results. We retrain the models for each value of k, since a model optimized
+to produce the single best result might be different from one optimized to get a
+good result into the top three.
+
+In each case the most effective model we trained was a decision tree. (The other
+models we tried were Logistic Regression and MLP. Yaoyuan - anything to add to
+this section?)
+
 \section{Evaluation}
 \label{sec-eval}
 
@@ -563,6 +671,6 @@ deployed, and use only natural language defect report text.
 \section{Conclusion}
 
 \bibliographystyle{abbrv}
-\bibliography{nanomaly,sw}
+\bibliography{nanomaly,sw,temp}
 
 \end{document}
