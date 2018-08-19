@@ -320,6 +320,103 @@ end of our data pipeline; here are the most common reasons:
 \end{itemize}
 We end up with \textasciitilde270,000 usable pairs of programs.
 
+\emph{Models} The following descriptions of Logistic Regression, Decision Trees,
+and MLP will have to be redone as they are copied from Learning to Blame.
+
+\emph{Logistic Regression}
+The simplest classifier we investigate is logistic regression:
+a linear model where the goal is to learn a set of weights $W$
+that describe the following model for predicting a label
+$b$ from a feature vector $v$:
+%
+\[ \Pr(b = 1 | v) = \frac{1}{1 + e^{-W^{\top} v}} \]
+%
+The weights $W$ are learnt from training data, and the value of
+$\Pr(b | v)$ naturally leads to a confidence score $\mathcal{C}$.
+%
+Logistic regression is a widely used classification algorithm, preferred
+for its simplicity, ease of generalization, and interpretability.
+%
+Its main limitation is that the prediction rule is constrained to be a
+linear combination of the features, and hence relatively simple.
+%
+While this can be somewhat mitigated by adding higher order (quadratic
+or cubic) features, this often requires substantial domain knowledge.
+
+\emph{Decision Trees}
+Decision tree algorithms learn a tree of binary predicates over the
+features, recursively partitioning the input space until a final
+classification can be made.
+%
+Each node in the tree contains a single predicate of the form
+$v_j \leq t$ for some feature $v_j$ and threshold $t$, which determines
+whether a given input should proceed down the left or right subtree.
+%
+Each leaf is labeled with a prediction and the fraction of
+correctly-labeled training samples that would reach it; the latter
+quantity can be interpreted as the decision tree's confidence in its
+prediction.
+%
+This leads to a prediction rule that can be quite expressive depending
+on the data used to build it.
+
+Training a decision tree entails finding both a set of good partitioning
+predicates and a good ordering of the predicates based on data.
+%
+This is usually done in a top-down greedy manner, and there are several
+standard training algorithms such as C4.5 \cite{Quinlan1993-de} and
+CART \cite{Breiman1984-qy}.
+
+Another advantage of decision trees is their ease of interpretation ---
+the decision rule is a white-box model that can be readily described to
+a human, especially when the tree is small.
+%
+However, the main limitation is that these trees often do not generalize
+well, though this can be somewhat mitigated by \emph{pruning} the tree.
+
+\emph{Neural Networks}
+%
+The last (and most complex) model we use is a type of neural network
+called a \emph{multi-layer perceptron} (see \cite{Nielsen2015-pu} for
+an introduction to neural networks).
+%
+A multi-layer perceptron can be represented as a directed acyclic
+graph whose nodes are arranged in layers that are fully connected by
+weighted edges.
+%
+The first layer corresponds to the input features, and the final to the
+output.
+%
+%The output of a node $v$ in an internal layer is given by:
+The output of an internal node $v$ is
+%
+\[ h_v = g(\sum_{j \in N(v)} W_{jv} h_j ) \]
+%
+where $N(v)$ is the set of nodes in the previous layer that are adjacent
+to $v$, $W_{jv}$ is the weight of the $(j, v)$ edge and $h_j$ is the
+output of node $j$ in the previous layer.
+%
+Finally $g$ is a non-linear function, called the activation function,
+which in recent work is commonly chosen to be the \emph{rectified linear
+  unit} (ReLU), defined as $g(x) = \mathsf{max}(0,x)$
+\cite{Nair2010-xg}.
+%
+The number of layers, the number of neurons per layer, and the
+connections between layers constitute the \emph{architecture} of a
+neural network.
+%
+In this work, we use relatively simple neural networks which have an
+input layer, a single hidden layer and an output layer.
+
+A major advantage of neural networks is their ability to discover
+interesting combinations of features through non-linearity, which
+significantly reduces the need for manual feature engineering, and
+allows high expressivity.
+%
+On the other hand, this makes the networks particularly difficult to
+interpret and also difficult to generalize unless vast amounts of
+training data are available.
+
 \emph{Training methodology} At this point we have feature vectors describing every term of every program in
 our dataset. The vectors from a random 30\% of the program pairs are set aside for testing and
 the other 70\% are used for training. Within the training data, we use 3-fold
@@ -338,8 +435,10 @@ to produce the single best result might be different from one optimized to get a
 good result into the top three.
 
 In each case the most effective model we trained was a decision tree. (The other
-models we tried were Logistic Regression and MLP. Yaoyuan - anything to add to
-this section?)
+models we tried were Logistic Regression and MLP. Yao-Yuan - anything to add to
+this section? in particular, is it actually accurate to say we're doing
+cross-validation - the 3-fold thing we do is actually just to select parameters,
+and then there's no cross-validation on the final model, right?)
 
 \section{Evaluation}
 \label{sec-eval}
@@ -464,9 +563,12 @@ F-Expr-Constr=Var & Syntactic & 0.020390 \\
 F-Type-C1=unknown & Contextual (Type) & 0.019815 \\
 \end{tabular}
 \caption{Based on the Top-3 Decision Tree on the full dataset. Feature Predictive Power here is the Gini Importance. TODO: add
-better-known measure like ANOVA or ReliefF.}
+better-known measure like ANOVA or ReliefF. TODO: base on Top-1 instead?}
 \label{tab:feature-predictive-power}
 \end{table}
+
+To measure how important each feature is, we use Gini Importance. In a decision
+tree,
 
 prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
 ANOVA, whatever)
@@ -612,6 +714,35 @@ through how interesting and indicative they are and explain why we did well.
 \subsection{Evaluation Summary}
 
 Summarize the evaluation. One sentence per subsection.
+
+\subsection{Threats to validity}
+
+\emph{Overfitting and other machine learning issues} Yao-Yuan, how do we avoid
+these?
+
+\emph{Language choice} We only showed that this technique works for Python 3.
+However, \cite{learning-to-blame} uses a similar technique to great effect in
+OCaml, and if it works on these two quite-different languages then we believe
+it would work on others as well. Additionally, Python is a common choice of
+language for introductory programming courses, so even a technique that worked
+only on Python would still be very useful for helping novices.
+
+\emph{Target population} We don't know exactly who our study population is -
+who wrote the programs in the dataset and what exactly they were trying to write.
+It is likely that they are primarily students and not professional software engineers,
+and thus possible that our technique does not generalize well to the kinds of
+bugs that would be found in an industrial setting rather than an educational one.
+
+\emph{Automatic labeling} Since our dataset is so large, we were forced to use an automatic
+scheme to label bugs rather than marking them by hand. We chose to use the diffs
+between each program that crashes and the next program that does not, but this method
+is not 100\% accurate because the next program may contain additional changes
+beyond what was needed to fix the bug, or it may indeed be an entirely unrelated
+program. We mitigate this problem by discarding as outliers program pairs that have
+changed too much. We also note that if our `true' accuracy is indeed a little
+smaller than our reported accuracy because of this effect, then the `true' baseline
+is also lower than the reported baseline for the same reason, so our
+\emph{margin} of effectiveness is unlikely to change much.
 
 \section{Related Work}
 FIXME: This must all be rewritten or dropped, as it is directly copied from
