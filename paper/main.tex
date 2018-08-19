@@ -450,19 +450,21 @@ PLOT: See Figs. \ref{fig:full-dataset-acc} and \ref{fig:removing-features}
 \begin{table}[]
 \begin{tabular}{l|l|l}
 Feature Name & Feature Category & Feature Predictive Power \\ \hline
-F-Type-C1=unknown & Contextual (Type) & 0.112 \\
-F-Type-P=TUPLE & Contextual (Type) & 0.108 \\
-F-Stmt-Constr-C2=Return & Contextual (Syntactic) & 0.068 \\
-F-Expr-Constr=Paren & Syntactic & 0.059 \\
-F-InSlice=0.0 & Slicing & 0.044 \\
-F-Type-P=str & Contextual (Type) & 0.036 \\
-F-Op-Contr-C3=BinaryAnd & Contextual (Syntactic) & 0.026 \\
-F-Type-C2= & Contextual (Type) & 0.025 \\
-F-Type-C1=str & Contextual (Type) & 0.023 \\
-F-Type-P=float & Contextual (Type) & 0.019 \\
+F-Size-P & Contextual (Syntactic) & 0.112624 \\
+F-Stmt-Constr-C3= & Contextual (Syntactic) & 0.061552 \\
+F-Expr-Constr-P=List & Contextual (Syntactic) & 0.054632 \\
+F-PythonBlame & Dynamic (Error location) & 0.039189 \\
+F-Type=unknown & Dynamic (Type) & 0.037390 \\
+F-Type-P=unknown & Contextual (Type) & 0.037330 \\
+F-PythonMsg=IndexError & Dynamic (Error message) & 0.032749 \\
+F-Size & Syntactic & 0.028203 \\
+F-Expr-Constr-P=Dictionary & Contextual (Syntactic) & 0.026663 \\
+F-Size-C1 & Contextual (Syntactic) & 0.023662 \\
+F-Expr-Constr=Var & Syntactic & 0.020390 \\
+F-Type-C1=unknown & Contextual (Type) & 0.019815 \\
 \end{tabular}
-\caption{Based on the Top-1 Decision Tree on the full dataset. Feature Predictive Power here is the Gini Importance. TODO: add
-better-known measure like ANOVA or ReliefF. TODO: add a couple more features?}
+\caption{Based on the Top-3 Decision Tree on the full dataset. Feature Predictive Power here is the Gini Importance. TODO: add
+better-known measure like ANOVA or ReliefF.}
 \label{tab:feature-predictive-power}
 \end{table}
 
@@ -549,7 +551,7 @@ success is amazing.
   \begin{axis}[
       xlabel=Threshold,
       ylabel=\# of clusters,
-      ytick distance=2,
+    %   ytick distance=2,
       title=Linkage: \method
     ]
     \addplot+[mark=none] table[x=threshold, y=python_twenty_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
@@ -569,7 +571,7 @@ success is amazing.
   \begin{axis}[
       xlabel=Threshold,
       ylabel=\# of clusters,
-      ytick distance=1000,
+    %   ytick distance=1000,
       title=Linkage: \method
     ]
     \foreach \language in {ocaml, python}
