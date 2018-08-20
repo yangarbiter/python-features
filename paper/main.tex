@@ -580,28 +580,36 @@ PLOT: See Figs. \ref{fig:full-dataset-acc} and \ref{fig:removing-features}
 \subsection{RQ 2 --- Feature Predictive Power}
 
 \begin{table}[]
-\begin{tabular}{l|l|l}
-Feature Name & Feature Category & Feature Predictive Power \\ \hline
-F-Size-P & Contextual (Syntactic) & 0.112624 \\
-F-Stmt-Constr-C3= & Contextual (Syntactic) & 0.061552 \\
-F-Expr-Constr-P=List & Contextual (Syntactic) & 0.054632 \\
-F-PythonBlame & Dynamic (Error location) & 0.039189 \\
-F-Type=unknown & Dynamic (Type) & 0.037390 \\
-F-Type-P=unknown & Contextual (Type) & 0.037330 \\
-F-PythonMsg=IndexError & Dynamic (Error message) & 0.032749 \\
-F-Size & Syntactic & 0.028203 \\
-F-Expr-Constr-P=Dictionary & Contextual (Syntactic) & 0.026663 \\
-F-Size-C1 & Contextual (Syntactic) & 0.023662 \\
-F-Expr-Constr=Var & Syntactic & 0.020390 \\
-F-Type-C1=unknown & Contextual (Type) & 0.019815 \\
+\begin{tabular}{lll}
+Name & Category & Gini Importance \\ \bottomrule
+Size-P & Contextual (Syntactic)               & 0.112 \\
+Stmt-Constr-C3= & Contextual (Syntactic)      & 0.061 \\
+Expr-Constr-P=List & Contextual (Syntactic)   & 0.055 \\
+PythonBlame & Dynamic (Error location)        & 0.039 \\
+Type=unknown & Dynamic (Type)                 & 0.037 \\
+Type-P=unknown & Contextual (Type)            & 0.037 \\
+PythonMsg=IndexError & Dynamic (Error message)& 0.033 \\
+Size & Syntactic                              & 0.028 \\
+Expr-Constr-P=Dictionary & Contextual (Syntactic) & 0.027 \\
+Size-C1 & Contextual (Syntactic)              & 0.024 \\
+Expr-Constr=Var & Syntactic                   & 0.020 \\
+Type-C1=unknown & Contextual (Type)           & 0.020 \\
+\toprule
 \end{tabular}
-\caption{Based on the Top-3 Decision Tree on the full dataset. Feature Predictive Power here is the Gini Importance. TODO: add
+\caption{Feature predictive power (for a Top-3 Decision Tree 
+learned on the entire dataset). 
+TODO: add
 better-known measure like ANOVA or ReliefF. TODO: base on Top-1 instead?}
-\label{tab:feature-predictive-power}
+\label{tab-feature-predictive-power}
 \end{table}
 
-To measure how important each feature is, we use Gini Importance. In a decision
-tree,
+\tabref{feature-predictive-power} summarizes the relative importance 
+of the top features in our model. The features are ranked by their
+Gini importance (or mean decrease in impurity), a common measure
+for decision tree and random forest models~\cite{FIXME}. Informally, the
+Gini importance conveys a weighted count of the number of times a feature
+is used to split a node: a feature that is learned to guide more model
+classification decisions is more important. 
 
 prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
 ANOVA, whatever)
