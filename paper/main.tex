@@ -18,9 +18,35 @@
 \usepackage{booktabs}
 \usepackage{textcomp}
 \usepackage{xcolor}
+\usepackage{listings}
+\usepackage{myref}
 \usepackage{pgfplots}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
+
+\newcommand\lt[1]{{\lstinline|#1|}}
+\lstset{language=python}
+\definecolor{dkgreen}{rgb}{0,0.5,0}
+\definecolor{dkred}{rgb}{0.5,0,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\lstset{basicstyle=\ttfamily\bfseries\footnotesize,
+  morekeywords={virtualinvoke},
+  keywordstyle=\color{blue},
+  ndkeywordstyle=\color{red},
+  commentstyle=\color{dkred},
+  stringstyle=\color{dkgreen},
+  numbers=left,
+  numberstyle=\ttfamily\footnotesize\color{gray},
+  stepnumber=1,
+  numbersep=10pt,
+  backgroundcolor=\color{white},
+  tabsize=4,
+  showspaces=false,
+  showstringspaces=false,
+  xleftmargin=.23in
+}
+
+
 \begin{document}
 
 %
@@ -116,33 +142,40 @@ the size of the sampled set.
 \section{Motivating Example}
 
 \begin{figure}
-\begin{verbatim}
+\begin{lstlisting}
 year = int(time.strftime("%Y"))
 age = input("Enter your age")
 print("You will be twice as old in:")
 print(year + age)
-\end{verbatim}
-\caption{A buggy program}
+\end{lstlisting}
+\caption{
+\label{fig-motex} 
+A program with multiple fault localizations (e.g.,
+lines 1 and 2).} 
 \end{figure}
 
-Consider the program in Fig. 1, adapted from our dataset. The program
-attempts to use the current year and the user's age to compute their
-birth year and the year they can vote. However, while line 1 correctly
-turns the current year from a string into an int, this `int' call is
-missing from line 2 so `age' remains a string, and thus the addition
-on line 4 causes the program to crash.
+Consider the program in \figref{motex}, adapted from our dataset of
+human submissions. The program attempts to carry out some simple arithmetic
+based on a given number and the current year. When executed, however, the
+program raises an exception on line 4, related to the addition of an
+integer variable to a string variable.
 
-Notice that while a correct fix (and the one that the programmer
-actually used) is to add an `int' call to line 2, another possible ``fix''
-would be to \textit{remove} the `int' call from line 1 - both year and
-age would then be strings, and the addition on line 4 would be interpreted
-as string concatenation. This shows the necessity of a heuristic, data-driven
-approach, since without test cases there is no way to tell for sure which
-fix is better.
+One reasonable fix (and the one that the programmer actually used in this
+case) is to add \lt{int()} cast on line 2. However, another possible
+``fix'' would be to \textit{remove} the \lt{int()} cast from line 1, in
+which case both variables hold string values at runtime, and the addition
+on line 4 would be interpreted as string concatenation. While the second
+fix creates a well-typed program, it is less likely to correspond to
+developer intent, and is thus less likely to be helpful as a debugging aid. 
 
-We can also start to see some features which will be
-important for finding bugs: we will need the \textit{type} of age, as
-well as some \textit{contextual} information about how it's used in the program.
+This simple example highlights a key fault localization challenge in such
+dynamically-typed settings: a runtime type error alone may not contain
+enough information to pinpoint the human-preferred localization from among
+many valid-but-less-helpful localizations. Our insight is that the relevant
+information is not in the types (e.g., string or integer) alone but in the
+context in which the values are used.  We propose an approach based on
+machine learning over a combination of static and dynamic contextual
+features. 
 
 % TODO: would also be nice if the example showed that the place Python crashes
 % may not be a place that should be fixed?
