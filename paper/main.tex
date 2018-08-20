@@ -291,15 +291,70 @@ types (such as int and tuple) as well as a few special values:
     a trace and do not always have the same type.
 \end{itemize}
 
-\emph{Slice} (TODO - Leon can you expand this? What did you base our slicing on?)
-The goal of this feature is to help eliminate terms that cannot be the source of
-the crash. These include lines that are never run, lines that run successfully
-and don't affect any variables that are used later, and so on. More specifically, we
-build up a dependency graph of all lines in the program trace. Edges in the graph
-represent either def-use dependence or control-flow dependence. Then ideally,
-any node in the graph that is not a transitive dependency of the line that crashes
-can't be responsible for the crash. However dynamic slicing is not perfect (TODO
-include example?), so unlike in prior work, we do not treat membership in the slice
+\emph{Slice}
+\begin{figure}
+\begin{lstlisting}
+x = input() # The user inputs 0
+if x != 0:
+  x = 1
+print("One divided by your number is: %d" % (1 / x))
+\end{lstlisting}
+\caption{In this program, the programmer may have intended the placeholder
+  assignment \texttt{x = 1} to be used in case the user input 0, and used the
+  incorrect condition \texttt{x != 0}, rather than \texttt{x == 0}. However, the
+  condition expression will not be included in the slice (which would include
+  lines 1 and 4), because the presence of
+  the conditional does not affect the behavior of the program.
+}
+\label{slice-downside-example}
+\end{figure}
+
+\begin{figure}
+\begin{lstlisting}
+while true:
+  x = input()
+  if x != 0:
+    break
+  print("One divided by your number is: %d" % (1 / x))
+\end{lstlisting}
+\caption{
+  This program's mistake is the same as before,
+  but instead they try to handle the
+  bad input by breaking out of the input loop. When computing the slice, our
+  method would record a control dependency between the condition on line 3 and
+  the print statement on line 5, placing the bad condition in the program slice.
+}
+\label{early-break}
+\end{figure}
+
+The goal of this feature, roughly equivalent in purpose to the type error slice in
+\cite {learning-to-blame}, is to help eliminate terms that cannot be the source of
+the crash. We compute a dynamic program slice \cite{KOREL1988155}, the set of
+terms that contributed at runtime to the observed exception, and turn this
+feature on for terms in the slice. We follow the basic approach of
+\cite{KOREL1988155, KOREL1990187}, building a graph of data and control
+dependencies. We then traverse the graph backwards, starting at the execution
+step where the error occurred, to collect the set of terms that the excepting
+line transitively depended on. This excludes lines that could not have caused the
+exception, such as lines that never ran, or lines that ran but had no connection
+to the step where the exception happened.
+
+A downside of using the dynamic slice, in the case of control dependencies, is
+that it excludes terms whose presence does not affect whether the exception
+happened, but which could have had an effect if the term was different. In
+\figref{slice-downside-example}, the conditional statement is never run, so the
+removal of the conditional would not have any effect on the program's behavior,
+and it would not be included in the program slice. The dynamic slice misses the
+incorrect test condition because the mistake itself caused the conditional
+statement and its body to become irrelevant.
+
+To overcome this issues in the ``early return'' or ``early break'' case
+(\figref{early-break}), we check if a break, return, or other statement for
+breaking out of structured control flow is present inside of a conditional
+statement. We then add dependencies in the execution trace's dependency graph
+between the enclosing conditional and the statements that would have been skipped
+by the break or return. This is insufficient to overcome all related problems,
+however, so unlike in prior work, we do not treat membership in the slice
 as a hard constraint.
 
 \emph{Crash location} As discussed later in the evaluation, the precise term that
@@ -890,6 +945,6 @@ deployed, and use only natural language defect report text.
 \section{Conclusion}
 
 \bibliographystyle{abbrv}
-\bibliography{nanomaly,sw,temp}
+\bibliography{nanomaly,sw,temp,slice}
 
 \end{document}
