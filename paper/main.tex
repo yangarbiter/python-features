@@ -391,6 +391,22 @@ Variable or Application.
 
 \emph{Size} We also count the number of descendent nodes in the subtree rooted at that node.
 
+\subsection{Label}
+
+The label we would ideally like to use would be whether or not a term is the
+true source of the crash; that is, whether the correct way to fix the crash is
+to edit this term. However, manually labeling terms in such a way would be
+prohibitive on such a large dataset. And the whole point of this work is that
+there does not yet exist a reliable way of pinpointing bugs automatically. Thus
+we are forced to use a proxy for our desired label as follows. Many PythonTutor
+users use the site in an iterative fashion: they start out by writing
+a program that crashes, and then edit it until it no longer crashes. Thus for our
+dataset, we consider only the crashing programs for which the same user later
+ran a program that did not crash. We then run a tree-diff \cite{tree-diff}
+between the program that crashes and the one that does not. Any terms in the
+crashing program that appear in the diff are labeled as bugs. This is of course
+not a perfect proxy for the label we want; see Threats to Validity.
+
 \subsection{Machine learning}
 
 \emph{Pairing programs} For each PythonTutor user, we look at the sequence of
@@ -687,6 +703,28 @@ TODO: what about turning on/off slicing?
 TODO: what about turning on/off types? (is that separate from slicing?)
 
 \subsection{RQ 3 --- Defect Categories}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    symbolic x coords={Top-1,Top-3},
+    xtick=data,
+    ymin=0,
+    ylabel=Model Accuracy,
+    enlarge x limits=0.5,
+    legend style={at={(0.5,-0.15)},anchor=north}
+]
+    \addplot table[x=scoreName, y=All, col sep=comma]{defect-categories.csv};
+    \addplot table[x=scoreName, y=TypeError, col sep=comma]{defect-categories.csv};
+    \addplot table[x=scoreName, y=AttributeError, col sep=comma]{defect-categories.csv};
+\legend{All Errors,TypeError,AttributeError}
+\end{axis}
+\end{tikzpicture}
+\caption{Accuracy when using only a subset of the data that all has the same crash. TODO:
+get separate baselines?}
+\label{fig:defect-categories}
+\end{figure}
 
 prereq: define defect category. This could be either the raw python
 exception name or it could be clusters that we have manually created.
