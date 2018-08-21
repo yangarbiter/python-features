@@ -24,6 +24,8 @@
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
 
+\newcommand{\fixme}[1]{\textcolor{red}{FIXME: #1}}
+
 \newcommand\lt[1]{{\lstinline|#1|}}
 \lstset{language=python}
 \definecolor{dkgreen}{rgb}{0,0.5,0}
@@ -110,10 +112,10 @@ such as TypeScript for JavaScript~\cite{FIXME} and FIXME for
 Python~\cite{FIXME} are promising but not yet as widely
 deployed~\cite{FIXME}. Finally, research tools and algorithms for fault
 localization either require rich static types (e.g., as in
-Mycroft~\cite{FIXME} or Sherrloc~\cite{FIXME}), require test cases (e.g.,
-as in Tarantula~\cite{FIXME}), or produce voluminous ranked output lists
-that have been found to be unhelpful in general and less useful to novices
-in particular~\cite[Sec.~5.1]{orso-parnin}. 
+Mycroft~\cite{FIXME}, Nate~\cite{FIXME} or Sherrloc~\cite{FIXME}), require
+test cases (e.g., as in Tarantula~\cite{FIXME}), or produce voluminous
+ranked output lists that have been found to be unhelpful in general and
+less useful to novices in particular~\cite[Sec.~5.1]{orso-parnin}. 
 
 We focus on Python as an indicative, popular dynamically-typed language.
 We desire a fault localization algorithm for Python type errors that
@@ -152,6 +154,7 @@ user instances, demonstrating the scalability of our algorithm.
 \end{enumerate} 
 
 \section{Motivating Example}
+\label{sec-motex} 
 
 \begin{figure}
 \begin{lstlisting}
@@ -195,16 +198,17 @@ features.
 % TODO: would also be nice if the example showed that the place Python crashes
 % may not be a place that should be fixed?
 
-\section{Overview and Approach}
+\section{Algorithm Overview}
 
 We present an algorithm for accurately localizing faults~\cite{tarantula} in
-dynamically-typed Python programs that exhibit non-trivial uncaught runtime
-exceptions. We do not consider syntax errors or references to undefined
-variables. Our algorithm uses machine learning models based on static and
-dynamic features to implicate suspicious expressions. Since studies have
-found that voluminous fault localization output is not useful to
-developers~\cite{orso-parnin,orso-parnin2015}, we focus on producing
-Top-1 and Top-3 rankings.
+dynamically-typed, beginner-written Python programs that exhibit
+non-trivial uncaught runtime exceptions. We do not consider syntax errors
+or references to undefined variables. Our algorithm uses machine learning
+models based on static, dynamic, contextual and slicing features to
+implicate suspicious expressions. Since studies have found that voluminous
+fault localization output is not useful to
+developers~\cite{orso-parnin,orso-parnin2015}, we focus on producing Top-1
+and Top-3 rankings.
 
 Our algorithm first extracts static and dynamic features from Python
 program (Section~\ref{sec-features}). Next, using a labeled training
@@ -213,130 +217,92 @@ corpus, we learn a machine learning model over those features
 faults in new Python programs by extracting their features and applying the
 model.
 
-\subsection{Feature Extraction}
-\label{sec-features}
+Drawing inspiration from localization algorithms such as
+Nate~\cite{learning-to-blame} and the natural language processing term
+frequency vector (or ``bag of words'') model~\cite{FIXME}, we represent
+each buggy program as a ``bag of abstracted terms''. A \emph{term} is
+either a statement of expression.
 
-Our key insight is that FIXME-INSIGHT. Are a result, we make use of
-static, dynamic and contextual information. Static features, such as FIXME,
-are effective at capturing FIXME-INFORMATION. By contrast, dynamic
-features, such as FIXME, support the modeling of FIXME. Finally, we also
-include contextual information, such as FIXME, which allows our algorithm
-to accurately handle FIXME. We consider the empirical justification of
-these features in Section~\ref{sec-eval}.
+\subsection{Model Feature Intuition and Extraction}
 
-We calculate features for each statement and expression in the program.
+We observe that many type errors admit multiple logically valid resolutions
+(see \secref{motex}): we thus cannot expect to match programmer desires
+through type constraints alone, and instead propose to leverage information
+from multiple modalities. We use static features to capture structured
+program meaning, contextual features to capture the relationship between a 
+program fragment and its environment, and dynamic features (including slice
+information) to reason about conditional behavior.
 
+For each term in the program we compute static, dynamic, and contextual
+features. While some features can be computed directly from syntactic
+information, others are only only accessible dynamically. In a
+dynamically-typed language such as Python, this includes types of each
+expression. Since programs are highly structured and expressions gain
+meaning in relation to their surroundings, we also include contextual
+features. 
+
+While static features can be computed via parsing, dynamic features require
+executing the program fragment. To calculate dynamic features, we first
+convert each buggy program to an equivalent program that is closer to ANF.
+\fixme{WRW has no idea what ``ANF'' means in this context, and this is the
+first and only time it appears in the paper text. Someone else should
+rewrite this.} We define ANF to be FIXME and ``closer'' to mean FIXME in
+this context. We then run the resulting program through the PythonTutor
+backend~\cite{FIXME}.  This backend is based on the Python debigging
+library BDB~\cite{FIXME}; it returns a trace of the program along with the
+state of the heap at each execution step. That trace is used to compute
+dynamic features.
+
+\subsection{Model Features}
+\label{sec-features} 
+
+\subsubsection{Syntactic Forms (Static)}
+
+We hypothesize that certain syntactic categories of terms may be more
+prone to bugs than others, especially for beginner programmers.  For
+example, students might have more trouble with loop conditions than with
+simple assignments. The first feature we consider is the syntactic
+category of node. This feature is categorical, using standard abstract
+syntax tree categories such as Return or Import for statements and Variable 
+or Application for expressions.
+
+\subsubsection{Expression Size (Static)} 
+
+This numeric feature counts the number of descendent nodes in the subtree
+rooted at that node. Our intuition is that larger, more complex expressions
+may be more prone to faults. 
+
+\subsubsection{Type (Dynamic)}
+
+Although type constraints alone cannot always match human intuition for 
+fault localization problems, types still contain very useful information.
+We observe that some types may be inherently suspect whenever they appear,
+especially for beginner-written code. For example, there are very few
+reasons to have a variable of type \lt{NoneType} in Python. We model
+type information as a categorical feature. Possible
+values include all the basic Python types (such as \lt{int}
+and \lt{tuple}) as well as three special values:
 \begin{itemize}
-
-\item \emph{Static / syntactic features}
-\begin{enumerate}
-    \item What kind of statement/expression it is, e.g. assignment / return
-     / import (for statements) or variable / literal / application (expressions).
-    \item Size (the number of AST nodes in the subtree rooted at this node)
-\end{enumerate}
-
-\item \emph{Dynamic features}
-We run each program through an instrumented interpreter (i.e. a modified PythonTutor
-backend, which itself is based on the BDB debugging library). This lets us
-compute the following features:
-\begin{enumerate}
-    \item What type(s) does the expression have at runtime? (The values of this feature
-    can be a type like int, or the special values "unknown" if the expression is
-    never successfully evaluated and "multiple" if it changes type.)
-    \item Is it part of the error slice?
-    \item Is it the node at which the program actually crashes?
-\end{enumerate}
-(Since this interpreter works at the granularity of lines and we want to work with
-expressions as well, we first convert each program to ANF.)
-
-We compute the error slice by running the program and building a dependency
-graph where node A depends on node B if either B defines a variable that A uses,
-or B affects control flow allowing A to run.
-
-We also check what uncaught exception is thrown by the program (TypeError,
-KeyError, etc), and add that as a constant feature to all vectors derived from that program.
-
-\item \emph{Contextual features} After all other features are computed so we have a
-vector $v_e$ representing expression $e$, we set $v_e^{+context} = v_e \circ
-v_p \circ v_{c_1} \circ v_{c_2} \circ v_{c_3}$ where $p$ is the expression's parent
-in the AST and $c_i$ are its children. This allows us to recover some of the
-program structure that would otherwise be completely lost when we convert the
-structured program into an unstructured bag of feature vectors.
-
-\item \emph{Label} Each feature vector is labeled by whether that expression/statement
-changed between the crashing and fixed versions. (This is our proxy for whether
-that node is to blame for the crash).
-
+    \item \lt{Statement} --- Given to all statements, since our terms
+    include both statments and expressions but only expressions 
+    have types
+    \item \lt{Unknown} --- Given to expressions that are never evaluated in the dynamic
+    trace
+    \item \lt{Multiple} --- Given to expressions which are evaluated multiple times in
+    a trace and do not always have the same type
 \end{itemize}
 
-Each vector is then one-hot encoded (e.g. feature "Type : Int" becomes set
-of features "Type-Int : 1", "Type-Bool : 0", "Type-Str : 0", etc.) for use with
-standard machine learning tools.
-
-\subsection{Machine Learning and Modeling}
-\label{sec-model}
-
-The models we train (inc. decision trees/forests,
-MLP, GBM) can then rank expressions of a test program in order of how likely they
-are to be the source of the bug, so we can compute Top-k accuracies: how often
-is the true program change located in the model's first k outputs.
-
-\section{Approach, in more detail}
-
-We follow the overall strategy of \cite{learning-to-blame} and represent each
-buggy program by a Bag of Abstracted Terms. In our setting, a `term' means either
-a statment or an expression.
-
-For each term in the program we compute static, dynamic,
-and contextual features. While it is easy to read some features off of the surface
-syntax, we expect that some features which are only accessible dynamically will also
-be useful, for example the type of each expression. Since programs are highly
-structured and expressions gain meaning in relation to their surroundings,
-we also expect contextual features to be useful.
-
-\subsection{Static features}
-
-\emph{Syntactic form} We expect certain kinds of terms to be more prone to bugs
-than others - for example, students might have more trouble with loop conditions
-than with simple assignments. Thus the first feature we consider is what kind of node the term
-is in the AST. For statements this has values like Return or Import; for expressions
-Variable or Application.
-
-\emph{Size} We also count the number of descendent nodes in the subtree rooted at that node.
-
-\subsection{Dynamic features}
-
-We first convert each buggy program to an equivalent program that is closer
-to ANF, then run it through the PythonTutor backend. This backend is based on the
-Python debigging library BDB; it returns to us a trace of the program along with
-the state of the heap at each execution step. We use this information to compute
-the following features for each term:
-
-\emph{Type} An expression's type should be a very useful feature. Not only are
-incompatible types a sign of an impending crash, but some types may be inherently
-suspect whenever they appear, e.g. there are very few reasons to have a variable
-of type NoneType. Our possible values for the Type feature include all the basic Python
-types (such as int and tuple) as well as a few special values:
-\begin{itemize}
-    \item IsStatement - Given to all statements, since our terms include both
-    statments and expressions but only expressions actually have types.
-    \item Unknown - Given to expressions that are never evaluated in the dynamic
-    trace.
-    \item Multiple - Given to expressions which are evaluated multiple times in
-    a trace and do not always have the same type.
-\end{itemize}
-
-\emph{Slice}
+\subsubsection{Slice (Dynamic)}
 \begin{figure}
 \begin{lstlisting}
 x = input() # The user inputs 0
 if x != 0:
   x = 1
-print("One divided by your number is: %d" % (1 / x))
+print("One over your number is: %d" % (1 / x))
 \end{lstlisting}
 \caption{In this program, the programmer may have intended the placeholder
-  assignment \texttt{x = 1} to be used in case the user input 0, and used the
-  incorrect condition \texttt{x != 0}, rather than \texttt{x == 0}. However, the
+  assignment \lt{x = 1} to be used in case the user input 0, and used the
+  incorrect condition \lt{x != 0}, rather than \lt{x == 0}. However, the
   condition expression will not be included in the slice (which would include
   lines 1 and 4), because the presence of
   the conditional does not affect the behavior of the program.
@@ -350,91 +316,104 @@ while true:
   x = input()
   if x != 0:
     break
-  print("One divided by your number is: %d" % (1 / x))
+  print("One over your number is: %d" % (1 / x))
 \end{lstlisting}
 \caption{
-  This program's mistake is the same as before,
-  but instead they try to handle the
-  bad input by breaking out of the input loop. When computing the slice, our
-  method would record a control dependency between the condition on line 3 and
-  the print statement on line 5, placing the bad condition in the program slice.
+  In this example, the programmer attempts to handle invalid input by
+  breaking out of the input loop. When computing the slice, our method
+  would record a control dependency between the condition on line 3 and the
+  print statement on line 5, placing the bad condition in the program
+  slice.
 }
 \label{early-break}
 \end{figure}
 
-The goal of this feature, roughly equivalent in purpose to the type error slice in
-\cite {learning-to-blame}, is to help eliminate terms that cannot be the source of
-the crash. We compute a dynamic program slice \cite{KOREL1988155}, the set of
-terms that contributed at runtime to the observed exception, and turn this
-feature on for terms in the slice. We follow the basic approach of
-\cite{KOREL1988155, KOREL1990187}, building a graph of data and control
-dependencies. We then traverse the graph backwards, starting at the execution
-step where the error occurred, to collect the set of terms that the excepting
-line transitively depended on. This excludes lines that could not have caused the
-exception, such as lines that never ran, or lines that ran but had no connection
-to the step where the exception happened.
+The goal of this feature, roughly equivalent in purpose to the type error
+slice in Nate~\cite{learning-to-blame}, is to help eliminate terms that
+cannot be the source of the crash. We compute a dynamic program slice
+\cite{KOREL1988155}, the set of terms that contributed at runtime to the
+observed exception, and turn this feature on for terms in the slice. We
+follow the basic approach of \cite{KOREL1988155, KOREL1990187}, building a
+graph of data and control dependencies. We then traverse the graph
+backwards, starting at the execution step where the error occurred, to
+collect the set of terms that the excepting line transitively depended on.
+This excludes lines that could not have caused the exception, such as lines
+that never ran, or lines that ran but had no connection to the step where
+the exception happened.
 
 A downside of using the dynamic slice, in the case of control dependencies, is
 that it excludes terms whose presence does not affect whether the exception
 happened, but which could have had an effect if the term was different. In
-\figref{slice-downside-example}, the conditional statement is never run, so the
-removal of the conditional would not have any effect on the program's behavior,
-and it would not be included in the program slice. The dynamic slice misses the
-incorrect test condition because the mistake itself caused the conditional
-statement and its body to become irrelevant.
+\figref{slice-downside-example}, the conditional statement is never
+executed, so the removal of the conditional would not have any effect on
+the program's behavior, and it would not be included in the program slice.
+The dynamic slice misses the incorrect test condition because the mistake
+itself caused the conditional statement and its body to become irrelevant.
 
 To overcome this issues in the ``early return'' or ``early break'' case
 (\figref{early-break}), we check if a break, return, or other statement for
-breaking out of structured control flow is present inside of a conditional
+escaping structured control flow is present inside of a conditional
 statement. We then add dependencies in the execution trace's dependency graph
 between the enclosing conditional and the statements that would have been skipped
-by the break or return. This is insufficient to overcome all related problems,
-however, so unlike in prior work, we do not treat membership in the slice
-as a hard constraint.
+by the break or return. While this heuristic is effective in practice, it
+does not overcome all related problems: we thus treat dynamic slice
+information as one of many features rather than as a hard constraint.
+This boolean feature tracks whether or not the term is part of the final
+dynamic slice.
 
-\emph{Crash location} As discussed later in the evaluation, the precise term that
-causes Python to crash is in fact the one the user decides to change about 30\% of
-the time, so we use it as a feature (and expect it to be a high-signal one, too.)
+\subsubsection{Crash Location (Dynamic)} We observe that the precise term that
+causes Python to crash is, in fact, the one the user decides to change
+much of the time. While this information is not sufficient on its own
+(cf. the vanilla Python interpreter, which largely uses this feature), 
+it can be a very helpful supplement. This boolean feature encodes whether
+or not the term is exactly the source location of the uncaught exception. 
 
-\emph{Exception type} The type of error thrown by the program is useful context for
-finding the error. For example, if asked how likely a random `0` is of being a bug, you'd give
-a higher answer if you knew that the program eventually crashes with a division by
-zero exception. Thus we attach the exception type as a feature to \emph{every}
-vector derived from that program.
+\subsubsection{Exception Type (Dynamic)} The type of error thrown by the program
+contains useful information its localization. In particular, a term may be
+more or less suspicious depending on the ultimate uncaught exception. As an
+example, a \lt{v / 0} term may be more suspicious if the uncaught exception
+being considered is \lt{DivisionByZero}. We encode the exception type as
+as a categorical feature. 
+% to \emph{every} vector derived from that program.
 
-\subsection{Contextual features}
+\fixme{The original draft contained this text: ``For example, if asked how
+likely a random `0` is of being a bug, you'd give a higher answer if you
+knew that the program eventually crashes with a division by zero exception.''
+This sort of rhetorical communication with the reader is \emph{too
+informal for scientific writing}. I am not saying that I disagree with the
+underlying argument. I am saying that you cannot really use the Socratic
+method or the ``Appeal to Common Practice'' logical fallacy or the ``No
+True Scotsman'' logical fallacy in scientific writing. If you wrote the
+quoted text, read this FIXME carefully, ask me if you have any questions
+about sloppy vs. formal arguments, and then delete this FIXME. --- Wes} 
 
-The approach of representing a program by a Bag of Abstracted Terms, if implemented
-naively, runs into the problem that the terms lose their context in the program
-as a whole. For example, the features for the term `0` include its type (int) and
-syntactic description (int literal), but there is no way that's enough to decide
-if it's innocuous, like the 0 in `x = 0`, or clearly the source of a bug, like the
-0 in `x / 0`. To restore some of this context, we introduce contextual features.
-This involves duplicating all our other features four times - once for the parent
-and once each for a term's first three children in the AST. So since `x / 0` has
-the feature SyntacticForm = DivisionOp, the `0` of `x / 0` has the feature
-ParentSyntacticForm = DivisionOp. Similarly, since `0` has SyntacticForm = IntLiteral,
-`x / 0` has Child1SyntacticForm = IntLiteral. In order to make all feature vectors
-the same length, nodes that have no parent or fewer than three children have the
-relevant features filled out with a special NotApplicable value.
+\subsubsection{Contextual features}
 
-\subsection{Label}
+Term frequency vectors in general, and our bag of abstracted terms
+representation by extension, do not typically include contextual
+information such as ordering or relative positioning. As with many other
+analyses, such as contextual operational semantics~\cite{FIXME}, we observe 
+that the meaning of an expression may depend on its surrounding context. 
 
-The label we would ideally like to use would be whether or not a term is the
-true source of the crash; that is, whether the correct way to fix the crash is
-to edit this term. However, manually labeling terms in such a way would be
-prohibitive on such a large dataset. And the whole point of this work is that
-there does not yet exist a reliable way of pinpointing bugs automatically. Thus
-we are forced to use a proxy for our desired label as follows. Many PythonTutor
-users use the site in an iterative fashion: they start out by writing
-a program that crashes, and then edit it until it no longer crashes. Thus for our
-dataset, we consider only the crashing programs for which the same user later
-ran a program that did not crash. We then run a tree-diff \cite{tree-diff}
-between the program that crashes and the one that does not. Any terms in the
-crashing program that appear in the diff are labeled as bugs. This is of course
-not a perfect proxy for the label we want; see Threats to Validity.
+As an example, consider the \lt{0} terms in both \lt{x = 0} and \lt{ x/ 0}.
+Both instances of \lt{0} have the same syntactic form, size and type
+(etc.). We may prefer to implicate the \lt{0} in \lt{x / 0} as suspicious,
+especially for beginner-written programs, but cannot distinguish it without
+surrounding contextual information. Data structures such as abstract syntax
+trees and control flow graphics capture such contextual information, but
+are not immediately applicable to machine learning. 
 
-\subsection{Machine learning}
+We desire to encode such information while retaining the use of scalable,
+accurate off-the-shelf machine learning algorithms that operate on feature
+vectors. We thus propose to embed contextual information in a vector,
+borrowing insights from standard approaches in machine learning. We
+associated with term additional features that correspond to the features of
+its parent and child nodes. For representational regularity, we always
+model three children; terms without parents or children are given special
+values (e.g., zero or NotApplicable) for those contextual features. 
+
+\subsection{Machine Learning Model}
+\label{sec-model} 
 
 \emph{Pairing programs} For each PythonTutor user, we look at the sequence of
 programs they attempted to run. Each program that crashes is paired with the next
@@ -592,6 +571,23 @@ Python defects?}
 \item[RQ5]{FIXME clustering?}
 
 \end{enumerate}
+
+\subsection{Label}
+
+The label we would ideally like to use would be whether or not a term is the
+true source of the crash; that is, whether the correct way to fix the crash is
+to edit this term. However, manually labeling terms in such a way would be
+prohibitive on such a large dataset. And the whole point of this work is that
+there does not yet exist a reliable way of pinpointing bugs automatically. Thus
+we are forced to use a proxy for our desired label as follows. Many PythonTutor
+users use the site in an iterative fashion: they start out by writing
+a program that crashes, and then edit it until it no longer crashes. Thus for our
+dataset, we consider only the crashing programs for which the same user later
+ran a program that did not crash. We then run a tree-diff \cite{tree-diff}
+between the program that crashes and the one that does not. Any terms in the
+crashing program that appear in the diff are labeled as bugs. This is of course
+not a perfect proxy for the label we want; see Threats to Validity.
+
 
 \subsection{Data Set}
 
