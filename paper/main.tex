@@ -83,61 +83,73 @@ Abstract
 
 \section{Introduction}
 
-\emph{Placeholder Outline.} This text is an informal placeholder outline
-only.
+Dynamically-typed languages are becoming increasingly common for rapid
+application development, full-scale software engineering, and
+pedagogy (e.g.,~\cite{FIXME,FIXME}). Languages like Python, Ruby and Lua
+often feature a gentle learning curve and attractive facilities, from
+familiar garbage collection and regular expressions to more expressive and
+exotic list comprehensions and higher-order function blocks. One side
+effect of popularity with novices and students, however, is that many
+programmers of such languages may lack expertise when presented with
+dynamic type errors, and may thus struggle to interpret and localize
+them~\cite{FIXME,FIXME}. We propose a machine learning approach based on
+static, dynamic and contextual information that effectively localizes
+beginner type errors.
 
-\emph{Identify an important problem.} Support the claim that Python fault
-localization for possibly-ill-typed student fragments is an important
-problem. Likely steps: fault localization is important, Python is
-important, incomplete code is important. First, software engineering is
-important and expensive; testing, maintenance, and debugging are the
-dominant activities in SE; localization and triage are key steps. Second,
-Python is increasingly used for pedagogy and industrial deployment, here
-are some GitHub numbers about the rate of growth in Python projects
-compared to C or Java, etc. Third, IDE tool use requires operating on code
-fragments, here are some numbers from PythonTutor~\cite{Guo2013-vu}, generality, etc.
+The relative costs and benefits of static vs. dynamic error detection are
+well-studied. Despite this, however, many currently-available techniques
+are ill-suited to address the problem of localization for type errors in
+dynamic languages. First, relying on the extant language interpreter
+requires test inputs~\cite{FIXME}, may involve error messages that are
+difficult for novices to understand~\cite{FIXME}, and may misleadingly
+implicate the symptom rather than the cause~\cite{FIXME}.  Second, a
+significant amount of development is carried out via IDE or web interfaces,
+which require tools that operate on code fragments~\cite{Guo2013-vu}.
+Third, attempts to retrofit static type systems into dynamic languages,
+such as TypeScript for JavaScript~\cite{FIXME} and FIXME for
+Python~\cite{FIXME} are promising but not yet as widely
+deployed~\cite{FIXME}. Finally, research tools and algorithms for fault
+localization either require rich static types (e.g., as in
+Mycroft~\cite{FIXME} or Sherrloc~\cite{FIXME}), require test cases (e.g.,
+as in Tarantula~\cite{FIXME}), or produce voluminous ranked output lists
+that have been found to be unhelpful in general and less useful to novices
+in particular~\cite[Sec.~5.1]{orso-parnin}. 
 
-\emph{Identify the properties of a good solution.} Pick your favorite
-three. Some candidates: accuracy (cite Parnin/Orso paper an indicate that
-it must be found within top three, etc., since humans will not read long
-lists), generality (must apply to student code and incomplete fragments),
-scalability (must apply to hundreds of thousands of fragments, must present
-real-time responses suitable for web/IDE use), agreement with subjective
-judgments (must handle ``ambiguity'' the same way humans would when you
-don't know whether to blame the use or the definition, etc.), efficiency
-(must operate using a small number of dynamic runs, unlike Tarantula,
-etc.).
+We focus on Python as an indicative, popular dynamically-typed language.
+We desire a fault localization algorithm for Python type errors that
+will agree with human intuition (\emph{accuracy}), will apply to
+off-the-shelf, unannotated beginner-written program fragments
+(\emph{generality}), and will scalably apply to industrial-strength
+deployments (\emph{scalability}). Our key insights are (1) that we can leverage
+modern supervised machine learning for accuracy and an agreement with human
+norms; (2) that we can use static, dynamic, contextual and slice-based
+features to generalize to off-the-shelf beginner programs; and (3) that we
+can use large beginner datasets, such as those from
+PythonTutor.com~\cite{Guo2012-vu}, to assess scalability.
 
-\emph{Show that the current state of the art is inadequate.} For each $x$ of
-\{manual debugging, Python's default error messages,
-Mycroft/Sherrloc/Tarantula/whatever\}, show that $x$ lacks at least one of the
-desired properties listed above.
+We propose an algorithm that takes an input a Python program fragment that 
+produces an uncaught runtime exception such as a type error. Via machine
+learning over a carefully-selected set of program-relevant features, we
+produce the expression most likely implicated in the exception according to
+our learned model. We evaluate on an entire year of buggy Python 3 program
+executions on PythonTutor.com --- over 270,000 instances --- measuring
+accuracy with respect to the human actions as the ground truth and
+comparing against the vanilla Python interpreter as a baseline. 
 
-\emph{Insights and special sauce.} What are the two or three good ideas
-that we bring together to solve this problem? Some candidates: the use of
-modern machine learning techniques (deep learning, etc.); the use of
-tree-based contextual features to hit the sweet spot between syntax and semantics;
-special handling of unsatisfied use-def type constraints (TBA); etc.
+The contributions of this paper are as follows:
+\begin{enumerate}
 
-\emph{What is our proposal?} We propose XYZ, an algorithm to do ABC. It
-takes as input DEF. It has stages P, Q and R. It produces as output GHI. It
-provides guarantees JKL.
+\item We present an algorithm for accurately localizing dynamic type errors
+in Python. We find that FIXME. 
 
-\emph{How will we evaluate it?} For each of the properties of a good
-solution listed above, indicate how we will evaluate our contribution. What
-evidence will we provide? Typically, for each property $x$, we support our
-claim to $x$ with either a formal proof (e.g., our algorithm has $x$ by
-construction), an empirical evaluation on software artifacts, or an
-empirical evaluation on human subjects. In each case, indicate both the
-evaluation metrics (e.g., if we care about efficiency, is it measured in
-lines-per-second? if we care about precision, what is our non-standard
-top-three metric) and success criteria (e.g., how will we define success?
-what is the baseline we want to beat). For empirical evaluations, briefly
-and implicitly argue that the results are likely to generalize by giving
-the size of the sampled set.
+\item We describe and evaluate static, dynamic, contextual and slice-based
+features for generalizing machine-learning fault localization to
+beginner-written Python fragments. We find that FIXME.
 
-\emph{Introduction wrap-up.} The contributions of this paper are as follows
-...
+\item We analyze the results of a thorough evaluation on over 270,000 real
+user instances, demonstrating the scalability of our algorithm. 
+
+\end{enumerate} 
 
 \section{Motivating Example}
 
