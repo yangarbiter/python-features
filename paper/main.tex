@@ -48,6 +48,9 @@
   xleftmargin=.23in
 }
 
+\pagestyle{plain}
+\pagenumbering{arabic}
+
 
 \begin{document}
 
@@ -412,26 +415,13 @@ its parent and child nodes. For representational regularity, we always
 model three children; terms without parents or children are given special
 values (e.g., zero or NotApplicable) for those contextual features. 
 
-\subsection{Machine Learning Model}
+\subsection{Machine Learning Model Generation}
 \label{sec-model} 
 
-\emph{Pairing programs} For each PythonTutor user, we look at the sequence of
-programs they attempted to run. Each program that crashes is paired with the next
-program by that user which does not crash. Many programs do not make it to the
-end of our data pipeline; here are the most common reasons:
-\begin{itemize}
-    \item The user submitted only programs that crash or only programs that do
-    not crash, so we can't create any pairs for that user.
-    \item The program is out of scope for PythonTutor. For
-    example, the program imports forbidden libraries (like os), or the program
-    runs in over 1000 execution steps.
-    \item The proportion of the program that has changed between the buggy and
-    fixed versions is more than a standard deviation above the mean.
-\end{itemize}
-We end up with \textasciitilde270,000 usable pairs of programs.
-
+\fixme{
 \emph{Models} The following descriptions of Logistic Regression, Decision Trees,
 and MLP will have to be redone as they are copied from Learning to Blame.
+}
 
 \emph{Logistic Regression}
 The simplest classifier we investigate is logistic regression:
@@ -568,28 +558,9 @@ Python defects?}
 
 \item[RQ4]{Is our algorithm accurate on heterogeneous sets of programs?}
 
-\item[RQ5]{FIXME clustering?}
-
 \end{enumerate}
 
-\subsection{Label}
-
-The label we would ideally like to use would be whether or not a term is the
-true source of the crash; that is, whether the correct way to fix the crash is
-to edit this term. However, manually labeling terms in such a way would be
-prohibitive on such a large dataset. And the whole point of this work is that
-there does not yet exist a reliable way of pinpointing bugs automatically. Thus
-we are forced to use a proxy for our desired label as follows. Many PythonTutor
-users use the site in an iterative fashion: they start out by writing
-a program that crashes, and then edit it until it no longer crashes. Thus for our
-dataset, we consider only the crashing programs for which the same user later
-ran a program that did not crash. We then run a tree-diff \cite{tree-diff}
-between the program that crashes and the one that does not. Any terms in the
-crashing program that appear in the diff are labeled as bugs. This is of course
-not a perfect proxy for the label we want; see Threats to Validity.
-
-
-\subsection{Data Set}
+\subsection{Dataset and Program Collection}
 
 Our raw data consist of every Python 3 program that a user executed on
 PythonTutor.com~\cite{Guo2013-vu} (not in ``live'' mode) during 2017, other
@@ -600,7 +571,29 @@ the latter is the fixed version of the former. We discard pairs where the
 difference between crashing and fixed versions is too high (more than a
 stddev above average), since these are most likely to be violations of that
 assumption (i.e., the program that does not crash is unrelated to the
-crashing program).
+crashing program). We also discard submissions that are out of scope given
+PythonTutor's policies (e.g., such as very long-running executions or the
+use of forbidden libraries). 
+
+Ultimately, the dataset used in this evaluation contained just over
+270,000 usable pairs of programs.
+
+\subsection{Labeled Training and Ground Truth} 
+
+Our algorithm is based on supervised machine learning and thus requires
+labeled training instances. In addition, our evaluations require a ground
+truth notion of which terms correspond to correct fault localizations. 
+
+We use the terms changed involved in the fixes by actual users as our
+ground truth and training information.  Many PythonTutor users use the site
+in an iterative fashion: they start out by writing a program that crashes,
+and then edit it until it no longer crashes. Our dataset contains only only
+those crashing programs for which the same user later submitted a program
+that did not crash. We compute a tree-diff \cite{tree-diff} between the
+originaly, buggy submission and the first fixed submission. We define 
+the ground truth correct answer to be the set of terms in the crashing
+program that also appear in the diff. We discuss the implications of this
+choice in \secref{threats}. 
 
 In our evaluation, we used FIXME as a training set and FIXME as a held-out
 evaluation set. We employed cross-validation~\cite{kohavi} to help address
@@ -889,6 +882,7 @@ through how interesting and indicative they are and explain why we did well.
 Summarize the evaluation. One sentence per subsection.
 
 \subsection{Threats to validity}
+\label{sec-threats}
 
 \emph{Overfitting and other machine learning issues} Yao-Yuan, how do we avoid
 these?
@@ -918,9 +912,9 @@ is also lower than the reported baseline for the same reason, so our
 \emph{margin} of effectiveness is unlikely to change much.
 
 \section{Related Work}
-FIXME: This must all be rewritten or dropped, as it is directly copied from
+\fixme{This must all be rewritten or dropped, as it is directly copied from
 my previous papers. It serves as a placeholder to indicate length and to
-remind us of some Software Engineering bits we might cite.
+remind us of some Software Engineering bits we might cite.}
 
 There are several fault localization techniques that rely much more heavily
 on dynamic information\footnote{Note: we do not directly compare to these
