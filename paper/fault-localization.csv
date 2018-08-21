@@ -1,3 +1,4 @@
-scoreName,withEverything,baseline
-Top-1,0.552904,0.29542002098
-Top-3,0.752926,0
+scoreName,score
+Baseline,0.29542002098
+Top-1,0.552904
+Top-3,0.752926

@@ -149,9 +149,9 @@ print("You will be twice as old in:")
 print(year + age)
 \end{lstlisting}
 \caption{
-\label{fig-motex} 
+\label{fig-motex}
 A program with multiple fault localizations (e.g.,
-lines 1 and 2).} 
+lines 1 and 2).}
 \end{figure}
 
 Consider the program in \figref{motex}, adapted from our dataset of
@@ -166,7 +166,7 @@ case) is to add \lt{int()} cast on line 2. However, another possible
 which case both variables hold string values at runtime, and the addition
 on line 4 would be interpreted as string concatenation. While the second
 fix creates a well-typed program, it is less likely to correspond to
-developer intent, and is thus less likely to be helpful as a debugging aid. 
+developer intent, and is thus less likely to be helpful as a debugging aid.
 
 This simple example highlights a key fault localization challenge in such
 dynamically-typed settings: a runtime type error alone may not contain
@@ -175,7 +175,7 @@ many valid-but-less-helpful localizations. Our insight is that the relevant
 information is not in the types (e.g., string or integer) alone but in the
 context in which the values are used.  We propose an approach based on
 machine learning over a combination of static and dynamic contextual
-features. 
+features.
 
 % TODO: would also be nice if the example showed that the place Python crashes
 % may not be a place that should be fixed?
@@ -270,7 +270,24 @@ is the true program change located in the model's first k outputs.
 
 We follow the overall strategy of \cite{learning-to-blame} and represent each
 buggy program by a Bag of Abstracted Terms. In our setting, a `term' means either
-a statment or an expression. For each term in the program we compute the following features:
+a statment or an expression.
+
+For each term in the program we compute static, dynamic,
+and contextual features. While it is easy to read some features off of the surface
+syntax, we expect that some features which are only accessible dynamically will also
+be useful, for example the type of each expression. Since programs are highly
+structured and expressions gain meaning in relation to their surroundings,
+we also expect contextual features to be useful.
+
+\subsection{Static features}
+
+\emph{Syntactic form} We expect certain kinds of terms to be more prone to bugs
+than others - for example, students might have more trouble with loop conditions
+than with simple assignments. Thus the first feature we consider is what kind of node the term
+is in the AST. For statements this has values like Return or Import; for expressions
+Variable or Application.
+
+\emph{Size} We also count the number of descendent nodes in the subtree rooted at that node.
 
 \subsection{Dynamic features}
 
@@ -280,7 +297,10 @@ Python debigging library BDB; it returns to us a trace of the program along with
 the state of the heap at each execution step. We use this information to compute
 the following features for each term:
 
-\emph{Type} The possible values for the Type feature include all the basic Python
+\emph{Type} An expression's type should be a very useful feature. Not only are
+incompatible types a sign of an impending crash, but some types may be inherently
+suspect whenever they appear, e.g. there are very few reasons to have a variable
+of type NoneType. Our possible values for the Type feature include all the basic Python
 types (such as int and tuple) as well as a few special values:
 \begin{itemize}
     \item IsStatement - Given to all statements, since our terms include both
@@ -382,14 +402,6 @@ ParentSyntacticForm = DivisionOp. Similarly, since `0` has SyntacticForm = IntLi
 `x / 0` has Child1SyntacticForm = IntLiteral. In order to make all feature vectors
 the same length, nodes that have no parent or fewer than three children have the
 relevant features filled out with a special NotApplicable value.
-
-\subsection{Static features}
-
-\emph{Syntactic form} The first feature we consider is what kind of node the term
-is in the AST. For statements this has values like Return or Import; for expressions
-Variable or Application.
-
-\emph{Size} We also count the number of descendent nodes in the subtree rooted at that node.
 
 \subsection{Label}
 
@@ -599,20 +611,18 @@ We define FIXME-ACCURACY to be FIXME.
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={Top-1,Top-3},
+    symbolic x coords={Baseline,Top-1,Top-3},
     xtick=data,
     ymin=0,
     ylabel=Model Accuracy,
     enlarge x limits=0.5,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
-    \addplot table[x=scoreName, y=withEverything, col sep=comma]{fault-localization.csv};
-    \addplot table[x=scoreName, y=baseline, col sep=comma]{fault-localization.csv};
-\legend{Our best model,Python interpreter}
+    \addplot table[x=scoreName, y=score, col sep=comma]{fault-localization.csv};
 \end{axis}
 \end{tikzpicture}
-\caption{Based on a decision tree on the largest
-dataset (272534 pairs). TODO: also train for Top-2}
+\caption{Baseline is the normal Python interpreter. Other bars are from decision
+trees on the largest dataset (272534 pairs). TODO: also train for Top-2}
 \label{fig:full-dataset-acc}
 \end{figure}
 
@@ -620,25 +630,21 @@ dataset (272534 pairs). TODO: also train for Top-2}
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={Top-1,Top-3},
+    symbolic x coords={noContext, noTypes, all},
     xtick=data,
     ymin=0,
     ylabel=Model Accuracy,
     enlarge x limits=0.5,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
-    \addplot table[x=scoreName, y=all, col sep=comma]{removing-features.csv};
-    \addplot table[x=scoreName, y=noTypes, col sep=comma]{removing-features.csv};
-    \addplot table[x=scoreName, y=noContext, col sep=comma]{removing-features.csv};
-    \addplot table[x=scoreName, y=noSlice, col sep=comma]{removing-features.csv};
-\legend{All Features,No Types, No Context, No Slicing}
+    \addplot table[x=scoreName, y=score, col sep=comma]{removing-features-2.csv};
 \end{axis}
 \end{tikzpicture}
 \caption{Accuracy when features are removed, based on decision trees on a random subset of 20000 pairs.
-TODO: train better model and/or
-train on greater fraction of the data? TODO: Top-2. NOTE: removing slicing makes basically no difference...}
+TODO: Top-2}
 \label{fig:removing-features}
 \end{figure}
+
 
 prereq: define accuracy
 
@@ -667,20 +673,20 @@ Expr-Constr=Var & Syntactic                   & 0.020 \\
 Type-C1=unknown & Contextual (Type)           & 0.020 \\
 \toprule
 \end{tabular}
-\caption{Feature predictive power (for a Top-3 Decision Tree 
-learned on the entire dataset). 
+\caption{Feature predictive power (for a Top-3 Decision Tree
+learned on the entire dataset).
 TODO: add
 better-known measure like ANOVA or ReliefF. TODO: base on Top-1 instead?}
 \label{tab-feature-predictive-power}
 \end{table}
 
-\tabref{feature-predictive-power} summarizes the relative importance 
+\tabref{feature-predictive-power} summarizes the relative importance
 of the top features in our model. The features are ranked by their
 Gini importance (or mean decrease in impurity), a common measure
 for decision tree and random forest models~\cite{FIXME}. Informally, the
 Gini importance conveys a weighted count of the number of times a feature
 is used to split a node: a feature that is learned to guide more model
-classification decisions is more important. 
+classification decisions is more important.
 
 prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
 ANOVA, whatever)
@@ -708,21 +714,18 @@ TODO: what about turning on/off types? (is that separate from slicing?)
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={Top-1,Top-3},
+    symbolic x coords={All, TypeError, AttributeError},
     xtick=data,
     ymin=0,
     ylabel=Model Accuracy,
     enlarge x limits=0.5,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
-    \addplot table[x=scoreName, y=All, col sep=comma]{defect-categories.csv};
-    \addplot table[x=scoreName, y=TypeError, col sep=comma]{defect-categories.csv};
-    \addplot table[x=scoreName, y=AttributeError, col sep=comma]{defect-categories.csv};
-\legend{All Errors,TypeError,AttributeError}
+    \addplot table[x=scoreName, y=score, col sep=comma]{defect-categories-2.csv};
 \end{axis}
 \end{tikzpicture}
-\caption{Accuracy when using only a subset of the data that all has the same crash. TODO:
-get separate baselines?}
+\caption{Accuracy when the model is trained and tested on only the data exhibiting
+the error on the x-axis.}
 \label{fig:defect-categories}
 \end{figure}
 
@@ -780,48 +783,73 @@ Goal: show that ``no matter how you decide program differences'', our
 dataset is always more diverse/heterogeneous than is previous work. So our
 success is amazing.
 
-\begin{figure}
-\foreach \method in {single, complete, average}
-{
-\begin{tikzpicture}
-  \begin{axis}[
-      xlabel=Threshold,
-      ylabel=\# of clusters,
-    %   ytick distance=2,
-      title=Linkage: \method
-    ]
-    \addplot+[mark=none] table[x=threshold, y=python_twenty_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
-\end{axis}
-\end{tikzpicture}
-}
-\caption{The number of clusters when clustering a baseline of twenty dissimilar programs from
-  Rosetta Code. We give no plot for the baseline of 5000 identical programs, as they were
-  consistently placed in just 1 cluster.}
-\label{fig:diversity-baseline}
-\end{figure}
+% \begin{figure}
+% \foreach \method in {single, complete, average}
+% {
+% \begin{tikzpicture}
+%   \begin{axis}[
+%       xlabel=Threshold,
+%       ylabel=\# of clusters,
+%     %   ytick distance=2,
+%       title=Linkage: \method
+%     ]
+%     \addplot+[mark=none] table[x=threshold, y=python_twenty_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
+% \end{axis}
+% \end{tikzpicture}
+% }
+% \caption{The number of clusters when clustering a baseline of twenty dissimilar programs from
+%   Rosetta Code. We give no plot for the baseline of 5000 identical programs, as they were
+%   consistently placed in just 1 cluster.}
+% \label{fig:diversity-baseline}
+% \end{figure}
+
+% \begin{figure}
+% \foreach \method in {single, complete, average}
+% {
+% \begin{tikzpicture}
+%   \begin{axis}[
+%       xlabel=Threshold,
+%       ylabel=\# of clusters,
+%     %   ytick distance=1000,
+%       title=Linkage: \method
+%     ]
+%     \foreach \language in {ocaml, python}
+%     {
+%       \addplot+[mark=none] table[x=threshold, y=\language_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
+%     }
+% \legend{OCaml, Python}
+% \end{axis}
+% \end{tikzpicture}
+% }
+% \caption{Number of clusters when data is clustered by single, complete, and average linkage.
+%   A linkage tree is built using agglomerative clustering, and the resulting tree is broken up
+%   into clusters by thresholding the inconsistency coefficient. The inconsistency coefficient
+%   of a link is its distance, z-scored against other nearby links.}
+% \label{fig:diversity}
+% \end{figure}
 
 \begin{figure}
-\foreach \method in {single, complete, average}
-{
 \begin{tikzpicture}
   \begin{axis}[
-      xlabel=Threshold,
-      ylabel=\# of clusters,
+      xlabel=Clustering threshold parameter,
+      ylabel=\# of naturally occuring program clusters,
+      xmax=1.25,
+      legend style={at={(0.5,0.25)},anchor=north}
     %   ytick distance=1000,
-      title=Linkage: \method
+    %   title=Linkage: single
     ]
     \foreach \language in {ocaml, python}
     {
-      \addplot+[mark=none] table[x=threshold, y=\language_cluster_counts_\method, col sep=comma]{cluster_counts.csv};
+      \addplot+[mark=none] table[x=threshold, y=\language_cluster_counts_single, col sep=comma]{cluster_counts.csv};
     }
-\legend{OCaml, Python}
+\legend{NATE OCaml data, Our Python data}
 \end{axis}
 \end{tikzpicture}
-}
-\caption{Number of clusters when data is clustered by single, complete, and average linkage.
+\caption{Number of clusters when data is clustered by single linkage.
   A linkage tree is built using agglomerative clustering, and the resulting tree is broken up
   into clusters by thresholding the inconsistency coefficient. The inconsistency coefficient
-  of a link is its distance, z-scored against other nearby links.}
+  of a link is its distance, z-scored against other nearby links. TODO: find a way to include
+  the Rosetta Code baseline in this graph? better not to devote multiple graphs to this issue.}
 \label{fig:diversity}
 \end{figure}
 
