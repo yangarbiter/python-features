@@ -162,15 +162,18 @@ print(year + age)
 \end{lstlisting}
 \caption{
 \label{fig-motex}
-A program with multiple fault localizations (e.g.,
-lines 1 and 2).}
+A program with multiple fault localizations (lines 1 and 2).}
 \end{figure}
 
-Consider the program in \figref{motex}, adapted from our dataset of
-human submissions. The program attempts to carry out some simple arithmetic
-based on a given number and the current year. When executed, however, the
-program raises an exception on line 4, related to the addition of an
-integer variable to a string variable.
+One of the key difficulties in localizing type errors, especially for
+dynamically-typed programs, is that there are often multiple
+logically-valid ways to address a type error~\cite{FIXME} --- only one of
+which may be desired by the programmer~\cite{FIXME}.  Consider the program
+in \figref{motex}, adapted from our dataset of human submissions. The
+program attempts to carry out some simple arithmetic based on a given
+number and the current year. When executed, however, the program raises an
+exception on line 4, related to the addition of an integer variable to a
+string variable.
 
 One reasonable fix (and the one that the programmer actually used in this
 case) is to add \lt{int()} cast on line 2. However, another possible
