@@ -507,7 +507,7 @@ linear combination of the features, and hence relatively simple.
 While this can be somewhat mitigated by adding higher order (quadratic
 or cubic) features, this often requires substantial domain knowledge.
 
-\emph{Decision Trees}
+\emph{Decision Tree}
 Decision tree algorithms learn a tree of binary predicates over the
 features, recursively partitioning the input space until a final
 classification can be made.
@@ -540,9 +540,11 @@ well, though this can be somewhat mitigated by \emph{pruning} the tree.
 
 \emph{Random Forests}
 %
-Random forests improve generalization by training an
+Random forests (RF)~\cite{breiman2001random} improve generalization by training an
 \emph{ensemble} of distinct decision trees and using a majority
 vote to make a prediction.
+For each tree, RF selects a random sample with replacement of the training
+set and trains the tree with these samples.
 %
 The agreement among the trees forms a natural
 confidence score.
@@ -559,6 +561,8 @@ from a random subset of all features at each node.
 The diversity of the underlying models tends to make random forests less
 susceptible to the overfitting, but it
 also makes the learned model more difficult to interpret.
+\emph{Random Forest}
+
 
 \emph{Neural Networks}
 %
@@ -605,26 +609,61 @@ training data are available.
 
 \emph{Training methodology} At this point we have feature vectors describing every term of every program in
 our dataset. The vectors from a random 30\% of the program pairs are set aside for testing and
-the other 70\% are used for training. Within the training data, we use 3-fold
+the other 70\% are used for training.
+Within the training data, we use 3-fold
 cross-validation to select the best parameters for our models, before training
 using those parameters on the full training set and then scoring the models
-using the testing set. Each trained model takes in any vector representing a term
+using the testing set.
+Each trained model takes in any vector representing a term
 in a buggy program, and returns a confidence score representing how likely it is that
 that term was one of the terms changed between the fixed and buggy versions.
 Thus we can treat the model as providing a \emph{ranking} over all terms by
 confidence, where the top result is the one that the model deems most likely
-to be changed. For
-a given k, we score the model based on Top-k accuracy: for what proportion of the
-programs is a correct answer (i.e. a term that is actually changed) present in the
-top k results. We retrain the models for each value of k, since a model optimized
-to produce the single best result might be different from one optimized to get a
-good result into the top three.
+to be changed.
+For a given k, we score the model based on Top-k accuracy: for what
+proportion of the programs is a correct answer (i.e. a term that is actually
+changed) present in the top k results.
+We retrain the models for each value of k, since a model optimized to produce
+the single best result might be different from one optimized to get a good
+result into the top three.
+
+For decision tree and random forest, we use the implementation from
+\textsc{scikit-learn}~\cite{scikit-learn}.
+Due to the large amount of data points, we did not use \textsc{scikit-learn}'s
+implementation for logistic regression and multilayer perceptron.
+We implementation both model using
+\textsc{keras}~\cite{chollet2015keras} with mini-batch gradient descent.
+
+Because of the imbalance nature of the data set, where not-blamed lines
+(negative examples) appears more frequently than blamed lines (positive
+examples).
+The weight for each example during training is re-weighted to the reciprocal
+of the frequency of corresponding class.
+
+\paragraph{Hyper-parameters}
+All hyper-parameters are tuned using three-fold cross-validation on the
+intended score (Top-k accuracy).
+For RF, the maximum depth of each tree is searched from $25$ to $35$.
+For decision tree maximum depth of the tree is searched from $25$ to $35$ with interval of $5$,
+the minimum impurity decrease for each split is searched from $10^{-7}$ to
+$10^{-3}$ with multiple of $10^{-2}$ and the minimum samples in each leaf is set to $200$.
+For logistic regression and MLP, binary crossentropy is set as the loss
+function and Adam \cite{kingma2014adam} optimizer is used.
+Learning rate is set to $0.1$.
+L2 regularization is applied to the weights of both models,
+the weight for L2 term is searched from $10^0$ to $10^{-5}$ with a multiple of $10^{-1}$.
+Other parameters that are not mentioned are kept with the default setting of the
+original packages.
 
 In each case the most effective model we trained was a decision tree. (The other
 models we tried were Logistic Regression and MLP. Yao-Yuan - anything to add to
 this section? in particular, is it actually accurate to say we're doing
 cross-validation - the 3-fold thing we do is actually just to select parameters,
-and then there's no cross-validation on the final model, right?)
+and then there's no cross-validation on the final model, right? 
+%
+Correct
+)
+
 
 \section{Evaluation}
 \label{sec-eval}
@@ -1201,6 +1240,6 @@ deployed, and use only natural language defect report text.
 \section{Conclusion}
 
 \bibliographystyle{abbrv}
-\bibliography{nanomaly,sw,temp,slice,cluster}
+\bibliography{nanomaly,sw,temp,slice,cluster,ml}
 
 \end{document}
