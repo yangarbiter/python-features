@@ -296,6 +296,37 @@ and \lt{tuple}) as well as three special values:
 \end{itemize}
 
 \subsubsection{Slice (Dynamic)}
+
+\begin{figure}
+\begin{lstlisting}
+x = input() # Input: 42
+if x < 20:
+  y = 5
+  z = 123
+else:
+  y = 0
+  z = 321
+assert(y != 0)
+\end{lstlisting}
+\begin{lstlisting}
+x = 42
+if x < 20:
+
+
+else:
+  y = 0
+
+assert(y != 0)
+\end{lstlisting}
+\caption{
+  a) A program being sliced. An assertion gets triggered when line 8 is run. b)
+  The lines included in the slice. This is not a valid python
+  program, but that does not pose a problem for using membership in the slice as
+  a learning feature.
+}
+\label{fig-slice-example}
+\end{figure}
+
 \begin{figure}
 \begin{lstlisting}
 x = input() # The user inputs 0
@@ -310,7 +341,7 @@ print("One over your number is: %d" % (1 / x))
   lines 1 and 4), because the presence of
   the conditional does not affect the behavior of the program.
 }
-\label{slice-downside-example}
+\label{fig-slice-downside-example}
 \end{figure}
 
 \begin{figure}
@@ -328,7 +359,7 @@ while true:
   print statement on line 5, placing the bad condition in the program
   slice.
 }
-\label{early-break}
+\label{fig-early-break}
 \end{figure}
 
 The goal of this feature, roughly equivalent in purpose to the type error
@@ -343,6 +374,51 @@ collect the set of terms that the excepting line transitively depended on.
 This excludes lines that could not have caused the exception, such as lines
 that never ran, or lines that ran but had no connection to the step where
 the exception happened.
+
+\figref{slice-example} is an example of the input and output of the slicing
+algorithm. The slicer takes as input a python source string and a list of inputs,
+to be fed into the program whenever \lt{input()} is invoked. The slicer outputs
+the list of line numbers for the lines in the slice.
+
+The slicer would first create an execution trace of the example program, which
+at each execution step includes the line number being run and the state of the
+heap and variables. In the example, lines $1, 2, 3, 4, 8$ would have been run.
+It then iterates forward through the trace, recording which
+execution steps have a define-use relation, and which execution steps
+have a test-control relation. The define-use relation is between a step where
+the value of a variable is used, and the step where that variable was last
+defined. In \figref{slice-example}, a define-use relationship exists
+between lines 1 and 2 and between 3 and 8. A test-control relation is between
+the execution of a control flow statement and any statements that were run as
+a result of it. In \figref{slice-example}, a test-control relationship exists
+between the if statement at line 2 and the assignments on lines 3 and 4. After
+building up these relations, the slicer starts at the execution step causing an
+exception (the execution of line 8), and builds the exception's set of
+dependencies by iteratively adding to the set any step that has a define-use
+or test-control relationship with a step already in the set. Finally, the
+algorithm takes all the execution steps, determines which line number each step
+was running, and then outputs this list of line numbers.
+
+Our slicing algorithm handles every syntax node supported by the Python3 standard
+library, \lt{ast}, except:
+\begin{itemize}
+\item Assignments where the left hand side is not a variable or a simple chain
+  of attribute indexing or subscripting
+\item Assignments where attribute indexing or subscripting on the left hand side
+  means something other than the default, which can happen if the operations are
+  overridden by a class
+\item Lambda expressions
+\item Set and dictionary comprehensions
+\item Generator expressions
+\item Await, yield, and yield from
+\item Ellipsis (the token representing the tail of the argument list given to a
+  varargs function)
+\item Starred expressions
+\item Async def functions and Asynchronous for
+\item Delete statements
+\item With statements
+\item Raise statements
+\end{itemize}
 
 A downside of using the dynamic slice, in the case of control dependencies, is
 that it excludes terms whose presence does not affect whether the exception
