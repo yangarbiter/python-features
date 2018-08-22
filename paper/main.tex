@@ -835,33 +835,33 @@ categories.
 
 \subsection{RQ 4 --- Diversity of Programs}
 
-In Nate there were 20 different functions. All the programs were doing the
-same 20 functions.
-
-Here, people are doing anything they want. Random stuff going on over here.
-
-We want to show that we get high accuracy *over a heterogenous set of
-programs*. Leon?
-
-prereq: cluster the programs based on similarity. Using agglomerative
-clustering plus python edit distance. How good the performance will be?
-right now it creates a clustering tree. binary tree, based on min distance.
-can give it a threshhold for distance (elements w/in a group). don't forget
-to rename all variables to X, perhaps normalize (edit distance size).
-
-leon: could also cluster by inconsistency coefficient
-
-PLOT Type: line graph (standard plot)
-
-PLOT X AXIS: clustering distance parameter
-
-PLOT Y AXIS: number of different clusters found
-
-PLOT LINES: line 1 is ``Nate programs'', line 2 is ``25\%, at random, of our dataset''
-
-Goal: show that ``no matter how you decide program differences'', our
-dataset is always more diverse/heterogeneous than is previous work. So our
-success is amazing.
+%In Nate there were 20 different functions. All the programs were doing the
+%same 20 functions.
+%
+%Here, people are doing anything they want. Random stuff going on over here.
+%
+%We want to show that we get high accuracy *over a heterogenous set of
+%programs*. Leon?
+%
+%prereq: cluster the programs based on similarity. Using agglomerative
+%clustering plus python edit distance. How good the performance will be?
+%right now it creates a clustering tree. binary tree, based on min distance.
+%can give it a threshhold for distance (elements w/in a group). don't forget
+%to rename all variables to X, perhaps normalize (edit distance size).
+%
+%leon: could also cluster by inconsistency coefficient
+%
+%PLOT Type: line graph (standard plot)
+%
+%PLOT X AXIS: clustering distance parameter
+%
+%PLOT Y AXIS: number of different clusters found
+%
+%PLOT LINES: line 1 is ``Nate programs'', line 2 is ``25\%, at random, of our dataset''
+%
+%Goal: show that ``no matter how you decide program differences'', our
+%dataset is always more diverse/heterogeneous than is previous work. So our
+%success is amazing.
 
 % \begin{figure}
 % \foreach \method in {single, complete, average}
@@ -929,9 +929,64 @@ success is amazing.
   A linkage tree is built using agglomerative clustering, and the resulting tree is broken up
   into clusters by thresholding the inconsistency coefficient. The inconsistency coefficient
   of a link is its distance, z-scored against other nearby links. TODO: find a way to include
-  the Rosetta Code baseline in this graph? better not to devote multiple graphs to this issue.}
-\label{fig:diversity}
+  the Rosetta Code baseline in this graph? better not to devote multiple graphs to this issue.
+  LM: the y axis could be made into a percentage of the dataset size, but that might be
+  weird?}
+\label{fig-diversity}
 \end{figure}
+
+As a measure of the diversity of our dataset, we clustered the programs in
+our dataset and the NATE dataset, then compared the number of resultant clusters.
+To cluster programs, we transform the program ASTs into flat strings, and then
+perform agglomerative clustering on them, with string edit distance as a distance
+metric.
+
+\subsubsection{Transformation and Distance Metric}
+
+To measure the distance between programs, we flattened their ASTs into strings
+of tokens, and then computed the Levenshtein edit distance~\cite{levenshtein}.
+The decision to flatten the tree rather than compute a distance directly on the
+the ASTs is practical; the state of the art in tree edit distance has cubic
+asymptotic complexity~\cite{PAWLIK2016157}, while the levenshtein distance can be
+computed in time quadratic in the length of the strings~\cite{lev-quadratic}.
+When we attempted a test run using tree edit distance as the metric, it did not
+complete and we determined that it would not be practical to use.
+
+The flattening process, which is based on \cite{dist-site}, is defined
+recursively: the string for an AST
+begins with a unique token corresponding to the AST node type, which is
+followed by the concatenation of the transformations of the tree's subtrees.
+The string ends with an ``end'' token to denote the end of the tree. This
+preserves the tree structure of the AST.
+
+\subsubsection{Clustering Algorithm}
+
+We performed agglomerative clustering on the programs~\cite{modern-clustering}.
+This is a method of clustering in which every datapoint starts in its own
+cluster, and the two closest clusters are merged every step of the algorithm,
+until every datapoint is in the same cluster. This produces a binary tree, where
+each internal node corresponds to a cluster formed by merging two other clusters,
+and each leaf corresponds to an item in the dataset. We used single linkage,
+which means that the distance between clusters of multiple items was considered
+to be the minimum distance between their elements.
+
+This alone produces a tree rather than a list of disjoint clusters, which makes
+different clusterings difficult to compare. To produce a cluster count, we used
+the SciPy function \lt{scipy.cluster.hierarchy.fcluster}, which forms disjoint
+clusters by splitting the tree at internal nodes where the two joined clusters
+are more distant than some threshold. We used the \lt{'inconsistent'} method with
+depth set to 2, which specifies that the distances at each node should be
+z-scored against the distances at other nodes at the same level in the tree, and
+any nodes 1 or 2 levels below~\cite{inconsistent}. This adapts to differences in
+scale of edit distance that might arise between python and OCaml due to
+programming language expressivity or other factors, making cluster counts at each
+threshold value comparable.
+
+\figref{diversity} shows the results of clustering on our dataset and the NATE
+dataset. For all values of the inconsistency threshold, the algorithm computed a
+higher cluster count for the Python data, suggesting that it contains a more
+diverse set of programs than the OCaml dataset. The similarity in the graphs
+appears to confirm the comparibility of cluster counts between the two datasets.
 
 \subsection{RQ 5 --- Wishlist: Partitioning Kinds of Errors}
 
@@ -1092,6 +1147,6 @@ deployed, and use only natural language defect report text.
 \section{Conclusion}
 
 \bibliographystyle{abbrv}
-\bibliography{nanomaly,sw,temp,slice}
+\bibliography{nanomaly,sw,temp,slice,cluster}
 
 \end{document}
