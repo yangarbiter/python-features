@@ -1,4 +1,5 @@
 scoreName,score
 Baseline,0.29542002098
 Top-1,0.552904
+Top-2,0.682563
 Top-3,0.752926

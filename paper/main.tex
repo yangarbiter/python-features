@@ -118,7 +118,7 @@ localization either require rich static types (e.g., as in
 Mycroft~\cite{FIXME}, Nate~\cite{FIXME} or Sherrloc~\cite{FIXME}), require
 test cases (e.g., as in Tarantula~\cite{FIXME}), or produce voluminous
 ranked output lists that have been found to be unhelpful in general and
-less useful to novices in particular~\cite[Sec.~5.1]{orso-parnin}. 
+less useful to novices in particular~\cite[Sec.~5.1]{orso-parnin}.
 
 We focus on Python as an indicative, popular dynamically-typed language.
 We desire a fault localization algorithm for Python type errors that
@@ -132,32 +132,32 @@ features to generalize to off-the-shelf beginner programs; and (3) that we
 can use large beginner datasets, such as those from
 PythonTutor.com~\cite{Guo2012-vu}, to assess scalability.
 
-We propose an algorithm that takes an input a Python program fragment that 
+We propose an algorithm that takes as input a Python program fragment that
 produces an uncaught runtime exception such as a type error. Via machine
 learning over a carefully-selected set of program-relevant features, we
 produce the expression most likely implicated in the exception according to
 our learned model. We evaluate on an entire year of buggy Python 3 program
 executions on PythonTutor.com --- over 270,000 instances --- measuring
 accuracy with respect to the human actions as the ground truth and
-comparing against the vanilla Python interpreter as a baseline. 
+comparing against the vanilla Python interpreter as a baseline.
 
 The contributions of this paper are as follows:
 \begin{enumerate}
 
 \item We present an algorithm for accurately localizing dynamic type errors
-in Python. We find that FIXME. 
+in Python. We find that FIXME.
 
 \item We describe and evaluate static, dynamic, contextual and slice-based
 features for generalizing machine-learning fault localization to
 beginner-written Python fragments. We find that FIXME.
 
 \item We analyze the results of a thorough evaluation on over 270,000 real
-user instances, demonstrating the scalability of our algorithm. 
+user instances, demonstrating the scalability of our algorithm.
 
-\end{enumerate} 
+\end{enumerate}
 
 \section{Motivating Example}
-\label{sec-motex} 
+\label{sec-motex}
 
 \begin{figure}
 \begin{lstlisting}
@@ -182,7 +182,7 @@ exception on line 4, related to the addition of an integer variable to a
 string variable.
 
 One reasonable fix (and the one that the programmer actually used in this
-case) is to add \lt{int()} cast on line 2. However, another possible
+case) is to add an \lt{int()} cast on line 2. However, another possible
 ``fix'' would be to \textit{remove} the \lt{int()} cast from line 1, in
 which case both variables hold string values at runtime, and the addition
 on line 4 would be interpreted as string concatenation. While the second
@@ -213,7 +213,7 @@ fault localization output is not useful to
 developers~\cite{orso-parnin,orso-parnin2015}, we focus on producing Top-1
 and Top-3 rankings.
 
-Our algorithm first extracts static and dynamic features from Python
+Our algorithm first extracts static and dynamic features from a Python
 program (Section~\ref{sec-features}). Next, using a labeled training
 corpus, we learn a machine learning model over those features
 (Section~\ref{sec-model}). Once the model has been learned, we localize
@@ -224,7 +224,7 @@ Drawing inspiration from localization algorithms such as
 Nate~\cite{learning-to-blame} and the natural language processing term
 frequency vector (or ``bag of words'') model~\cite{FIXME}, we represent
 each buggy program as a ``bag of abstracted terms''. A \emph{term} is
-either a statement of expression.
+either a statement or expression.
 
 \subsection{Model Feature Intuition and Extraction}
 
@@ -232,32 +232,31 @@ We observe that many type errors admit multiple logically valid resolutions
 (see \secref{motex}): we thus cannot expect to match programmer desires
 through type constraints alone, and instead propose to leverage information
 from multiple modalities. We use static features to capture structured
-program meaning, contextual features to capture the relationship between a 
+program meaning, contextual features to capture the relationship between a
 program fragment and its environment, and dynamic features (including slice
 information) to reason about conditional behavior.
 
 For each term in the program we compute static, dynamic, and contextual
 features. While some features can be computed directly from syntactic
-information, others are only only accessible dynamically. In a
+information, others are only accessible dynamically. In a
 dynamically-typed language such as Python, this includes types of each
 expression. Since programs are highly structured and expressions gain
 meaning in relation to their surroundings, we also include contextual
-features. 
+features.
 
 While static features can be computed via parsing, dynamic features require
 executing the program fragment. To calculate dynamic features, we first
-convert each buggy program to an equivalent program that is closer to ANF.
-\fixme{WRW has no idea what ``ANF'' means in this context, and this is the
-first and only time it appears in the paper text. Someone else should
-rewrite this.} We define ANF to be FIXME and ``closer'' to mean FIXME in
-this context. We then run the resulting program through the PythonTutor
-backend~\cite{FIXME}.  This backend is based on the Python debigging
+convert each buggy program to an equivalent program in a form similar to
+A-normal form \cite{anf}: all intermediate expressions are split out and
+assigned to new temporary variables.
+We then run the resulting program through the PythonTutor
+backend~\cite{Guo2013-vu}.  This backend is based on the Python debugging
 library BDB~\cite{FIXME}; it returns a trace of the program along with the
 state of the heap at each execution step. That trace is used to compute
 dynamic features.
 
 \subsection{Model Features}
-\label{sec-features} 
+\label{sec-features}
 
 \subsubsection{Syntactic Forms (Static)}
 
@@ -266,18 +265,18 @@ prone to bugs than others, especially for beginner programmers.  For
 example, students might have more trouble with loop conditions than with
 simple assignments. The first feature we consider is the syntactic
 category of node. This feature is categorical, using standard abstract
-syntax tree categories such as Return or Import for statements and Variable 
+syntax tree categories such as Return or Import for statements and Variable
 or Application for expressions.
 
-\subsubsection{Expression Size (Static)} 
+\subsubsection{Expression Size (Static)}
 
 This numeric feature counts the number of descendent nodes in the subtree
 rooted at that node. Our intuition is that larger, more complex expressions
-may be more prone to faults. 
+may be more prone to faults.
 
 \subsubsection{Type (Dynamic)}
 
-Although type constraints alone cannot always match human intuition for 
+Although type constraints alone cannot always match human intuition for
 fault localization problems, types still contain very useful information.
 We observe that some types may be inherently suspect whenever they appear,
 especially for beginner-written code. For example, there are very few
@@ -287,7 +286,7 @@ values include all the basic Python types (such as \lt{int}
 and \lt{tuple}) as well as three special values:
 \begin{itemize}
     \item \lt{Statement} --- Given to all statements, since our terms
-    include both statments and expressions but only expressions 
+    include both statments and expressions but only expressions
     have types
     \item \lt{Unknown} --- Given to expressions that are never evaluated in the dynamic
     trace
@@ -429,7 +428,7 @@ the program's behavior, and it would not be included in the program slice.
 The dynamic slice misses the incorrect test condition because the mistake
 itself caused the conditional statement and its body to become irrelevant.
 
-To overcome this issues in the ``early return'' or ``early break'' case
+To overcome these issues in the ``early return'' or ``early break'' case
 (\figref{early-break}), we check if a break, return, or other statement for
 escaping structured control flow is present inside of a conditional
 statement. We then add dependencies in the execution trace's dependency graph
@@ -443,60 +442,49 @@ dynamic slice.
 \subsubsection{Crash Location (Dynamic)} We observe that the precise term that
 causes Python to crash is, in fact, the one the user decides to change
 much of the time. While this information is not sufficient on its own
-(cf. the vanilla Python interpreter, which largely uses this feature), 
+(cf. the vanilla Python interpreter, which largely uses this feature),
 it can be a very helpful supplement. This boolean feature encodes whether
-or not the term is exactly the source location of the uncaught exception. 
+or not the term is exactly the source location of the uncaught exception.
 
 \subsubsection{Exception Type (Dynamic)} The type of error thrown by the program
-contains useful information its localization. In particular, a term may be
+contains useful information for its localization. In particular, a term may be
 more or less suspicious depending on the ultimate uncaught exception. As an
-example, a \lt{v / 0} term may be more suspicious if the uncaught exception
+example, every division term may be more suspicious if the uncaught exception
 being considered is \lt{DivisionByZero}. We encode the exception type as
-as a categorical feature. 
+a categorical feature.
 % to \emph{every} vector derived from that program.
-
-\fixme{The original draft contained this text: ``For example, if asked how
-likely a random `0` is of being a bug, you'd give a higher answer if you
-knew that the program eventually crashes with a division by zero exception.''
-This sort of rhetorical communication with the reader is \emph{too
-informal for scientific writing}. I am not saying that I disagree with the
-underlying argument. I am saying that you cannot really use the Socratic
-method or the ``Appeal to Common Practice'' logical fallacy or the ``No
-True Scotsman'' logical fallacy in scientific writing. If you wrote the
-quoted text, read this FIXME carefully, ask me if you have any questions
-about sloppy vs. formal arguments, and then delete this FIXME. --- Wes} 
 
 \subsubsection{Contextual features}
 
 Term frequency vectors in general, and our bag of abstracted terms
 representation by extension, do not typically include contextual
 information such as ordering or relative positioning. As with many other
-analyses, such as contextual operational semantics~\cite{FIXME}, we observe 
-that the meaning of an expression may depend on its surrounding context. 
+analyses, such as contextual operational semantics~\cite{FIXME}, we observe
+that the meaning of an expression may depend on its surrounding context.
 
-As an example, consider the \lt{0} terms in both \lt{x = 0} and \lt{ x/ 0}.
+As an example, consider the \lt{0} terms in both \lt{x = 0} and \lt{x / 0}.
 Both instances of \lt{0} have the same syntactic form, size and type
 (etc.). We may prefer to implicate the \lt{0} in \lt{x / 0} as suspicious,
 especially for beginner-written programs, but cannot distinguish it without
 surrounding contextual information. Data structures such as abstract syntax
 trees and control flow graphics capture such contextual information, but
-are not immediately applicable to machine learning. 
+are not immediately applicable to machine learning.
 
 We desire to encode such information while retaining the use of scalable,
 accurate off-the-shelf machine learning algorithms that operate on feature
 vectors. We thus propose to embed contextual information in a vector,
 borrowing insights from standard approaches in machine learning. We
-associated with term additional features that correspond to the features of
+associate with each term additional features that correspond to the features of
 its parent and child nodes. For representational regularity, we always
 model three children; terms without parents or children are given special
-values (e.g., zero or NotApplicable) for those contextual features. 
+values (e.g., zero or NotApplicable) for those contextual features.
 
 \subsection{Machine Learning Model Generation}
-\label{sec-model} 
+\label{sec-model}
 
 \fixme{
 \emph{Models} The following descriptions of Logistic Regression, Decision Trees,
-and MLP will have to be redone as they are copied from Learning to Blame.
+Random Forests, and MLP will have to be redone as they are copied from Learning to Blame.
 }
 
 \emph{Logistic Regression}
@@ -549,6 +537,28 @@ a human, especially when the tree is small.
 %
 However, the main limitation is that these trees often do not generalize
 well, though this can be somewhat mitigated by \emph{pruning} the tree.
+
+\emph{Random Forests}
+%
+Random forests improve generalization by training an
+\emph{ensemble} of distinct decision trees and using a majority
+vote to make a prediction.
+%
+The agreement among the trees forms a natural
+confidence score.
+%
+Since each classifier in the ensemble is a decision tree, this still
+allows for complex and expressive classifiers.
+
+The training process involves taking $N$ random subsets of the training
+data and training a separate decision tree on each subset --- the
+training process for the decision trees is often modified slightly to
+reduce correlation between trees, by forcing each tree to pick features
+from a random subset of all features at each node.
+%
+The diversity of the underlying models tends to make random forests less
+susceptible to the overfitting, but it
+also makes the learned model more difficult to interpret.
 
 \emph{Neural Networks}
 %
@@ -648,28 +658,28 @@ difference between crashing and fixed versions is too high (more than a
 stddev above average), since these are most likely to be violations of that
 assumption (i.e., the program that does not crash is unrelated to the
 crashing program). We also discard submissions that are out of scope given
-PythonTutor's policies (e.g., such as very long-running executions or the
-use of forbidden libraries). 
+PythonTutor's policies (e.g., very long-running executions or the
+use of forbidden libraries).
 
 Ultimately, the dataset used in this evaluation contained just over
 270,000 usable pairs of programs.
 
-\subsection{Labeled Training and Ground Truth} 
+\subsection{Labeled Training and Ground Truth}
 
 Our algorithm is based on supervised machine learning and thus requires
 labeled training instances. In addition, our evaluations require a ground
-truth notion of which terms correspond to correct fault localizations. 
+truth notion of which terms correspond to correct fault localizations.
 
 We use the terms changed involved in the fixes by actual users as our
 ground truth and training information.  Many PythonTutor users use the site
 in an iterative fashion: they start out by writing a program that crashes,
-and then edit it until it no longer crashes. Our dataset contains only only
+and then edit it until it no longer crashes. Our dataset contains only
 those crashing programs for which the same user later submitted a program
 that did not crash. We compute a tree-diff \cite{tree-diff} between the
-originaly, buggy submission and the first fixed submission. We define 
+originaly, buggy submission and the first fixed submission. We define
 the ground truth correct answer to be the set of terms in the crashing
 program that also appear in the diff. We discuss the implications of this
-choice in \secref{threats}. 
+choice in \secref{threats}.
 
 In our evaluation, we used FIXME as a training set and FIXME as a held-out
 evaluation set. We employed cross-validation~\cite{kohavi} to help address
@@ -677,9 +687,9 @@ the potential threat of overfitting.
 
 \subsection{Methodology}
 
-For these evaluations, we employ machine learning algorithm FIXME, which
-provided the best balance of FIXME and FIXME (time? accuracy?) on our
-training set.
+For these evaluations, we employ decision trees as our machine learning
+algorithm, since they provided the best accuracy on our data given the
+available training time.
 
 We report Top-1 and Top-3...
 
@@ -691,48 +701,54 @@ We define FIXME-ACCURACY to be FIXME.
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={Baseline,Top-1,Top-3},
+    symbolic x coords={Baseline,Top-1,Top-2,Top-3},
     xtick=data,
     ymin=0,
     ylabel=Model Accuracy,
-    enlarge x limits=0.5,
+    enlarge x limits=0.3,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
     \addplot table[x=scoreName, y=score, col sep=comma]{fault-localization.csv};
 \end{axis}
 \end{tikzpicture}
 \caption{Baseline is the normal Python interpreter. Other bars are from decision
-trees on the largest dataset (272534 pairs). TODO: also train for Top-2}
-\label{fig:full-dataset-acc}
+trees on the largest dataset (272534 pairs).}
+\label{fig-full-dataset-acc}
 \end{figure}
 
 \begin{figure}
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={noContext, noTypes, all},
+    symbolic x coords={Baseline,Top-1,Top-3},
     xtick=data,
     ymin=0,
     ylabel=Model Accuracy,
-    enlarge x limits=0.5,
+    enlarge x limits=0.3,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
-    \addplot table[x=scoreName, y=score, col sep=comma]{removing-features-2.csv};
+    \addplot table[x=scoreName, y=score, col sep=comma]{fault-localization-random-forest.csv};
 \end{axis}
 \end{tikzpicture}
-\caption{Accuracy when features are removed, based on decision trees on a random subset of 20000 pairs.
-TODO: Top-2}
-\label{fig:removing-features}
+\caption{Baseline is the normal Python interpreter. Other bars are from random
+forests on the largest dataset (272534 pairs). TODO: get top-2, then change text
+to discuss this figure instead of decision-tree version}
+\label{fig-full-dataset-acc-random-forest}
 \end{figure}
 
+We first use the full dataset to train and test decsion trees optimized for
+Top-1, Top-2, and Top-3 accuracy. As shown in \figref{full-dataset-acc},
+these produce a correct answer 55, 68, and
+75\% of the time (to two significant figures). As a baseline, we determine that
+the expression blamed by the standard Python interpreter (i.e. the one that
+causes it to crash) is only changed by the user 30\% of the time. Thus our
+most directly comparable model, the one for Top-1, significantly outperforms
+this baseline, and as we then exercise our power to give a ranked output rather
+than a single answer, our margin gets even better.
 
-prereq: define accuracy
-
-Goal: Establish that our algorithm works. This is the most basic question,
-but also the most relevant. If the reader takes away nothing else, they
-should conclude that our algorithm is effective.
-
-PLOT: See Figs. \ref{fig:full-dataset-acc} and \ref{fig:removing-features}
+% Goal: Establish that our algorithm works. This is the most basic question,
+% but also the most relevant. If the reader takes away nothing else, they
+% should conclude that our algorithm is effective.
 
 \subsection{RQ 2 --- Feature Predictive Power}
 
@@ -754,11 +770,50 @@ Type-C1=unknown & Contextual (Type)           & 0.020 \\
 \toprule
 \end{tabular}
 \caption{Feature predictive power (for a Top-3 Decision Tree
-learned on the entire dataset).
-TODO: add
-better-known measure like ANOVA or ReliefF. TODO: base on Top-1 instead?}
+learned on the entire dataset).}
 \label{tab-feature-predictive-power}
 \end{table}
+
+\begin{table}[]
+\begin{tabular}{lll}
+Name & Category & F-score \\ \bottomrule
+Stmt-Constr-C3= & Contextual (Syntactic) & 69 \\
+Size & Syntactic                         & 63 \\
+PythonBlame & Dynamic (Error location)   & 50 \\
+Type-P=LIST & Contextual (Type)          & 36 \\
+Type-C1=bool & Contextual (Type)         & 30 \\
+Type-P=unknown & Contextual (Type)       & 28 \\
+Type-C1= & Contextual (Type)             & 25 \\
+Size-C3 & Contextual (Syntactic)         & 20 \\
+Op-Constr-C1= & Contextual (Syntactic)   & 20 \\
+Size-C1 & Contextual (Syntactic)         & 18 \\
+Type-P=DICT & Contextual (Type)          & 17 \\
+Type=str & Dynamic (Type)                & 12 \\
+\toprule
+\end{tabular}
+\caption{Feature predictive power as measured by ANOVA. F-score in
+thousands to two significant figures; all p-values less than .01}
+\label{tab-anova}
+\end{table}
+
+\begin{figure}
+\begin{tikzpicture}
+\begin{axis}[
+    ybar,
+    symbolic x coords={noContext, noTypes, all},
+    xtick=data,
+    ymin=0,
+    ylabel=Model Accuracy,
+    enlarge x limits=0.5,
+    legend style={at={(0.5,-0.15)},anchor=north}
+]
+    \addplot table[x=scoreName, y=score, col sep=comma]{removing-features-2.csv};
+\end{axis}
+\end{tikzpicture}
+\caption{Accuracy when features are removed, based on decision trees on a
+random subset of 20000 program pairs.}
+\label{fig-removing-features}
+\end{figure}
 
 \tabref{feature-predictive-power} summarizes the relative importance
 of the top features in our model. The features are ranked by their
@@ -768,25 +823,32 @@ Gini importance conveys a weighted count of the number of times a feature
 is used to split a node: a feature that is learned to guide more model
 classification decisions is more important.
 
-prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
-ANOVA, whatever)
+\tabref{anova} gives an alternate view of the relative feature importances
+as measured by ANOVA. In both tables we see that syntactic, dynamic, and
+contextual features are all important.
 
-PLOT: See Table \ref{tab:feature-predictive-power}
+We also try removing certain categories and retraining the model on what is
+left. \figref{removing-features} shows that there is a significant decrease in
+accuracy in each case, supporting the claim that all our feature categories are
+important.
 
-Use as a rough guide: Table 3 on Page 8 of
-https://web.eecs.umich.edu/~weimerw/p/weimer-icsm2010.pdf
+% prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
+% ANOVA, whatever)
 
-Goal: Establish that we are smart for including all of these features. Note
-which individual features or feature categories were (not) included in
-previous work.
+% Use as a rough guide: Table 3 on Page 8 of
+% https://web.eecs.umich.edu/~weimerw/p/weimer-icsm2010.pdf
 
-Give a simple narrative about our effectiveness: implicitly, we were smart
-for deciding to include these features, better ingredients make better
-results, we have great results.
+% Goal: Establish that we are smart for including all of these features. Note
+% which individual features or feature categories were (not) included in
+% previous work.
 
-TODO: what about turning on/off slicing?
+% Give a simple narrative about our effectiveness: implicitly, we were smart
+% for deciding to include these features, better ingredients make better
+% results, we have great results.
 
-TODO: what about turning on/off types? (is that separate from slicing?)
+% TODO: what about turning on/off slicing?
+
+% TODO: what about turning on/off types? (is that separate from slicing?)
 
 \subsection{RQ 3 --- Defect Categories}
 
@@ -835,33 +897,7 @@ categories.
 
 \subsection{RQ 4 --- Diversity of Programs}
 
-%In Nate there were 20 different functions. All the programs were doing the
-%same 20 functions.
-%
-%Here, people are doing anything they want. Random stuff going on over here.
-%
-%We want to show that we get high accuracy *over a heterogenous set of
-%programs*. Leon?
-%
-%prereq: cluster the programs based on similarity. Using agglomerative
-%clustering plus python edit distance. How good the performance will be?
-%right now it creates a clustering tree. binary tree, based on min distance.
-%can give it a threshhold for distance (elements w/in a group). don't forget
-%to rename all variables to X, perhaps normalize (edit distance size).
-%
-%leon: could also cluster by inconsistency coefficient
-%
-%PLOT Type: line graph (standard plot)
-%
-%PLOT X AXIS: clustering distance parameter
-%
-%PLOT Y AXIS: number of different clusters found
-%
-%PLOT LINES: line 1 is ``Nate programs'', line 2 is ``25\%, at random, of our dataset''
-%
-%Goal: show that ``no matter how you decide program differences'', our
-%dataset is always more diverse/heterogeneous than is previous work. So our
-%success is amazing.
+% PLOT LINES: line 1 is ``Nate programs'', line 2 is ``25\%, at random, of our dataset''
 
 % \begin{figure}
 % \foreach \method in {single, complete, average}
@@ -935,8 +971,26 @@ categories.
 \label{fig-diversity}
 \end{figure}
 
-As a measure of the diversity of our dataset, we clustered the programs in
-our dataset and the NATE dataset, then compared the number of resultant clusters.
+In the most similar prior work, Learning to Blame, each program in the dataset
+was a student's attempt at one of 23 different homework problems. Thus the
+dataset was comparatively homogenous, making it unclear whether the results
+would generalize to a more diverse dataset.
+
+In our PythonTutor data by comparision, users wrote whatever programs they
+wanted, so we
+hypothesized that the data were more heterogeneous. To confirm this
+quantitatively, we used agglomerative clustering both on our
+data and on the Learning to Blame data; whichever dataset naturally splits
+into more clusters is more heterogeneous.
+
+% The exact number of clusters returned
+% depends on the value we choose for the algorithm's threshold parameter, so we
+% checked all thresholds at .01 intervals, starting at 0 and ending at the point
+% where everything collapses into a single cluster. As shown in
+% \figref{diversity}, regardless of the choice of threshold, our data breaks into
+% more clusters than the NATE data. This confirms that our data is more
+% heterogeneous.
+
 To cluster programs, we transform the program ASTs into flat strings, and then
 perform agglomerative clustering on them, with string edit distance as a distance
 metric.
