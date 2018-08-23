@@ -758,42 +758,43 @@ than a single answer, our margin gets even better.
 
 \begin{table}[]
 \begin{tabular}{llc}
-Name & Category & Gini Importance \\ \bottomrule
-Size-P & Contextual (Syntactic)               & 0.112 \\
-Stmt-Constr-C3= & Contextual (Syntactic)      & 0.061 \\
-Expr-Constr-P=List & Contextual (Syntactic)   & 0.055 \\
-PythonBlame & Dynamic (Error location)        & 0.039 \\
-Type=unknown & Dynamic (Type)                 & 0.037 \\
-Type-P=unknown & Contextual (Type)            & 0.037 \\
-PythonMsg=IndexError & Dynamic (Error message)& 0.033 \\
-Size & Syntactic                              & 0.028 \\
-Expr-Constr-P=Dictionary & Contextual (Syntactic) & 0.027 \\
-Size-C1 & Contextual (Syntactic)              & 0.024 \\
-Expr-Constr=Var & Syntactic                   & 0.020 \\
-Type-C1=unknown & Contextual (Type)           & 0.020 \\
+Name                      & Category                & Gini Importance \\ \bottomrule
+P size                    & Contextual (Syntactic)  & 0.112 \\
+C3 is statement           & Contextual (Syntactic)  & 0.061 \\
+P is list literal         & Contextual (Syntactic)  & 0.055 \\
+Program crashes here      & Dynamic (Error location)& 0.039 \\
+Type is unknown           & Dynamic (Type)          & 0.037 \\
+P type is unknown         & Contextual (Type)       & 0.037 \\
+Err message is IndexError & Dynamic (Error message) & 0.033 \\
+Size                      & Syntactic               & 0.028 \\
+P is dictionary literal   & Contextual (Syntactic)  & 0.027 \\
+C1 size                   & Contextual (Syntactic)  & 0.024 \\
+Is variable               & Syntactic               & 0.020 \\
+C1 type is unknown        & Contextual (Type)       & 0.020 \\
 \toprule
 \end{tabular}
 \caption{Feature predictive power (for a Top-3 Decision Tree
-learned on the entire dataset).}
+learned on the entire dataset). P and C1-C3 refer to the parent and
+first three children of the node in question.}
 \label{tab-feature-predictive-power}
 \end{table}
 
 \begin{table}[]
 \begin{center}
 \begin{tabular}{llc}
-Name & Category & F-score \\ \bottomrule
-Stmt-Constr-C3= & Contextual (Syntactic) & 69 \\
-Size & Syntactic                         & 63 \\
-PythonBlame & Dynamic (Error location)   & 50 \\
-Type-P=LIST & Contextual (Type)          & 36 \\
-Type-C1=bool & Contextual (Type)         & 30 \\
-Type-P=unknown & Contextual (Type)       & 28 \\
-Type-C1= & Contextual (Type)             & 25 \\
-Size-C3 & Contextual (Syntactic)         & 20 \\
-Op-Constr-C1= & Contextual (Syntactic)   & 20 \\
-Size-C1 & Contextual (Syntactic)         & 18 \\
-Type-P=DICT & Contextual (Type)          & 17 \\
-Type=str & Dynamic (Type)                & 12 \\
+Name                     & Category                & F-score \\ \bottomrule
+C3 is statement          & Contextual (Syntactic)  & 69 \\
+Size                     & Syntactic               & 63 \\
+Program crashes here     & Dynamic (Error location)& 50 \\
+P type is list           & Contextual (Type)       & 36 \\
+C1 type is bool          & Contextual (Type)       & 30 \\
+P type is unknown        & Contextual (Type)       & 28 \\
+C1 is expression         & Contextual (Type)       & 25 \\
+C3 size                  & Contextual (Syntactic)  & 20 \\
+C1 is binary or unary op & Contextual (Syntactic)  & 20 \\
+C1 size                  & Contextual (Syntactic)  & 18 \\
+P type is dictionary     & Contextual (Type)       & 17 \\
+Type is string           & Dynamic (Type)          & 12 \\
 \toprule
 \end{tabular}
 \end{center}
