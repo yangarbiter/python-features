@@ -508,8 +508,8 @@ dynamic slice.
 \label{sec-model}
 
 \fixme{
-\emph{Models} The following descriptions of Logistic Regression, Decision Trees,
-Random Forests, and MLP will have to be redone as they are copied from Learning to Blame.
+\emph{Models} The following descriptions of Decision Trees and
+Random Forests will have to be redone as they are copied from Learning to Blame.
 }
 
 \fixme{how the data is represented}
@@ -529,28 +529,7 @@ a learning model will learn a function $f: \mathbf{R}^{M} \to \{0, 1\}$.
 Due to the large amount of data provided in this task, we only considers the
 following models which are scalable to large data set.
 
-\paragraph{Logistic Regression}
-Logistic regression~(LR) is a popular linear model for classification task.
-LR models the probability of a label $b$ being positive as
-\[ \Pr(b = 1 | \mathbf{x}) = \frac{1}{1 + e^{-\mathbf{w}^{\top} \mathbf{x}}} \]
-Where $\mathbf{w} \in \mathcal{R}^M$ is a weight vector and
-$\mathbf{x} \in \mathcal{R}^M$ is the feature vector to be predicted.
-LR learns a weight vector $\mathbf{w}$ by minimizing the binary crossentropy loss
-over the given data set $\mathcal{D}$.
-The prediction value of $\Pr(b | v)$ naturally leads to a confidence score.
-%$\mathcal{C}$.
-%
-%Logistic regression is a widely used classification algorithm, preferred
-%for its simplicity, ease of generalization, and interpretability.
-%
-Its main limitation is that the prediction rule is constrained to be a
-linear combination of the features, and hence relatively simple.
-%
-%While this can be somewhat mitigated by adding higher order (quadratic or
-%cubic) features, this often requires substantial domain knowledge and
-%computation.
-
-\paragraph{Decision Tree}
+\emph{Decision Tree}
 Decision tree~(DT) learns a tree of binary predicates over the features,
 recursively partitioning the feature space until a final classification can be
 made.
@@ -603,49 +582,6 @@ The diversity of the underlying models tends to make random forests less
 susceptible to the overfitting, but it
 also makes the learned model more difficult to interpret.
 
-
-\paragraph{Neural Networks}
-%
-The last (and most complex) model we use is a type of neural network
-called a \emph{multi-layer perceptron~(MLP)} (see \cite{Nielsen2015-pu} for
-an introduction to neural networks).
-%
-A MLP can be represented as a directed acyclic graph whose nodes are arranged
-in layers that are fully connected by weighted edges.
-%
-The first layer corresponds to the input features, and the final to the
-output.
-%
-%The output of a node $v$ in an internal layer is given by:
-The output of an internal node $v$ is
-%
-\[ h_v = g(\sum_{j \in N(v)} W_{jv} h_j ) \]
-%
-where $N(v)$ is the set of nodes in the previous layer that are adjacent
-to $v$, $W_{jv}$ is the weight of the $(j, v)$ edge and $h_j$ is the
-output of node $j$ in the previous layer.
-%
-Finally $g$ is a non-linear function, called the activation function,
-which in recent work is commonly chosen to be the \emph{rectified linear
-  unit} (ReLU), defined as $g(x) = \mathsf{max}(0,x)$
-\cite{nair2010rectified}.
-%
-The number of layers, the number of neurons per layer, and the
-connections between layers constitute the \emph{architecture} of a
-neural network.
-%
-In this work, we use relatively simple neural networks which have an
-input layer, a single hidden layer and an output layer.
-
-A major advantage of neural networks is their ability to discover
-interesting combinations of features through non-linearity, which
-significantly reduces the need for manual feature engineering, and
-allows high expressivity.
-%
-On the other hand, this makes the networks particularly difficult to
-interpret and also difficult to generalize unless vast amounts of
-training data are available.
-
 \emph{Training methodology} At this point we have feature vectors describing every term of every program in
 our dataset. The vectors from a random 30\% of the program pairs are set aside for testing and
 the other 70\% are used for training.
@@ -679,7 +615,7 @@ examples).
 The weight for each example during training is re-weighted to the reciprocal
 of the frequency of corresponding class.
 
-\paragraph{Hyper-parameters}
+\emph{Hyper-parameters}
 All hyper-parameters are tuned using three-fold cross-validation on the
 intended score (Top-k accuracy).
 For RF, the maximum depth of each tree is searched from $25$ to $35$ and the
