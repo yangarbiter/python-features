@@ -15,7 +15,7 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
-\usepackage{subcaption} 
+\usepackage{subcaption}
 \usepackage{booktabs}
 \usepackage{textcomp}
 \usepackage{xcolor}
@@ -305,7 +305,7 @@ slice~\cite{KOREL1988155}: a set of terms that contributed at runtime to
 the observed exception. This boolean feature encodes whether the term
 is a member of the slice. Our slicing algorithm, which balances scalable
 simplicity with coverage for beginner-written programs, is presented in
-\secref{slice-algorithm}. 
+\secref{slice-algorithm}.
 
 \subsubsection{Crash Location (Dynamic)} We observe that the precise term that
 causes Python to crash is, in fact, the one the user decides to change
@@ -348,10 +348,10 @@ model three children; terms without parents or children are given special
 values (e.g., zero or NotApplicable) for those contextual features.
 
 \subsection{Dynamic Slicing Algorithm}
-\label{sec-slice-algorithm} 
+\label{sec-slice-algorithm}
 
 \begin{figure}
-\begin{lrbox}{\verbsavebox} 
+\begin{lrbox}{\verbsavebox}
 \begin{lstlisting}[xrightmargin=0.5\linewidth]
 x = input() # 42
 if x < 20:
@@ -362,7 +362,7 @@ else:
   z = 321
 assert(y != 0)
 \end{lstlisting}
-\end{lrbox} 
+\end{lrbox}
 ~ \hfill
 \subcaptionbox{Pre-Slicing}{\usebox{\verbsavebox}}
 \hfill
@@ -377,13 +377,13 @@ else:
 
 assert(y != 0)
 \end{lstlisting}
-\end{lrbox} 
+\end{lrbox}
 \subcaptionbox{Post-Slicing}{\usebox{\verbsavebox}}
 \hfill
 ~
 \caption{
   A program being sliced (left) and the resulting slice (right) with
-  respect to the assertion on line 8. 
+  respect to the assertion on line 8.
 }
 \label{fig-slice-example}
 \end{figure}
@@ -396,8 +396,8 @@ if x != 0:
 print("One over your number is: %d" % (1 / x))
 \end{lstlisting}
 \caption{In this program, the programmer intended the placeholder
-  assignment \lt{x = 1} to be used in case the user inputs 0. 
-  The defect is that the 
+  assignment \lt{x = 1} to be used in case the user inputs 0.
+  The defect is that the
   incorrect condition \lt{x != 0} (rather than \lt{x == 0}) was employed. However, the
   condition expression will not be included in the slice (which would include
   lines 1 and 4), because the presence of
@@ -445,10 +445,10 @@ algorithm. The slicer takes as input a python source string and a list of inputs
 to be fed into the program whenever \lt{input()} is invoked. The slicer outputs
 the program elements included in the slice.
 
-The slicer proceeds by creating an execution trace of the example program. 
+The slicer proceeds by creating an execution trace of the example program.
 At each execution step the trace includes the line number being run and the state of the
-heap and variables. In the example in \figref{slice-example}, 
-lines $1, 2, 3, 4$ and $8$ are executed. 
+heap and variables. In the example in \figref{slice-example},
+lines $1, 2, 3, 4$ and $8$ are executed.
 It then iterates forward through the trace, recording which
 execution steps have a define-use relation, and which execution steps
 have a test-control relation. The define-use relation is between a step where
@@ -462,8 +462,8 @@ building up these relations, the slicer starts at the execution step causing an
 exception (the execution of line 8), and builds the exception's set of
 dependencies by iteratively adding to the set any step that has a define-use
 or test-control relationship with a step already in the set. Finally, the
-algorithm maps all of the execution steps to their corresponding program 
-element locations and returns the result. 
+algorithm maps all of the execution steps to their corresponding program
+element locations and returns the result.
 
 To balance ease of prototype implementation against coverage for
 beginner-written programs, our slicing algorithm handles every syntax node
@@ -477,7 +477,7 @@ supported by the Python3 standard \lt{ast} library except:
 \item Lambda, generator and starred expressions
 \item Set and dictionary comprehensions
 \item Await, yield, and yield from
-\item Variable argument ellipsis 
+\item Variable argument ellipsis
 \item Coroutine definitions and asynchronous loops
 \item Delete, with and raise statements
 \end{itemize}
@@ -684,7 +684,7 @@ In each case the most effective model we trained was a decision tree. (The other
 models we tried were Logistic Regression and MLP. Yao-Yuan - anything to add to
 this section? in particular, is it actually accurate to say we're doing
 cross-validation - the 3-fold thing we do is actually just to select parameters,
-and then there's no cross-validation on the final model, right? 
+and then there's no cross-validation on the final model, right?
 %
 Correct
 )
@@ -762,6 +762,13 @@ We define FIXME-ACCURACY to be FIXME.
 \subsection{RQ 1 --- Fault Localization Accuracy}
 
 \begin{figure}
+
+\caption{\fixme{This figure has been removed; this is a placeholder so the
+numbering doesn't change while I handle some TODOs}}
+\label{fig-full-dataset-acc}
+\end{figure}
+
+\begin{figure}
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
@@ -772,42 +779,20 @@ We define FIXME-ACCURACY to be FIXME.
     enlarge x limits=0.3,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
-    \addplot table[x=scoreName, y=score, col sep=comma]{fault-localization.csv};
-\end{axis}
-\end{tikzpicture}
-\caption{Fault localization accuracy. 
-Baseline is the normal Python interpreter. Other bars represent our
-approach, using decision trees, 
-on the largest dataset (272534 pairs).}
-\label{fig-full-dataset-acc}
-\end{figure}
-
-\begin{figure}
-\begin{tikzpicture}
-\begin{axis}[
-    ybar,
-    symbolic x coords={Baseline,Top-1,Top-3},
-    xtick=data,
-    ymin=0,
-    ylabel=Model Accuracy,
-    enlarge x limits=0.3,
-    legend style={at={(0.5,-0.15)},anchor=north}
-]
     \addplot table[x=scoreName, y=score, col sep=comma]{fault-localization-random-forest.csv};
 \end{axis}
 \end{tikzpicture}
-\caption{Fault localization accuracy. 
+\caption{Fault localization accuracy.
 Baseline is the normal Python interpreter. Other bars represent
-our approach, using random forests, 
-on the largest dataset (272534 pairs). \fixme{get top-2, then change text
-to discuss this figure instead of decision-tree version}}
+our approach, using random forests,
+on the largest dataset (272534 pairs).}
 \label{fig-full-dataset-acc-random-forest}
 \end{figure}
 
-We first use the full dataset to train and test decsion trees optimized for
+We first use the full dataset to train and test decsion forests optimized for
 Top-1, Top-2, and Top-3 accuracy. As shown in \figref{full-dataset-acc},
-these produce a correct answer 55, 68, and
-75\% of the time (to two significant figures). As a baseline, we determine that
+these produce a correct answer 60, 72, and
+79\% of the time (to two significant figures). As a baseline, we determine that
 the expression blamed by the standard Python interpreter (i.e. the one that
 causes it to crash) is only changed by the user 30\% of the time. Thus our
 most directly comparable model, the one for Top-1, significantly outperforms
@@ -862,7 +847,7 @@ Type=str & Dynamic (Type)                & 12 \\
 \end{tabular}
 \end{center}
 \caption{Feature predictive power as measured by ANOVA.  The F-score in
-shown in 
+shown in
 thousands to two significant figures; all p-values are less than 0.01.}
 \label{tab-anova}
 \end{table}
@@ -887,7 +872,7 @@ random subset of 20000 program pairs.
 everything is still in or that everything is out?}
 \fixme{Indicate that this is a top-1 model.}
 \fixme{Normal the y-axis so that ``all'' is 1.0 to make the subset effects
-more evident.} 
+more evident.}
 }
 \label{fig-removing-features}
 \end{figure}
@@ -900,21 +885,21 @@ Gini importance conveys a weighted count of the number of times a feature
 is used to split a node: a feature that is learned to guide more model
 classification decisions is more important. Similarly, \tabref{anova} gives
 an alternate view of the relative feature importances, as measured by an
-analysis of variance (ANOVA). 
+analysis of variance (ANOVA).
 
-We also present the results of a leave-one-out analysis in which 
+We also present the results of a leave-one-out analysis in which
 certain categories of features are removed and the model is trained
 and tested only on those that remain. \figref{removing-features} shows
 that there is a significant decrease in accuracy in each case. We note,
 however, that leave-one-out analyses underestimate importance in cases of
 feature overlap. For example, if a small program contains a string bug but
 only a few string variables, both type information and slice information
-are likely to implicate similar terms. 
+are likely to implicate similar terms.
 
 In all cases we see that syntactic, dynamic, and contextual features are
 all important. Features such as FIXME, FIXME and FIXME are found to be of
 primary importance. We interpret this to mean FIXME with respect to the
-application of our algorithm to beginner-written code. 
+application of our algorithm to beginner-written code.
 
 % prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
 % ANOVA, whatever)
@@ -940,7 +925,7 @@ application of our algorithm to beginner-written code.
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={All, TypeError, AttributeError},
+    symbolic x coords={All, TypeError, AttributeError, ValueError},
     xtick=data,
     ymin=0,
     ylabel=Model Accuracy,
@@ -955,7 +940,7 @@ the error on the x-axis.
 \fixme{Spin this for generality. Indicate that our model gives high-quality
 fault localization regardless of defect type. To put it another way, we
 can view this as a sensitivity analysis: our algorithm is not sensitive to
-defect type (that's good!).} 
+defect type (that's good!).}
 }
 \label{fig:defect-categories}
 \end{figure}
@@ -1053,8 +1038,8 @@ categories.
 \caption{Number of natural program clusters in each dataset as a function
 of clustering parameter (informally, how ``strict'' or ``tight'' the
 clustering is). \fixme{Talk about how you sample to be fair to the smaller
-datasets.} At all points our dataset demonstrates more diversity than 
-that of previous work.} 
+datasets.} At all points our dataset demonstrates more diversity than
+that of previous work.}
 \label{fig-diversity}
 \end{figure}
 
@@ -1074,7 +1059,7 @@ specific university assignments. We hypothesize that the evaluation data are
 more heterogeneous. To assess this quantitatively, we used agglomerative
 clustering to discover the number of ``natural'' program categories
 present in both our dataset and also in the Nate dataset. Datasets with
-more distinct program categories are more heterogeneous. 
+more distinct program categories are more heterogeneous.
 
 % The exact number of clusters returned
 % depends on the value we choose for the algorithm's threshold parameter, so we
@@ -1090,7 +1075,7 @@ more distinct program categories are more heterogeneous.
 
 \subsubsection{Transformation and Distance Metric}
 
-Many clustering algorithms depend on distance metrics. 
+Many clustering algorithms depend on distance metrics.
 To measure the distance between programs, we flattened their ASTs into
 strings of tokens, and then computed the Levenshtein edit
 distance~\cite{levenshtein}. The decision to flatten the tree rather than
@@ -1112,7 +1097,7 @@ the flattened string.
 
 \subsubsection{Clustering Algorithm}
 
-We performed agglomerative clustering on the 
+We performed agglomerative clustering on the
 datasets of flattened programs~\cite{modern-clustering}.
 This is a method of clustering in which every datapoint starts in its own
 cluster, and the two closest clusters are merged every step of the algorithm,
@@ -1130,12 +1115,12 @@ as expressivity), we z-score nodes against not only others at the same tree
 depth, but also against against others one or two levels
 below~\cite{inconsistent}. This makes cluster counts at each threshold
 value comparable. Our implementation uses the standard
-SciPy library (e.g., \lt{scipy.cluster.hierarchy.fcluster} with the 
-\lt{inconsistent} method).  
+SciPy library (e.g., \lt{scipy.cluster.hierarchy.fcluster} with the
+\lt{inconsistent} method).
 
 \fixme{We need to say something about how we controlled for number, lest
 reviewers think we have more clusters simply because we have hundreds of
-thousands of datapoints.} 
+thousands of datapoints.}
 
 \figref{diversity} shows the results of clustering on our dataset and the
 Nate dataset. At a high level, the structural similarity in the graphs
@@ -1147,9 +1132,9 @@ claiming any novelty or advances in clustering accuracy in this
 determination (indeed, scalability concerns limited us to coarser
 approaches); instead, our claim is that even with simple clustering,
 it is clear that our dataset contains a greater diversity of programs than
-were considered by previously-published evaluations.  
+were considered by previously-published evaluations.
 We view it as an advantage of our algorithm that it can apply to multiple
-different program categories. 
+different program categories.
 
 \subsection{RQ 5 --- Wishlist: Partitioning Kinds of Errors}
 

@@ -2,3 +2,4 @@ scoreName,score
 All,0.552904
 AttributeError,0.6371201157742402
 TypeError,0.5705912031815753
+ValueError,0.5051950264009538
