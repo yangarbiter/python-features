@@ -512,33 +512,51 @@ dynamic slice.
 Random Forests, and MLP will have to be redone as they are copied from Learning to Blame.
 }
 
-\emph{Logistic Regression}
-The simplest classifier we investigate is logistic regression:
-a linear model where the goal is to learn a set of weights $W$
-that describe the following model for predicting a label
-$b$ from a feature vector $v$:
+\fixme{how the data is represented}
+
+\fixme{is program pair the correct term?}
+
+For each line of a program pair, we can extracted the features mentioned in Section
+\ref{sec-features}.
+By performing one-hot encoding on categorical features, we can represent the
+extracted features into a length $M$ feature vector $\mathbf{x} \in
+\mathcal{R}^{M}$.
+Let the number of examples be $N$.
+The problem can be formulated as a binary classification problem.
+Given a data set $\mathcal{D} \in \{\mathbf{x}^{(i)}, y^{(i)}\}^{N}_{i=1}$,
+where $\mathbf{x}^{(i)} \in \mathcal{R}^{M}$ and $y^{(i)} \in \{0, 1\}$,
+a learning model will learn a function $f: \mathbf{R}^{M} \to \{0, 1\}$.
+Due to the large amount of data provided in this task, we only considers the
+following models which are scalable to large data set.
+
+\paragraph{Logistic Regression}
+Logistic regression~(LR) is a popular linear model for classification task.
+LR models the probability of a label $b$ being positive as
+\[ \Pr(b = 1 | \mathbf{x}) = \frac{1}{1 + e^{-\mathbf{w}^{\top} \mathbf{x}}} \]
+Where $\mathbf{w} \in \mathcal{R}^M$ is a weight vector and
+$\mathbf{x} \in \mathcal{R}^M$ is the feature vector to be predicted.
+LR learns a weight vector $\mathbf{w}$ by minimizing the binary crossentropy loss
+over the given data set $\mathcal{D}$.
+The prediction value of $\Pr(b | v)$ naturally leads to a confidence score.
+%$\mathcal{C}$.
 %
-\[ \Pr(b = 1 | v) = \frac{1}{1 + e^{-W^{\top} v}} \]
-%
-The weights $W$ are learnt from training data, and the value of
-$\Pr(b | v)$ naturally leads to a confidence score $\mathcal{C}$.
-%
-Logistic regression is a widely used classification algorithm, preferred
-for its simplicity, ease of generalization, and interpretability.
+%Logistic regression is a widely used classification algorithm, preferred
+%for its simplicity, ease of generalization, and interpretability.
 %
 Its main limitation is that the prediction rule is constrained to be a
 linear combination of the features, and hence relatively simple.
 %
-While this can be somewhat mitigated by adding higher order (quadratic
-or cubic) features, this often requires substantial domain knowledge.
+%While this can be somewhat mitigated by adding higher order (quadratic or
+%cubic) features, this often requires substantial domain knowledge and
+%computation.
 
-\emph{Decision Tree}
-Decision tree algorithms learn a tree of binary predicates over the
-features, recursively partitioning the input space until a final
-classification can be made.
+\paragraph{Decision Tree}
+Decision tree~(DT) learns a tree of binary predicates over the features,
+recursively partitioning the feature space until a final classification can be
+made.
 %
-Each node in the tree contains a single predicate of the form
-$v_j \leq t$ for some feature $v_j$ and threshold $t$, which determines
+Each node in the tree contains a single thresholding
+$\mathbf{x}_i \leq t$ for some feature $\mathbf{x}_i$ and threshold $t$, which determines
 whether a given input should proceed down the left or right subtree.
 %
 Each leaf is labeled with a prediction and the fraction of
@@ -546,33 +564,31 @@ correctly-labeled training samples that would reach it; the latter
 quantity can be interpreted as the decision tree's confidence in its
 prediction.
 %
-This leads to a prediction rule that can be quite expressive depending
-on the data used to build it.
-
-Training a decision tree entails finding both a set of good partitioning
-predicates and a good ordering of the predicates based on data.
+This leads to a non-linear prediction rule which can be more expressive
+then linear model like LR depending on the data used to build it.
+%Training a decision tree entails finding both a set of good partitioning
+%predicates and a good ordering of the predicates based on data.
 %
-This is usually done in a top-down greedy manner, and there are several
-standard training algorithms such as C4.5 \cite{Quinlan1993-de} and
-CART \cite{Breiman1984-qy}.
+The training of a decision tree is usually done in a top-down greedy manner,
+and there are several implementations of DT such as C4.5
+\cite{quinlan2014c4} and CART \cite{breiman2017classification}.
 
-Another advantage of decision trees is their ease of interpretation ---
-the decision rule is a white-box model that can be readily described to
-a human, especially when the tree is small.
-%
-However, the main limitation is that these trees often do not generalize
-well, though this can be somewhat mitigated by \emph{pruning} the tree.
+%Another advantage of decision trees is their ease of interpretation ---
+%the decision rule is a white-box model that can be readily described to
+%a human, especially when the tree is small.
+%%
+%However, the main limitation is that these trees often do not generalize
+%well, though this can be somewhat mitigated by \emph{pruning} the tree.
 
-\emph{Random Forests}
+\emph{Random Forest}
 %
-Random forests (RF)~\cite{breiman2001random} improve generalization by training an
-\emph{ensemble} of distinct decision trees and using a majority
+Random forest (RF)~\cite{breiman2001random} improve generalization by
+training an \emph{ensemble} of distinct decision trees and using a majority
 vote to make a prediction.
 For each tree, RF selects a random sample with replacement of the training
 set and trains the tree with these samples.
 %
-The agreement among the trees forms a natural
-confidence score.
+The agreement among the trees forms a natural confidence score.
 %
 Since each classifier in the ensemble is a decision tree, this still
 allows for complex and expressive classifiers.
@@ -586,18 +602,16 @@ from a random subset of all features at each node.
 The diversity of the underlying models tends to make random forests less
 susceptible to the overfitting, but it
 also makes the learned model more difficult to interpret.
-\emph{Random Forest}
 
 
-\emph{Neural Networks}
+\paragraph{Neural Networks}
 %
 The last (and most complex) model we use is a type of neural network
-called a \emph{multi-layer perceptron} (see \cite{Nielsen2015-pu} for
+called a \emph{multi-layer perceptron~(MLP)} (see \cite{Nielsen2015-pu} for
 an introduction to neural networks).
 %
-A multi-layer perceptron can be represented as a directed acyclic
-graph whose nodes are arranged in layers that are fully connected by
-weighted edges.
+A MLP can be represented as a directed acyclic graph whose nodes are arranged
+in layers that are fully connected by weighted edges.
 %
 The first layer corresponds to the input features, and the final to the
 output.
@@ -614,7 +628,7 @@ output of node $j$ in the previous layer.
 Finally $g$ is a non-linear function, called the activation function,
 which in recent work is commonly chosen to be the \emph{rectified linear
   unit} (ReLU), defined as $g(x) = \mathsf{max}(0,x)$
-\cite{Nair2010-xg}.
+\cite{nair2010rectified}.
 %
 The number of layers, the number of neurons per layer, and the
 connections between layers constitute the \emph{architecture} of a
@@ -668,13 +682,14 @@ of the frequency of corresponding class.
 \paragraph{Hyper-parameters}
 All hyper-parameters are tuned using three-fold cross-validation on the
 intended score (Top-k accuracy).
-For RF, the maximum depth of each tree is searched from $25$ to $35$.
+For RF, the maximum depth of each tree is searched from $25$ to $35$ and the
+number of tree are fixed to $500$.
 For decision tree maximum depth of the tree is searched from $25$ to $35$ with interval of $5$,
 the minimum impurity decrease for each split is searched from $10^{-7}$ to
 $10^{-3}$ with multiple of $10^{-2}$ and the minimum samples in each leaf is set to $200$.
-For logistic regression and MLP, binary crossentropy is set as the loss
+For logistic regression and MLP, binary cross-entropy is set as the loss
 function and Adam \cite{kingma2014adam} optimizer is used.
-Learning rate is set to $0.1$.
+Learning rate is set to $0.1$ and the number of epochs are $10$.
 L2 regularization is applied to the weights of both models,
 the weight for L2 term is searched from $10^0$ to $10^{-5}$ with a multiple of $10^{-1}$.
 Other parameters that are not mentioned are kept with the default setting of the
@@ -880,7 +895,7 @@ more evident.}
 \tabref{feature-predictive-power} summarizes the relative importance
 of the top features in our model. The features are ranked by their
 Gini importance (or mean decrease in impurity), a common measure
-for decision tree and random forest models~\cite{FIXME}. Informally, the
+for decision tree and random forest models~\cite{breiman2001random}. Informally, the
 Gini importance conveys a weighted count of the number of times a feature
 is used to split a node: a feature that is learned to guide more model
 classification decisions is more important. Similarly, \tabref{anova} gives
