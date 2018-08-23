@@ -1050,27 +1050,31 @@ categories.
 \legend{NATE OCaml data, Our Python data}
 \end{axis}
 \end{tikzpicture}
-\caption{Number of clusters when data is clustered by single linkage.
-  A linkage tree is built using agglomerative clustering, and the resulting tree is broken up
-  into clusters by thresholding the inconsistency coefficient. The inconsistency coefficient
-  of a link is its distance, z-scored against other nearby links. TODO: find a way to include
-  the Rosetta Code baseline in this graph? better not to devote multiple graphs to this issue.
-  LM: the y axis could be made into a percentage of the dataset size, but that might be
-  weird?}
+\caption{Number of natural program clusters in each dataset as a function
+of clustering parameter (informally, how ``strict'' or ``tight'' the
+clustering is). \fixme{Talk about how you sample to be fair to the smaller
+datasets.} At all points our dataset demonstrates more diversity than 
+that of previous work.} 
 \label{fig-diversity}
 \end{figure}
 
-In the most similar prior work, Learning to Blame, each program in the dataset
-was a student's attempt at one of 23 different homework problems. Thus the
-dataset was comparatively homogenous, making it unclear whether the results
-would generalize to a more diverse dataset.
+To demonstrate that our evaluation dataset is not only larger but also more
+diverse than those used in previous work, we compare the diversity of
+programs present here to those in a relevant balance. The Nate
+algorithm~\cite{learning-to-blame} also provides type error localization
+and also focuses on a machine-learning approach backed by slicing. However,
+Nate targets strongly statically typed OCaml programs. Nate's evaluation
+also focused on beginner-written programs: specifically, it considered
+student submissions to 23 different university homework problems.  Thus the
+Nate dataset is comparatively homogeneous, raising concerns about whether
+evaluation results would generalize to more diverse settings.
 
-In our PythonTutor data by comparision, users wrote whatever programs they
-wanted, so we
-hypothesized that the data were more heterogeneous. To confirm this
-quantitatively, we used agglomerative clustering both on our
-data and on the Learning to Blame data; whichever dataset naturally splits
-into more clusters is more heterogeneous.
+In our PythonTutor dataset, by comparison, users were not constrained to
+specific university assignments. We hypothesize that the evaluation data are
+more heterogeneous. To assess this quantitatively, we used agglomerative
+clustering to discover the number of ``natural'' program categories
+present in both our dataset and also in the Nate dataset. Datasets with
+more distinct program categories are more heterogeneous. 
 
 % The exact number of clusters returned
 % depends on the value we choose for the algorithm's threshold parameter, so we
@@ -1080,56 +1084,72 @@ into more clusters is more heterogeneous.
 % more clusters than the NATE data. This confirms that our data is more
 % heterogeneous.
 
-To cluster programs, we transform the program ASTs into flat strings, and then
-perform agglomerative clustering on them, with string edit distance as a distance
-metric.
+% To cluster programs, we transform the program ASTs into flat strings, and
+% then perform agglomerative clustering on them, with string edit distance
+% as a distance metric.
 
 \subsubsection{Transformation and Distance Metric}
 
-To measure the distance between programs, we flattened their ASTs into strings
-of tokens, and then computed the Levenshtein edit distance~\cite{levenshtein}.
-The decision to flatten the tree rather than compute a distance directly on the
-the ASTs is practical; the state of the art in tree edit distance has cubic
-asymptotic complexity~\cite{PAWLIK2016157}, while the levenshtein distance can be
-computed in time quadratic in the length of the strings~\cite{lev-quadratic}.
-When we attempted a test run using tree edit distance as the metric, it did not
-complete and we determined that it would not be practical to use.
+Many clustering algorithms depend on distance metrics. 
+To measure the distance between programs, we flattened their ASTs into
+strings of tokens, and then computed the Levenshtein edit
+distance~\cite{levenshtein}. The decision to flatten the tree rather than
+compute a distance directly on the ASTs relates to scalability for our
+large datasets. The state of the art in tree edit distance has cubic
+asymptotic complexity~\cite{PAWLIK2016157}, while the Levenshtein distance
+can be computed in time quadratic in the length of the
+strings~\cite{lev-quadratic}. We did implement and attempt a tree edit
+distance metric, but it did not terminate for this analysis in a practical
+amount of time.
 
-The flattening process, which is based on \cite{dist-site}, is defined
-recursively: the string for an AST
-begins with a unique token corresponding to the AST node type, which is
-followed by the concatenation of the transformations of the tree's subtrees.
-The string ends with an ``end'' token to denote the end of the tree. This
-preserves the tree structure of the AST.
+The flattening process, which is based on standard approaches for
+tree-structured data~\cite{dist-site}, is defined recursively: the string
+for an AST begins with a unique token corresponding to the AST node type,
+which is followed by the concatenation of the transformations of the tree's
+subtrees.  The string ends with an ``end'' token to denote the end of the
+tree. This embeds information related to the tree structure of the AST in
+the flattened string.
 
 \subsubsection{Clustering Algorithm}
 
-We performed agglomerative clustering on the programs~\cite{modern-clustering}.
+We performed agglomerative clustering on the 
+datasets of flattened programs~\cite{modern-clustering}.
 This is a method of clustering in which every datapoint starts in its own
 cluster, and the two closest clusters are merged every step of the algorithm,
 until every datapoint is in the same cluster. This produces a binary tree, where
 each internal node corresponds to a cluster formed by merging two other clusters,
-and each leaf corresponds to an item in the dataset. We used single linkage,
-which means that the distance between clusters of multiple items was considered
+and each leaf corresponds to an item in the dataset. We used a single linkage
+approach in which the distance between clusters of multiple items was considered
 to be the minimum distance between their elements.
 
-This alone produces a tree rather than a list of disjoint clusters, which makes
-different clusterings difficult to compare. To produce a cluster count, we used
-the SciPy function \lt{scipy.cluster.hierarchy.fcluster}, which forms disjoint
-clusters by splitting the tree at internal nodes where the two joined clusters
-are more distant than some threshold. We used the \lt{'inconsistent'} method with
-depth set to 2, which specifies that the distances at each node should be
-z-scored against the distances at other nodes at the same level in the tree, and
-any nodes 1 or 2 levels below~\cite{inconsistent}. This adapts to differences in
-scale of edit distance that might arise between python and OCaml due to
-programming language expressivity or other factors, making cluster counts at each
-threshold value comparable.
+To produce a cluster count from the agglomerative tree, we followed the
+standard approach of splitting the tree at internal nodes where the two
+joined clusters are more distant than some threshold. To account for
+potential programming languages differences between Python and OCaml (such
+as expressivity), we z-score nodes against not only others at the same tree
+depth, but also against against others one or two levels
+below~\cite{inconsistent}. This makes cluster counts at each threshold
+value comparable. Our implementation uses the standard
+SciPy library (e.g., \lt{scipy.cluster.hierarchy.fcluster} with the 
+\lt{inconsistent} method).  
 
-\figref{diversity} shows the results of clustering on our dataset and the NATE
-dataset. For all values of the inconsistency threshold, the algorithm computed a
-higher cluster count for the Python data, suggesting that it contains a more
-diverse set of programs than the OCaml dataset. The similarity in the graphs
-appears to confirm the comparibility of cluster counts between the two datasets.
+\fixme{We need to say something about how we controlled for number, lest
+reviewers think we have more clusters simply because we have hundreds of
+thousands of datapoints.} 
+
+\figref{diversity} shows the results of clustering on our dataset and the
+Nate dataset. At a high level, the structural similarity in the graphs
+confirms the comparability of cluster counts between the two datasets.  For
+all values of the inconsistency threshold, there are more clusters in our
+Python dataset than in the baseline OCaml dataset. This suggests that our
+dataset contains a more diverse set of programs. Note that we are not
+claiming any novelty or advances in clustering accuracy in this
+determination (indeed, scalability concerns limited us to coarser
+approaches); instead, our claim is that even with simple clustering,
+it is clear that our dataset contains a greater diversity of programs than
+were considered by previously-published evaluations.  
+We view it as an advantage of our algorithm that it can apply to multiple
+different program categories. 
 
 \subsection{RQ 5 --- Wishlist: Partitioning Kinds of Errors}
 
