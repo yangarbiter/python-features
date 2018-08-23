@@ -2,9 +2,9 @@ import json, sys, ast, os
 from subprocess import run, PIPE
 import functools, html
 
-ML_DIR = 'foo'
+ML_DIR = 'v4-partial/vectors'
 ML_EXT = '.ml'
-CSV_DIR = 'goodCsvs'
+CSV_DIR = 'v4-partial/vectors/blah+context+slice+size'
 CSV_EXT = '.csv'
 
 HTML_BEGIN = '''<head>
@@ -20,6 +20,8 @@ Key:
 <br/>
 <div class="box change">change</div> / <div class="box">no change</div>
 <br/>
+<br/>
+<br/>
 '''
 HTML_FIX_BEGIN = '''<div class="container">'''
 HTML_END = '''
@@ -27,15 +29,6 @@ HTML_END = '''
 </div>
 </body>
 '''
-#<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
-#<script src="foo.js"></script>
-# $(".box").children().hover(function () {
-#     $(this).parent().css("border-color", "grey");
-#     $(this).css("border-color", "red");
-# }, function () {
-#     $(this).parent().css("border-color", "");
-#     $(this).css("border-color", "");
-# });
 
 # TODO: handle changes outside of slice
 
@@ -72,6 +65,7 @@ def factComparator(fact1, fact2):
 def visualize(code, facts):
     code = code.split('\n')
     outBuffer = ""
+    z = 0
     for (row,line) in enumerate(code):
         for (col,char) in enumerate(line):
             for fact in facts:
@@ -84,11 +78,17 @@ def visualize(code, facts):
                     if confidence >= 0.5:
                         classes.append("blame")
                     color = int((1-confidence)*120)
-                    outBuffer += '<div class="%s" style="border-color:hsl(%d, 100%%, 50%%)" title="%f\n%s">' % (" ".join(classes),color,confidence,rules)
+                    z += 1
+                    if z > 9:
+                        print("warning: can't handle z > 9")
+                    classes.append("b%d" % z)
+                    tooltipText = "Confidence: %f<br/>%s" % (confidence,'<br/>'.join(rules.split('\n')))
+                    outBuffer += '<div class="%s" style="border-color:hsl(%d, 100%%, 50%%)"><span class="span%d">%s</span>' % (" ".join(classes),color,z,tooltipText)
             outBuffer += html.escape(char, quote=False).replace(' ', '&nbsp')
             for fact in facts:
                 (_, _, r2, c2) = fact[0]
                 if row+1 == r2 and col+1 == c2:
+                    z -= 1
                     outBuffer += '</div>'
         outBuffer += '<br/>\n'
     return outBuffer
@@ -109,8 +109,11 @@ def runNames(inName, outName):
             else:
                 fix += line
 
-    proc = run("python2 learning/decisionpath.py models/decision-tree-goodCsvs.pkl".split()+[os.path.join(CSV_DIR,inName+CSV_EXT)],
+    proc = run("python3 pipeline/decisionpath.py ../blame/data_splits/v4_encoder.pkl ../blame/models/v4_DecisionTree_p@1.pkl".split()+[os.path.join(CSV_DIR, inName+CSV_EXT)],
             stdout=PIPE, stderr=PIPE, encoding="utf-8", errors="strict")
+    if proc.returncode != 0:
+        print("decisionpath failed!")
+        raise hell
     facts = []
     span = None
     confidence = None
@@ -139,11 +142,7 @@ def runNames(inName, outName):
         outFile.write(HTML_BEGIN + htmlBody + HTML_MAIN_END + HTML_FIX_BEGIN + htmlFix + HTML_END)
 
 if __name__ == '__main__':
-    # bothLost = [example.csv]
-    # for i in bothLost:
-    #     i = i.split('.')[0]
-    #     try:
-    #         runNames(i, "pipeline/"+i+".html")
-    #     except:
-    #         pass
-    runNames(sys.argv[1], sys.argv[2]) #21234
+    weWin = ['129830', '278772', '130221', '125360', '127768', '151698', '128115', '100291', '300952', '116942', '281819']
+    for i in weWin[:1]:
+        runNames(i, "temp/"+i+".html")
+    # runNames(sys.argv[1], "temp/"+sys.argv[1]+".html")#sys.argv[2])

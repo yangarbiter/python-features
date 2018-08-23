@@ -2,18 +2,144 @@
     width: 10000px;
     font-family: monospace;
 }
+
 .box {
     padding: 2px;
-    border: 3px dashed hsl(120, 100%, 50%);;
+    border: 3px dashed hsl(120, 100%, 50%);
+    ;
     display: inline-block;
     background-color: white;
 }
+
 .change {
     border-style: solid;
 }
+
 .blame {
     border-color: hsl(0, 100%, 50%);
 }
+
 .box:hover {
     background-color: lightblue;
+}
+
+.box span {
+    display: none
+}
+
+.b1:hover .span1 {
+    padding: 5px 20px 5px 5px;
+    display: block;
+    z-index: 1;
+    background: url(../images/status-info.png) #b80909 no-repeat 100% 5%;
+    left: 400px;
+    margin: 10px;
+    width: 250px;
+    position: absolute;
+    top: 30px;
+    text-decoration: none
+}
+
+.b2:hover .span2 {
+    padding: 5px 20px 5px 5px;
+    display: block;
+    z-index: 2;
+    background: url(../images/status-info.png) #db900f no-repeat 100% 5%;
+    left: 400px;
+    margin: 10px;
+    width: 250px;
+    position: absolute;
+    top: 30px;
+    text-decoration: none
+}
+
+.b3:hover .span3 {
+    padding: 5px 20px 5px 5px;
+    display: block;
+    z-index: 3;
+    background: url(../images/status-info.png) #cfcf0c no-repeat 100% 5%;
+    left: 400px;
+    margin: 10px;
+    width: 250px;
+    position: absolute;
+    top: 30px;
+    text-decoration: none
+}
+
+.b4:hover .span4 {
+    padding: 5px 20px 5px 5px;
+    display: block;
+    z-index: 4;
+    background: url(../images/status-info.png) #1de707 no-repeat 100% 5%;
+    left: 400px;
+    margin: 10px;
+    width: 250px;
+    position: absolute;
+    top: 30px;
+    text-decoration: none
+}
+
+.b5:hover .span5 {
+    padding: 5px 20px 5px 5px;
+    display: block;
+    z-index: 5;
+    background: url(../images/status-info.png) #05dbe2 no-repeat 100% 5%;
+    left: 400px;
+    margin: 10px;
+    width: 250px;
+    position: absolute;
+    top: 30px;
+    text-decoration: none
+}
+
+.b6:hover .span6 {
+    padding: 5px 20px 5px 5px;
+    display: block;
+    z-index: 6;
+    background: url(../images/status-info.png) #0832ee no-repeat 100% 5%;
+    left: 400px;
+    margin: 10px;
+    width: 250px;
+    position: absolute;
+    top: 30px;
+    text-decoration: none
+}
+
+.b7:hover .span7 {
+    padding: 5px 20px 5px 5px;
+    display: block;
+    z-index: 7;
+    background: url(../images/status-info.png) #cf0bf7 no-repeat 100% 5%;
+    left: 400px;
+    margin: 10px;
+    width: 250px;
+    position: absolute;
+    top: 30px;
+    text-decoration: none
+}
+
+.b8:hover .span8 {
+    padding: 5px 20px 5px 5px;
+    display: block;
+    z-index: 8;
+    background: url(../images/status-info.png) #590285 no-repeat 100% 5%;
+    left: 400px;
+    margin: 10px;
+    width: 250px;
+    position: absolute;
+    top: 30px;
+    text-decoration: none
+}
+
+.b9:hover .span9 {
+    padding: 5px 20px 5px 5px;
+    display: block;
+    z-index: 9;
+    background: url(../images/status-info.png) #f0f0f0 no-repeat 100% 5%;
+    left: 400px;
+    margin: 10px;
+    width: 250px;
+    position: absolute;
+    top: 30px;
+    text-decoration: none
 }
