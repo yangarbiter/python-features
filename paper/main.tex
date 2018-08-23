@@ -395,9 +395,10 @@ if x != 0:
   x = 1
 print("One over your number is: %d" % (1 / x))
 \end{lstlisting}
-\caption{In this program, the programmer may have intended the placeholder
-  assignment \lt{x = 1} to be used in case the user input 0, and used the
-  incorrect condition \lt{x != 0}, rather than \lt{x == 0}. However, the
+\caption{In this program, the programmer intended the placeholder
+  assignment \lt{x = 1} to be used in case the user inputs 0. 
+  The defect is that the 
+  incorrect condition \lt{x != 0} (rather than \lt{x == 0}) was employed. However, the
   condition expression will not be included in the slice (which would include
   lines 1 and 4), because the presence of
   the conditional does not affect the behavior of the program.
@@ -415,10 +416,10 @@ while true:
 \end{lstlisting}
 \caption{
   In this example, the programmer attempts to handle invalid input by
-  breaking out of the input loop. When computing the slice, our method
-  would record a control dependency between the condition on line 3 and the
-  print statement on line 5, placing the bad condition in the program
-  slice.
+  breaking out of the input loop. Our method
+  records a control dependency between the condition on line 3 and the
+  print statement on line 5, correctly placing the buggy condition in the
+  program slice.
 }
 \label{fig-early-break}
 \end{figure}
@@ -774,8 +775,10 @@ We define FIXME-ACCURACY to be FIXME.
     \addplot table[x=scoreName, y=score, col sep=comma]{fault-localization.csv};
 \end{axis}
 \end{tikzpicture}
-\caption{Baseline is the normal Python interpreter. Other bars are from decision
-trees on the largest dataset (272534 pairs).}
+\caption{Fault localization accuracy. 
+Baseline is the normal Python interpreter. Other bars represent our
+approach, using decision trees, 
+on the largest dataset (272534 pairs).}
 \label{fig-full-dataset-acc}
 \end{figure}
 
@@ -793,9 +796,11 @@ trees on the largest dataset (272534 pairs).}
     \addplot table[x=scoreName, y=score, col sep=comma]{fault-localization-random-forest.csv};
 \end{axis}
 \end{tikzpicture}
-\caption{Baseline is the normal Python interpreter. Other bars are from random
-forests on the largest dataset (272534 pairs). TODO: get top-2, then change text
-to discuss this figure instead of decision-tree version}
+\caption{Fault localization accuracy. 
+Baseline is the normal Python interpreter. Other bars represent
+our approach, using random forests, 
+on the largest dataset (272534 pairs). \fixme{get top-2, then change text
+to discuss this figure instead of decision-tree version}}
 \label{fig-full-dataset-acc-random-forest}
 \end{figure}
 
@@ -816,7 +821,7 @@ than a single answer, our margin gets even better.
 \subsection{RQ 2 --- Feature Predictive Power}
 
 \begin{table}[]
-\begin{tabular}{lll}
+\begin{tabular}{llc}
 Name & Category & Gini Importance \\ \bottomrule
 Size-P & Contextual (Syntactic)               & 0.112 \\
 Stmt-Constr-C3= & Contextual (Syntactic)      & 0.061 \\
@@ -838,7 +843,8 @@ learned on the entire dataset).}
 \end{table}
 
 \begin{table}[]
-\begin{tabular}{lll}
+\begin{center}
+\begin{tabular}{llc}
 Name & Category & F-score \\ \bottomrule
 Stmt-Constr-C3= & Contextual (Syntactic) & 69 \\
 Size & Syntactic                         & 63 \\
@@ -854,8 +860,10 @@ Type-P=DICT & Contextual (Type)          & 17 \\
 Type=str & Dynamic (Type)                & 12 \\
 \toprule
 \end{tabular}
-\caption{Feature predictive power as measured by ANOVA. F-score in
-thousands to two significant figures; all p-values less than .01}
+\end{center}
+\caption{Feature predictive power as measured by ANOVA.  The F-score in
+shown in 
+thousands to two significant figures; all p-values are less than 0.01.}
 \label{tab-anova}
 \end{table}
 
@@ -874,7 +882,13 @@ thousands to two significant figures; all p-values less than .01}
 \end{axis}
 \end{tikzpicture}
 \caption{Accuracy when features are removed, based on decision trees on a
-random subset of 20000 program pairs.}
+random subset of 20000 program pairs.
+\fixme{The x-axis labels are not perfectly clear: does ``all'' mean that
+everything is still in or that everything is out?}
+\fixme{Indicate that this is a top-1 model.}
+\fixme{Normal the y-axis so that ``all'' is 1.0 to make the subset effects
+more evident.} 
+}
 \label{fig-removing-features}
 \end{figure}
 
@@ -884,16 +898,23 @@ Gini importance (or mean decrease in impurity), a common measure
 for decision tree and random forest models~\cite{FIXME}. Informally, the
 Gini importance conveys a weighted count of the number of times a feature
 is used to split a node: a feature that is learned to guide more model
-classification decisions is more important.
+classification decisions is more important. Similarly, \tabref{anova} gives
+an alternate view of the relative feature importances, as measured by an
+analysis of variance (ANOVA). 
 
-\tabref{anova} gives an alternate view of the relative feature importances
-as measured by ANOVA. In both tables we see that syntactic, dynamic, and
-contextual features are all important.
+We also present the results of a leave-one-out analysis in which 
+certain categories of features are removed and the model is trained
+and tested only on those that remain. \figref{removing-features} shows
+that there is a significant decrease in accuracy in each case. We note,
+however, that leave-one-out analyses underestimate importance in cases of
+feature overlap. For example, if a small program contains a string bug but
+only a few string variables, both type information and slice information
+are likely to implicate similar terms. 
 
-We also try removing certain categories and retraining the model on what is
-left. \figref{removing-features} shows that there is a significant decrease in
-accuracy in each case, supporting the claim that all our feature categories are
-important.
+In all cases we see that syntactic, dynamic, and contextual features are
+all important. Features such as FIXME, FIXME and FIXME are found to be of
+primary importance. We interpret this to mean FIXME with respect to the
+application of our algorithm to beginner-written code. 
 
 % prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
 % ANOVA, whatever)
@@ -930,7 +951,12 @@ important.
 \end{axis}
 \end{tikzpicture}
 \caption{Accuracy when the model is trained and tested on only the data exhibiting
-the error on the x-axis.}
+the error on the x-axis.
+\fixme{Spin this for generality. Indicate that our model gives high-quality
+fault localization regardless of defect type. To put it another way, we
+can view this as a sensitivity analysis: our algorithm is not sensitive to
+defect type (that's good!).} 
+}
 \label{fig:defect-categories}
 \end{figure}
 
