@@ -876,11 +876,10 @@ application of our algorithm to beginner-written code.
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={All, TypeError, AttributeError, ValueError},
+    symbolic x coords={baseline, Type, Attribute, Value, Key},
     xtick=data,
     ymin=0,
     ylabel=Model Accuracy,
-    enlarge x limits=0.5,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
     \addplot table[x=scoreName, y=score, col sep=comma]{defect-categories-2.csv};
