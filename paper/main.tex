@@ -15,11 +15,13 @@
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{algorithmic}
 \usepackage{graphicx}
+\usepackage{subcaption} 
 \usepackage{booktabs}
 \usepackage{textcomp}
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage{myref}
+\usepackage{url}
 \usepackage{pgfplots}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -51,6 +53,7 @@
 \pagestyle{plain}
 \pagenumbering{arabic}
 
+\newsavebox{\verbsavebox}
 
 \begin{document}
 
@@ -295,149 +298,14 @@ and \lt{tuple}) as well as three special values:
 \end{itemize}
 
 \subsubsection{Slice (Dynamic)}
-
-\begin{figure}
-\begin{lstlisting}
-x = input() # Input: 42
-if x < 20:
-  y = 5
-  z = 123
-else:
-  y = 0
-  z = 321
-assert(y != 0)
-\end{lstlisting}
-\begin{lstlisting}
-x = 42
-if x < 20:
-
-
-else:
-  y = 0
-
-assert(y != 0)
-\end{lstlisting}
-\caption{
-  a) A program being sliced. An assertion gets triggered when line 8 is run. b)
-  The lines included in the slice. This is not a valid python
-  program, but that does not pose a problem for using membership in the slice as
-  a learning feature.
-}
-\label{fig-slice-example}
-\end{figure}
-
-\begin{figure}
-\begin{lstlisting}
-x = input() # The user inputs 0
-if x != 0:
-  x = 1
-print("One over your number is: %d" % (1 / x))
-\end{lstlisting}
-\caption{In this program, the programmer may have intended the placeholder
-  assignment \lt{x = 1} to be used in case the user input 0, and used the
-  incorrect condition \lt{x != 0}, rather than \lt{x == 0}. However, the
-  condition expression will not be included in the slice (which would include
-  lines 1 and 4), because the presence of
-  the conditional does not affect the behavior of the program.
-}
-\label{fig-slice-downside-example}
-\end{figure}
-
-\begin{figure}
-\begin{lstlisting}
-while true:
-  x = input()
-  if x != 0:
-    break
-  print("One over your number is: %d" % (1 / x))
-\end{lstlisting}
-\caption{
-  In this example, the programmer attempts to handle invalid input by
-  breaking out of the input loop. When computing the slice, our method
-  would record a control dependency between the condition on line 3 and the
-  print statement on line 5, placing the bad condition in the program
-  slice.
-}
-\label{fig-early-break}
-\end{figure}
-
 The goal of this feature, roughly equivalent in purpose to the type error
 slice in Nate~\cite{learning-to-blame}, is to help eliminate terms that
-cannot be the source of the crash. We compute a dynamic program slice
-\cite{KOREL1988155}, the set of terms that contributed at runtime to the
-observed exception, and turn this feature on for terms in the slice. We
-follow the basic approach of \cite{KOREL1988155, KOREL1990187}, building a
-graph of data and control dependencies. We then traverse the graph
-backwards, starting at the execution step where the error occurred, to
-collect the set of terms that the excepting line transitively depended on.
-This excludes lines that could not have caused the exception, such as lines
-that never ran, or lines that ran but had no connection to the step where
-the exception happened.
-
-\figref{slice-example} is an example of the input and output of the slicing
-algorithm. The slicer takes as input a python source string and a list of inputs,
-to be fed into the program whenever \lt{input()} is invoked. The slicer outputs
-the list of line numbers for the lines in the slice.
-
-The slicer would first create an execution trace of the example program, which
-at each execution step includes the line number being run and the state of the
-heap and variables. In the example, lines $1, 2, 3, 4, 8$ would have been run.
-It then iterates forward through the trace, recording which
-execution steps have a define-use relation, and which execution steps
-have a test-control relation. The define-use relation is between a step where
-the value of a variable is used, and the step where that variable was last
-defined. In \figref{slice-example}, a define-use relationship exists
-between lines 1 and 2 and between 3 and 8. A test-control relation is between
-the execution of a control flow statement and any statements that were run as
-a result of it. In \figref{slice-example}, a test-control relationship exists
-between the if statement at line 2 and the assignments on lines 3 and 4. After
-building up these relations, the slicer starts at the execution step causing an
-exception (the execution of line 8), and builds the exception's set of
-dependencies by iteratively adding to the set any step that has a define-use
-or test-control relationship with a step already in the set. Finally, the
-algorithm takes all the execution steps, determines which line number each step
-was running, and then outputs this list of line numbers.
-
-Our slicing algorithm handles every syntax node supported by the Python3 standard
-library, \lt{ast}, except:
-\begin{itemize}
-\item Assignments where the left hand side is not a variable or a simple chain
-  of attribute indexing or subscripting
-\item Assignments where attribute indexing or subscripting on the left hand side
-  means something other than the default, which can happen if the operations are
-  overridden by a class
-\item Lambda expressions
-\item Set and dictionary comprehensions
-\item Generator expressions
-\item Await, yield, and yield from
-\item Ellipsis (the token representing the tail of the argument list given to a
-  varargs function)
-\item Starred expressions
-\item Async def functions and Asynchronous for
-\item Delete statements
-\item With statements
-\item Raise statements
-\end{itemize}
-
-A downside of using the dynamic slice, in the case of control dependencies, is
-that it excludes terms whose presence does not affect whether the exception
-happened, but which could have had an effect if the term was different. In
-\figref{slice-downside-example}, the conditional statement is never
-executed, so the removal of the conditional would not have any effect on
-the program's behavior, and it would not be included in the program slice.
-The dynamic slice misses the incorrect test condition because the mistake
-itself caused the conditional statement and its body to become irrelevant.
-
-To overcome these issues in the ``early return'' or ``early break'' case
-(\figref{early-break}), we check if a break, return, or other statement for
-escaping structured control flow is present inside of a conditional
-statement. We then add dependencies in the execution trace's dependency graph
-between the enclosing conditional and the statements that would have been skipped
-by the break or return. While this heuristic is effective in practice, it
-does not overcome all related problems: we thus treat dynamic slice
-information as one of many features rather than as a hard constraint.
-This boolean feature tracks whether or not the term is part of the final
-dynamic slice.
+cannot be the source of the crash. We compute a dynamic program
+slice~\cite{KOREL1988155}: a set of terms that contributed at runtime to
+the observed exception. This boolean feature encodes whether the term
+is a member of the slice. Our slicing algorithm, which balances scalable
+simplicity with coverage for beginner-written programs, is presented in
+\secref{slice-algorithm}. 
 
 \subsubsection{Crash Location (Dynamic)} We observe that the precise term that
 causes Python to crash is, in fact, the one the user decides to change
@@ -478,6 +346,162 @@ associate with each term additional features that correspond to the features of
 its parent and child nodes. For representational regularity, we always
 model three children; terms without parents or children are given special
 values (e.g., zero or NotApplicable) for those contextual features.
+
+\subsection{Dynamic Slicing Algorithm}
+\label{sec-slice-algorithm} 
+
+\begin{figure}
+\begin{lrbox}{\verbsavebox} 
+\begin{lstlisting}[xrightmargin=0.5\linewidth]
+x = input() # 42
+if x < 20:
+  y = 5
+  z = 123
+else:
+  y = 0
+  z = 321
+assert(y != 0)
+\end{lstlisting}
+\end{lrbox} 
+~ \hfill
+\subcaptionbox{Pre-Slicing}{\usebox{\verbsavebox}}
+\hfill
+\begin{lrbox}{\verbsavebox}
+\begin{lstlisting}[xrightmargin=0.5\linewidth]
+x = 42
+if x < 20:
+
+
+else:
+  y = 0
+
+assert(y != 0)
+\end{lstlisting}
+\end{lrbox} 
+\subcaptionbox{Post-Slicing}{\usebox{\verbsavebox}}
+\hfill
+~
+\caption{
+  A program being sliced (left) and the resulting slice (right) with
+  respect to the assertion on line 8. 
+}
+\label{fig-slice-example}
+\end{figure}
+
+\begin{figure}
+\begin{lstlisting}
+x = input() # The user inputs 0
+if x != 0:
+  x = 1
+print("One over your number is: %d" % (1 / x))
+\end{lstlisting}
+\caption{In this program, the programmer may have intended the placeholder
+  assignment \lt{x = 1} to be used in case the user input 0, and used the
+  incorrect condition \lt{x != 0}, rather than \lt{x == 0}. However, the
+  condition expression will not be included in the slice (which would include
+  lines 1 and 4), because the presence of
+  the conditional does not affect the behavior of the program.
+}
+\label{fig-slice-downside-example}
+\end{figure}
+
+\begin{figure}
+\begin{lstlisting}
+while true:
+  x = input()
+  if x != 0:
+    break
+  print("One over your number is: %d" % (1 / x))
+\end{lstlisting}
+\caption{
+  In this example, the programmer attempts to handle invalid input by
+  breaking out of the input loop. When computing the slice, our method
+  would record a control dependency between the condition on line 3 and the
+  print statement on line 5, placing the bad condition in the program
+  slice.
+}
+\label{fig-early-break}
+\end{figure}
+
+Slicing information can prevent our model from implicating irrelevant
+nodes in the fault localization. Program slicing is a well-studied
+field with many explored tradeoffs (e.g., see Xu et al. for a
+survey~\cite{xu2005}). We desire a slicing algorithm that can be computed
+efficiently (to scale to hundreds of thousands of instances) but that will
+also admit high accuracy: we achieve this by focusing on features relevant
+to beginner-written programs. We
+follow the basic approach of Korel and Laski~\cite{KOREL1988155,
+KOREL1990187}, building a
+graph of data and control dependencies. We then traverse the graph
+backwards, starting at the execution step where the error occurred, to
+collect the set of terms that the excepting line transitively depended on.
+This excludes lines that could not have caused the exception, such as lines
+that never ran, or lines that ran but had no connection to the step where
+the exception happened.
+
+\figref{slice-example} is an example of the input and output of the slicing
+algorithm. The slicer takes as input a python source string and a list of inputs,
+to be fed into the program whenever \lt{input()} is invoked. The slicer outputs
+the program elements included in the slice.
+
+The slicer proceeds by creating an execution trace of the example program. 
+At each execution step the trace includes the line number being run and the state of the
+heap and variables. In the example in \figref{slice-example}, 
+lines $1, 2, 3, 4$ and $8$ are executed. 
+It then iterates forward through the trace, recording which
+execution steps have a define-use relation, and which execution steps
+have a test-control relation. The define-use relation is between a step where
+the value of a variable is used, and the step where that variable was last
+defined. In \figref{slice-example}, a define-use relationship exists
+between lines 1 and 2 and between 3 and 8. A test-control relation is between
+the execution of a control flow statement and any statements that were run as
+a result of it. In \figref{slice-example}, a test-control relationship exists
+between the if statement at line 2 and the assignments on lines 3 and 4. After
+building up these relations, the slicer starts at the execution step causing an
+exception (the execution of line 8), and builds the exception's set of
+dependencies by iteratively adding to the set any step that has a define-use
+or test-control relationship with a step already in the set. Finally, the
+algorithm maps all of the execution steps to their corresponding program 
+element locations and returns the result. 
+
+To balance ease of prototype implementation against coverage for
+beginner-written programs, our slicing algorithm handles every syntax node
+supported by the Python3 standard \lt{ast} library except:
+\begin{itemize}
+\item Assignments where the left hand side is not a variable or a simple chain
+  of attribute indexing or subscripting
+\item Assignments where attribute indexing or subscripting on the left hand side
+  means something other than the default, (e.g., if the operations are
+  overridden by a class)
+\item Lambda, generator and starred expressions
+\item Set and dictionary comprehensions
+\item Await, yield, and yield from
+\item Variable argument ellipsis 
+\item Coroutine definitions and asynchronous loops
+\item Delete, with and raise statements
+\end{itemize}
+
+A downside of using a dynamic (as opposed to static) slice, in the case of
+control dependencies, is that it excludes terms whose presence does not
+affect whether the exception happened, but which could have had an effect
+if the term was different. In
+\figref{slice-downside-example}, the conditional statement is never
+executed, so the removal of the conditional would not have any effect on
+the program's behavior, and it would not be included in a more precise
+program slice. In this example, the dynamic slice misses the incorrect
+test condition because the very defect we are trying to localize
+caused the conditional statement and its body to become irrelevant.
+
+To overcome these issues in the ``early return'' or ``early break'' case
+(\figref{early-break}), we check if a break, return, or other statement for
+escaping structured control flow is present inside of a conditional
+statement. We then add dependencies in the execution trace's dependency graph
+between the enclosing conditional and the statements that would have been skipped
+by the break or return. While this heuristic is effective in practice, it
+does not overcome all related problems: we thus treat dynamic slice
+information as one of many features rather than as a hard constraint.
+This boolean feature tracks whether or not the term is part of the final
+dynamic slice.
 
 \subsection{Machine Learning Model Generation}
 \label{sec-model}
