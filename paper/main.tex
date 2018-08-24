@@ -183,7 +183,7 @@ print(year + age)
 \end{lstlisting}
 \caption{
 \label{fig-motex}
-A program with multiple fault localizations (lines 1 and 2).}
+A simple program with multiple fault localizations (lines 1 and 2).}
 \end{figure}
 
 One of the key difficulties in localizing type errors, especially for
@@ -1308,109 +1308,64 @@ error types and on a dataset that is more diverse than that of related
 work.
 \end{framed} 
 
-
-
 \section{Related Work}
-\fixme{This must all be rewritten or dropped, as it is directly copied from
-my previous papers. It serves as a placeholder to indicate length and to
-remind us of some Software Engineering bits we might cite.}
 
-There are several fault localization techniques that rely much more heavily
-on dynamic information\footnote{Note: we do not directly compare to these
-state-of-the-art fault localization techniques for several reasons.  First,
-the benchmarks used in this paper do not always have available the test
-suites needed by dynamic techniques and, conversely, those used in the
-previous work do not have the publicly available bug reports required
-by our technique.  Additionally, we return an answer only when confident in
-our result set and also employ a top list of all available results, while
-previous work is typically evaluated using a score metric.  We consider the
-techniques complimentary.}~\cite
-{harrold05,Renieris03,cleve05,wang09}.
-In general,
-these techniques leverage differences between passing and failing program
-executions.  While effective, this type of approach requires program traces
-for not only the specific fault at hand but also from a comprehensive regression
-test suite for comparison.
-A hybrid approach that considers both dynamic
-traces and static natural language similarity was recently proposed by
-Medini \textit{et al.}~\cite{Medini11}.
-In contrast to these approaches, our technique relies purely on static
-information that is readily available in most commercial systems with minimal
-additional developer effort.
+Broadly, the two most relevant areas of related work are 
+software engineering approaches to fault localization (typically based on
+dynamic test information) and programming languages approaches to fault
+localization (typically based on static type information). 
 
-Prabhakararao and Ruthruff \emph{et al.} performed two human studies
-to gauge the effectiveness of an interactive fault localization tool
-developed for end users with little to no
-experience~\cite{Prabhakararao03,ruthruff05}.  The goal of their
-studies was to evaluate the use of feedback when locating faults and
-to generally study the process of fault localization, especially by
-users with no expert domain knowledge of the source.  By comparison,
-our human study also examines the fault localization process but for
-the purpose of evaluating software quality metrics.  We are less
-interested in the specific process and more concerned with the
-resulting accuracy and the human intuitions about the code in
-question.  Additionally, our human study is of a much broader scope and
-thus we hope it is more generalizable.
-%Additionally, their studies included 10 and 20
-%participants respectively using a spreadsheet-based visualization tool.
-%Our study of 61 humans looking at actual source code potentially provides
-%more generalizable results and targets specifically the area of software
-%maintenance completed by trained programmers.
+A significant body of work in fault localization follows from the Tarantula
+project~\cite{tarantula}. Jones et al. proposed that statements executed
+often in failing test runs but rarely in successful test runs were likely
+to be implicated in the defect. Such spectrum-based approaches gather
+coverage or other dynamic information and rank statements by a
+mathematically-computed suspiciousness score. Subsequent algorithms
+such as Pinpoint~\cite{chen02} or Ochiai~\cite{Abreu2006} have improved
+upon Tarantula in various ways. For example, the Cooperative Bug Isolation
+approach gathers richer dynamic information (i.e., invariants) and also
+combines information from multiple end-user sources~\cite{liblit05}. 
+Spectrum-based fault localization has been
+the subject of significant empirical evaluation~\cite{Abreu2009}. 
+Research on spectrum-based methods continues to this day, with
+refinements, and even optimality results, to the associated
+mathematical formulae~\cite{yoo2017}. While human studies have demonstrated
+that users dislike large ranked lists~\cite{orso-parnin}, fault
+localization has only increased in relevance with the rise of automated
+program repair~\cite{genprog-tse-journal,semfix13}, where many techniques
+depend critically on accurate fault localization~\cite{gpfaultloc}.
+
+Our approach shares the overall goal of spectrum-based fault localization:
+pinpointing suspicious statements to reducing debugging effort. However,
+where spectrum-based traditionally focus on larger, industrial-scale 
+programs, we target beginner-written software. Spectrum methods require
+multiple test cases (ideally very many of them); we use just one program
+execution. Spectrum methods focus heavily on dynamic features; we make
+critical use of syntactic, contextual and type information as well. 
+In addition, some human studies have focused specifically on accuracy and
+expertise for fault localization~\cite{fry2010,Prabhakararao03,ruthruff05};
+our decision to use particular features to support beginning programmers is
+informed by such insights. 
+
+Zeller's popular Delta Debugging algorithm~\cite{zeller99}, interpreted
+generally, efficiently finds a minimal ``interesting'' subset from among a
+large set of elements. When the set of elements represents changes made to
+a source code version control system and interesting is defined with
+respect to failing a test suite, it can quickly locate program edits that
+cause regressions. Alternatively, when considering correct and failing
+execution states, such approaches can help focus on variable values that
+cause failures~\cite{zeller05}. While our dynamic slicing information can
+be viewed as a coarse approximation to the precise, fine-grained
+localization such an approach can provide, a key difference is our use
+of machine learning to agree with human judgments in cases where multiple
+causes are equally logically valid.  
+
+In the programming languages community, a large body of work has focused on 
+localizing faults and providing better error messages, typically through
+the use of type information. \fixme{Sherrloc, Mycroft, Nate, etc.} 
 
 
-Ashok \textit{et al.} propose a similar natural language search technique
-in which users can match an incoming report to previous reports,
-programmers and source code~\cite{Ashok09}.  By comparison, our technique
-is more lightweight and focuses only on searching the code and the
-defect report.
 
-Jones \textit{et al.} developed Tarantula, a technique that performs
-fault localization based on the insight that statements executed often
-during failed test cases likely account for potential fault
-locations~\cite{harrold05}. Their approach is quite effective when
-a rich, indicative test suite is available and can be run as part of
-the fault localization process. It thus requires the fault-inducing
-input but not any natural language defect report. By contrast,
-our approach is lightweight, does not require an indicative test
-suite or fault-inducing input, but does require a natural language
-defect report. Both approaches will yield comparable performance, and
-could even be used in tandem.
-
-Cleve and Zeller localize faults by finding differences between
-correct and failing program execution states, limiting the scope of
-their search to only variables and values of interest to the fault in
-question~\cite{cleve05}. Notably, they focus on those variable and
-values that are relevant to the failure and to those program execution
-points where transitions occur and those variables become causes of
-failure. Their approach is in a strong sense finer-grained than ours:
-while nothing prevents our technique from being applied at the level
-of methods instead of files, their technique can give very precise
-information such as ``the transition to failure happened when $x$
-became 2.'' Our approach is lighter-weight and does not require
-that the program be run, but it does require defect reports.
-
-Renieris and Rice use a ``nearest neighbor'' technique in their
-Whither tool to identify faults based on exposing differences in
-faulty and non-faulty runs that take very similar executions
-paths~\cite{Renieris03}. They assume a large number of correct runs
-(e.g., normal test cases) and one failing run. Their approach uses a
-distance criterion to select the correct run that is closest to the
-failing run and produces a report of ``suspicious'' parts of the
-program. By comparison, we chose to limit the programmatic information
-used by our technique to only that which was reported by users: we
-do not use test case runs but do need natural language.
-
-Liblit \textit{et al.} use Cooperative Bug Isolation, a statistical
-approach to isolate multiple bugs within a program given a deployed user
-base. By analyzing large amounts of collected execution data from real
-users, they can successfully differentiate between different causes of
-faults in failing software~\cite{liblit05}. Their technique produces
-a ranked list of very specific fault localizations (e.g., ``the fault
-occurs when $i > arrayLen$ on line 57''). In general, their technique
-can produce more precise results than ours, but it requires a set of
-deployed users and works best on those bugs experienced by many users.
-By contrast, we do not require that the program be runnable, much less
-deployed, and use only natural language defect report text.
 
 \section{Conclusion}
 
