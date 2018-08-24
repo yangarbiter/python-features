@@ -587,7 +587,7 @@ interpret.
 %from a random subset of all features at each node.
 %
 
-\paragraph{Training methodology}
+\emph{Training methodology}
 At this point we have feature vectors describing every term of every program in
 our data set. The vectors from a random 30\% of the program pairs are set aside for testing and
 the other 70\% are used for training.
@@ -610,18 +610,17 @@ result into the top three.
 
 For decision tree and random forest, we use the implementation from
 \textsc{scikit-learn}~\cite{scikit-learn}.
-Due to the large amount of data points, we did not use \textsc{scikit-learn}'s
-implementation for logistic regression and multilayer perceptron.
-We implementation both model using
-\textsc{keras}~\cite{chollet2015keras} with mini-batch gradient descent.
+% Due to the large amount of data points, we did not use \textsc{scikit-learn}'s
+% implementation for logistic regression and multilayer perceptron.
+% We implementation both model using
+% \textsc{keras}~\cite{chollet2015keras} with mini-batch gradient descent.
 
-Because of the imbalance nature of the data set, where not-blamed lines
-(negative examples) appears more frequently than blamed lines (positive
-examples).
-The weight for each example during training is re-weighted to the reciprocal
+Unsurprisingly this is an imbalanced dataset in that negative examples, i.e.
+terms that are not changed by the programmer, are much more common than
+positive examples, so during training we re-weight each example to the reciprocal
 of the frequency of corresponding class.
 
-\paragraph{Hyper-parameters}
+\emph{Hyper-parameters}
 All hyper-parameters are tuned using three-fold cross-validation on the
 intended score (Top-$k$ accuracy).
 For RF, the maximum depth of each tree is searched from $25$ to $35$ and the
@@ -660,8 +659,10 @@ programs?}
 \item[RQ2]{Which features are the most important for Python fault
 localization overall?}
 
-\item[RQ3]{Which features are the most important for various categories of
-Python defects?}
+% \item[RQ3]{Which features are the most important for various categories of
+% Python defects?}
+
+\item[RQ3]{How well does our algorithm handle different kinds of Python errors?}
 
 \item[RQ4]{Is our algorithm accurate on heterogeneous sets of programs?}
 
@@ -740,7 +741,7 @@ on the largest dataset (272534 pairs).}
 \end{figure}
 
 We first use the full dataset to train and test decsion forests optimized for
-Top-1, Top-2, and Top-3 accuracy. As shown in \figref{full-dataset-acc},
+Top-1, Top-2, and Top-3 accuracy. As shown in \figref{full-dataset-acc-random-forest},
 these produce a correct answer 60, 72, and
 79\% of the time (to two significant figures). As a baseline, we determine that
 the expression blamed by the standard Python interpreter (i.e. the one that
@@ -884,43 +885,45 @@ application of our algorithm to beginner-written code.
     \addplot table[x=scoreName, y=score, col sep=comma]{defect-categories-2-normalized.csv};
     \draw [red] ({rel axis cs:0,0}|-{axis cs:Index,1}) -- ({rel axis cs:1,0}|-{axis cs:Index,1}) node [pos=0.33, above] {};
 \end{axis}
-% \begin{axis}
-%     \addplot{1};
-% \end{axis}
 \end{tikzpicture}
 \caption{Accuracy when a Top-1 decision tree is trained and tested on only the data exhibiting
 the error on the x-axis, as compared to a Top-1 decision tree on all the data.
-\fixme{Spin this for generality. Indicate that our model gives high-quality
-fault localization regardless of defect type. To put it another way, we
-can view this as a sensitivity analysis: our algorithm is not sensitive to
-defect type (that's good!).}
 }
-\label{fig:defect-categories}
+\label{fig-defect-categories}
 \end{figure}
 
-prereq: define defect category. This could be either the raw python
-exception name or it could be clusters that we have manually created.
-Ranjit notes: result could be ``we need everything for everything'', at
-which point this is useless and should be skipped. Per Ben's exam: may find
-that for different categories of errors we should use different ML
-classifiers.
+We next try training and testing Top-1 decision trees on only the subsets of
+the data
+corresponding to each of the five most common exceptions: \lt{TypeError},
+\lt{IndexError}, \lt{AttributeError}, \lt{ValueError}, and \lt{KeyError}.
+As shown in \figref{defect-categories}, these models have accuracy between
+86\% and 115\% of a comparable model trained on the data as a whole. This shows
+that our algorithm is robust, able to give high accuracy fault localizations on
+a wide variety of defect types.
 
-PLOT Type: Bar Graph (three bars per point on the X axis)
+% prereq: define defect category. This could be either the raw python
+% exception name or it could be clusters that we have manually created.
+% Ranjit notes: result could be ``we need everything for everything'', at
+% which point this is useless and should be skipped. Per Ben's exam: may find
+% that for different categories of errors we should use different ML
+% classifiers.
 
-PLOT Y Axis: Leave-One-In Accuracy (normalized per X axis point)
-Ranjit notes: on smaller subsets we could rebuild the classifier each time.
-Wes notes that if we do, it takes us longer. If we re-use the monolithic
-model we can do this very quickly.
+% PLOT Type: Bar Graph (three bars per point on the X axis)
 
-PLOT X AXis: Defect Categories
+% PLOT Y Axis: Leave-One-In Accuracy (normalized per X axis point)
+% Ranjit notes: on smaller subsets we could rebuild the classifier each time.
+% Wes notes that if we do, it takes us longer. If we re-use the monolithic
+% model we can do this very quickly.
 
-PLOT Bars: Static, Dynamic, Context
+% PLOT X AXis: Defect Categories
 
-Goal: Demonstrate that each category of feature is essential for a certain
-piece of the problem. We need ABC feature to handle DEF class of defects,
-but ABC feature does not work well on GHI class of defects, for those we
-need JKL features. Implicit: we were smart for including all of these
-categories.
+% PLOT Bars: Static, Dynamic, Context
+
+% Goal: Demonstrate that each category of feature is essential for a certain
+% piece of the problem. We need ABC feature to handle DEF class of defects,
+% but ABC feature does not work well on GHI class of defects, for those we
+% need JKL features. Implicit: we were smart for including all of these
+% categories.
 
 \subsection{RQ 4 --- Diversity of Programs}
 
@@ -1089,15 +1092,15 @@ were considered by previously-published evaluations.
 We view it as an advantage of our algorithm that it can apply to multiple
 different program categories.
 
-\subsection{RQ 5 --- Wishlist: Partitioning Kinds of Errors}
+% \subsection{RQ 5 --- Wishlist: Partitioning Kinds of Errors}
 
-Can we partition the kinds of errors that people make? What are common
-misconceptions? Do these correspond to paths of decision trees.
+% Can we partition the kinds of errors that people make? What are common
+% misconceptions? Do these correspond to paths of decision trees.
 
-If we don't get to the source-sink thing, it could go here.
+% If we don't get to the source-sink thing, it could go here.
 
-I don't think we have time, in this paper, to actually implement a
-two-level machine learning.
+% I don't think we have time, in this paper, to actually implement a
+% two-level machine learning.
 
 \subsection{Qualitative Analysis}
 
