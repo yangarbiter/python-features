@@ -1346,7 +1346,7 @@ program repair~\cite{genprog-tse-journal,semfix13}, where many techniques
 depend critically on accurate fault localization~\cite{gpfaultloc}.
 
 Our approach shares the overall goal of spectrum-based fault localization:
-pinpointing suspicious statements to reducing debugging effort. However,
+pinpointing suspicious statements to reduce debugging effort. However,
 where spectrum-based traditionally focus on larger, industrial-scale
 programs, we target beginner-written software. Spectrum methods require
 multiple test cases (ideally very many of them); we use just one program
@@ -1372,9 +1372,23 @@ causes are equally logically valid.
 
 In the programming languages community, a large body of work has focused on
 localizing faults and providing better error messages, typically through
-the use of type information. \fixme{Sherrloc, Mycroft, Nate, etc.}
-
-
+the use of type information. SHErrLoc~\cite{SHErrLoc} identifies a set of
+incompatible type constraints, then chooses the likely type error using the
+Bayesian heuristic that the program is probably mostly correct. We rely on the
+complementary heuristic that faults will share characteristics
+with previously recorded faults, and apply this heuristic to features beyond
+just type information. Mycroft~\cite{MYCROFT-type-errors} modifies existing
+type inference algorithms to produce a ``correcting set'' for a program with
+a type error. Mycroft assumes that the minimal such set is the most
+desirable to the user, and has no way to rank multiple equally
+small sets. We instead use machine learning to agree with human judgements.
+NATE~\cite{learning-to-blame} uses machine learning on static and contextual
+features, including static types, to localize type errors in OCaml
+code. We employ a similar approach to localize Python faults, but we use
+dynamic features as well as static and contextual ones, we handle a wide
+variety of errors beyond type errors, and we evaluate our approach on a set of
+programs both more heterogeneous and almost two orders of magnitude larger than
+the NATE dataset.
 
 
 \section{Conclusion}
