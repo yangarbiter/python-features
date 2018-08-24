@@ -87,7 +87,18 @@ weimerw@umich.edu}
 \maketitle
 
 \begin{abstract}
-Abstract
+As dynamically-typed languages continue to grow in popularity, especially
+among beginning programmers, there is an increased need to provide precise
+localization for defects. In many instances, such localization is
+ambiguous: multiple program locations are equally formally implicated in
+the bug, but not all are equally relevant to human programmers. We propose
+a scalable fault localization approach for dynamic languages that agrees
+with human judgments. We base our approach on a combination of static,
+dynamic, and contextual features, guided by machine learning. We evaluate
+our approach on over 270,000 diverse real user instances from the popular
+PythonTutor.com website. We find that our approach is scalable, general,
+and quite accurate: up to 79\% for top-three responses, compared to 45\%
+for the default interpreter. 
 \end{abstract}
 
 \section{Introduction}
@@ -1368,6 +1379,30 @@ the use of type information. \fixme{Sherrloc, Mycroft, Nate, etc.}
 
 
 \section{Conclusion}
+
+We present an approach for accurately localizing type errors in
+off-the-shelf beginner-written Python programs. Our approach makes use of a
+combination of static, dynamic and contextual features. Static features,
+such as syntactic forms and expression sizes, are a particularly powerful
+heuristic for novice programmer defects. Dynamic features can both 
+implicate relevant terms (partial typing information) and rule out
+irrelevant program regions (slicing). Contextual features allow our
+approach to gain the benefits of precise AST- or CFG-style information
+while retaining the scalable performance of a linear representation. 
+We use off-the-shelf machine learning to accurately combine those disparate
+features in a way that captures and models human judgments of ground-truth
+correct answers --- a notion that is especially relevant when multiple 
+program locations are equally formally implicated but not equally useful to
+the user. 
+
+We evaluate our approach with respect to historical user defects and fixes.
+All of the feature categories (static, dynamic, and contextual) were
+relevant to success, as measured by multiple analyses (Gini, ANOVA and
+leave-one-out). Our evaluation demonstrated significant scalability and
+generality: our 270,000 instances were both an order-of-magnitude more
+numerous than similar related work and measurably more diverse. Ultimately,
+our approach was quite accurate, implicating the correct program location
+60--79\% of the time compared to the Python interpreter's 45\% accuracy.
 
 \bibliographystyle{abbrv}
 \bibliography{nanomaly,sw,temp,slice,cluster,ml}
