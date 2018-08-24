@@ -199,8 +199,8 @@ A simple program with multiple fault localizations (lines 1 and 2).}
 
 One of the key difficulties in localizing type errors, especially for
 dynamically-typed programs, is that there are often multiple
-logically-valid ways to address a type error~\cite{FIXME} --- only one of
-which may be desired by the programmer~\cite{FIXME}.  Consider the program
+logically-valid ways to address a type error --- only one of
+which may be desired by the programmer~\cite{learning-to-blame}.  Consider the program
 in \figref{motex}, adapted from our dataset of human submissions. The
 program attempts to carry out some simple arithmetic based on a given
 number and the current year. When executed, however, the program raises an
@@ -694,10 +694,10 @@ Our raw data consist of every Python 3 program that a user executed on
 PythonTutor.com~\cite{Guo2013-vu} (not in ``live'' mode) during 2017, other
 than those with syntax errors or undefined variables.  Each program which
 crashes (throws an uncaught Python exception) is paired with the next
-program (by the same user) that does not crash, under the assumption that
+program by the same user that does not crash, under the assumption that
 the latter is the fixed version of the former. We discard pairs where the
 difference between crashing and fixed versions is too high (more than a
-stddev above average), since these are most likely to be violations of that
+standard deviation above average), since these are most likely to be violations of that
 assumption (i.e., the program that does not crash is unrelated to the
 crashing program). We also discard submissions that are out of scope given
 PythonTutor's policies (e.g., very long-running executions or those that
@@ -711,30 +711,36 @@ Ultimately, the dataset used in this evaluation contained
 
 Our algorithm is based on supervised machine learning and thus requires
 labeled training instances.  For these experiments, we employ a random
-forest our machine learning algorithm, finding it to provide the best
+forest as our machine learning algorithm, finding it to provide the best
 accuracy on our dataset with a scalable training and testing time.  In
 addition, our evaluations require a ground truth notion of which terms
 correspond to correct fault localizations.
 
-We use the terms changed involved in the fixes by actual users as our
+We use the terms changed in fixes by actual users as our
 ground truth and training information.  Many PythonTutor users use the site
 in an iterative fashion: they start out by writing a program that crashes,
 and then edit it until it no longer crashes. Our dataset contains only
 those crashing programs for which the same user later submitted a program
 that did not crash. We compute a tree-diff~\cite{tree-diff} between the
-originaly, buggy submission and the first fixed submission. We define
-the \emph{ground truth} correct answer to be the set of terms in the
+original, buggy submission and the first fixed submission. For example,
+if the expression \lt{len(\{3,4\})} is changed to \lt{len([3,4])}, then the
+node in the tree corresponding to the set \lt{\{3,4\}} as a whole will
+appear in the diff (since it has been changed to a list), but neither its parent
+node (the enclosing \lt{len} call) nor its children nodes (the integer literals)
+will appear since they were not changed. Changing the number of children of a
+node also causes the node to appear in the diff, e.g. adding a statement
+to a while loop counts as a change to the loop as a whole.
+
+We define the \emph{ground truth} correct answer to be the set of terms in the
 crashing program that also appear in the diff. We discuss the implications
-of this choice in \secref{threats}.
+of these choices in \secref{threats}.
 
 Given that notion of ground truth, a candidate fault localization answer is
 \emph{accurate} if it is contained in the ground truth set. That is, if the
-human user changed lines $X$ and $Y$, a technique (either our algorithm
+human user changed terms $X$ and $Y$, a technique (either our algorithm
 or a baseline) is given credit for returning either $X$ or $Y$. When
 considering ranked lists, a response list is \emph{top-$k$ accurate} if any one
-of the top $k$ answers is contained in the ground truth set. \fixme{Read
-this paragraph and correct it for truth; it is currently simply WRW's best
-guess and I don't actually know what you did.}
+of the top $k$ answers is contained in the ground truth set.
 
 In our evaluation, we used 70\% as a training set and 30\% as a held-out
 evaluation set. We employed cross-validation~\cite{kohavi} to help address
@@ -878,8 +884,9 @@ Some features, such as ``program crashes here'' and features
 related to term size, are fairly direct. Others, such as ``Child3 is
 statement'', a contextual, syntactic feature that was found to be very
 important, merit additional explanation. In practice, we found it to
-encode FIXME, since Python terms with statements in the third child node
-position are FIXME. Similarly, features that determine if the parent node
+encode complex control structures, like large loops, where fixing the crash
+often involved adding or removing whole statements from the loop.
+Similarly, features that determine if the parent node
 is a list or dictionary are relevant because of FIXME. In beginner-written
 Python we find that defects and typos often in the immediate child position
 of a list or dictionary term because of FIXME. Finally, we note the
