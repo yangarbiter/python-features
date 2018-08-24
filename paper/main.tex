@@ -536,10 +536,6 @@ dynamic slice.
 Random Forests will have to be redone as they are copied from Learning to Blame.
 }
 
-\fixme{how the data is represented}
-
-\fixme{is program pair the correct term?}
-
 To apply machine learning to analyze the data, we have to formulate the
 problem into standard classification problem.
 For each line of a program pair, we extracted the features mentioned in
@@ -634,10 +630,10 @@ result into the top three.
 
 For decision tree and random forest, we use the implementation from
 \textsc{scikit-learn}~\cite{scikit-learn}.
-% Due to the large amount of data points, we did not use \textsc{scikit-learn}'s
-% implementation for logistic regression and multilayer perceptron.
-% We implementation both model using
-% \textsc{keras}~\cite{chollet2015keras} with mini-batch gradient descent.
+%Due to the size of the dataset, we did not use \textsc{scikit-learn}'s
+%implementation for logistic regression and MLP.
+%We implementation both model using
+%\textsc{keras}~\cite{chollet2015keras} with mini-batch gradient descent.
 
 Unsurprisingly this is an imbalanced dataset in that negative examples, i.e.
 terms that are not changed by the programmer, are much more common than
@@ -652,11 +648,11 @@ number of tree are fixed to $500$.
 For decision tree maximum depth of the tree is searched from $25$ to $35$ with interval of $5$,
 the minimum impurity decrease for each split is searched from $10^{-7}$ to
 $10^{-3}$ with multiple of $10^{-2}$ and the minimum samples in each leaf is set to $200$.
-For logistic regression and MLP, binary cross-entropy is set as the loss
-function and Adam \cite{kingma2014adam} optimizer is used.
-Learning rate is set to $0.1$ and the number of epochs are $10$.
-L2 regularization is applied to the weights of both models,
-the weight for L2 term is searched from $10^0$ to $10^{-5}$ with a multiple of $10^{-1}$.
+%For logistic regression and MLP, binary cross-entropy is set as the loss
+%function and Adam \cite{kingma2014adam} optimizer is used.
+%Learning rate is set to $0.1$ and the number of epochs are $10$.
+%L2 regularization is applied to the weights of both models,
+%the weight for L2 term is searched from $10^0$ to $10^{-5}$ with a multiple of $10^{-1}$.
 Other parameters that are not mentioned are kept with the default setting of the
 original packages.
 
