@@ -98,7 +98,7 @@ dynamic, and contextual features, guided by machine learning. We evaluate
 our approach on over 270,000 diverse real user instances from the popular
 PythonTutor.com website. We find that our approach is scalable, general,
 and quite accurate: up to 79\% for top-three responses, compared to 45\%
-for the default interpreter. 
+for the default interpreter.
 \end{abstract}
 
 \section{Introduction}
@@ -131,13 +131,13 @@ which require tools that operate on code fragments~\cite{Guo2013-vu}.
 Third, attempts to retrofit static type systems into dynamic languages,
 such as TypeScript~\cite{typescript2014,refscriptpldi16,mollerOOPSLA14} for
 JavaScript and various
-gradual and static type approaches for 
+gradual and static type approaches for
 Python~\cite{mypy,gradual-typing-python} or
 Ruby~\cite{static-typing-ruby,an11,foster09,foster11}
 are promising but not always widely
 deployed. Finally, research tools and algorithms for fault
 localization either require rich static types (e.g., as in
-Mycroft~\cite{FIXME}, Nate~\cite{learning-to-blame} or Sherrloc~\cite{FIXME}), require
+Mycroft~\cite{MYCROFT-type-errors}, Nate~\cite{learning-to-blame} or Sherrloc~\cite{SHErrLoc}), require
 test cases (e.g., as in Tarantula~\cite{tarantula}), or produce voluminous
 ranked output lists that have been found to be unhelpful in general and
 less useful to novices in particular~\cite[Sec.~5.1]{orso-parnin}.
@@ -168,13 +168,13 @@ The contributions of this paper are as follows:
 
 \item We present an algorithm for accurately localizing dynamic type errors
 in Python. We find that our approach is 60--79\% accurate, compared to
-the interpreter baseline of 45\%.  
+the interpreter baseline of 45\%.
 
 \item We describe and evaluate static, dynamic, contextual and slice-based
 features for generalizing machine-learning fault localization to
 beginner-written Python fragments. We find such features are all critical
 to our model, but that our model is not sensitive to error type and
-performs similarly across defect classes.  
+performs similarly across defect classes.
 
 \item We analyze the results of a thorough evaluation on over 270,000 real
 user instances, show that it is a more heterogeneous dataset than those used
@@ -228,7 +228,7 @@ features.
 % may not be a place that should be fixed?
 
 \section{Algorithm Overview}
-\label{sec-algorithm} 
+\label{sec-algorithm}
 
 We present an algorithm for accurately localizing faults~\cite{tarantula} in
 dynamically-typed, beginner-written Python programs that exhibit
@@ -704,14 +704,14 @@ difference between crashing and fixed versions is too high (more than a
 stddev above average), since these are most likely to be violations of that
 assumption (i.e., the program that does not crash is unrelated to the
 crashing program). We also discard submissions that are out of scope given
-PythonTutor's policies (e.g., very long-running executions or those that 
+PythonTutor's policies (e.g., very long-running executions or those that
 use forbidden libraries).
 
-Ultimately, the dataset used in this evaluation contained 
+Ultimately, the dataset used in this evaluation contained
 272,534 usable pairs of programs.
 
 \subsection{Labeled Training and Ground Truth}
-\label{sec-training} 
+\label{sec-training}
 
 Our algorithm is based on supervised machine learning and thus requires
 labeled training instances.  For these experiments, we employ a random
@@ -733,12 +733,12 @@ of this choice in \secref{threats}.
 
 Given that notion of ground truth, a candidate fault localization answer is
 \emph{accurate} if it is contained in the ground truth set. That is, if the
-human user changed lines $X$ and $Y$, a technique (either our algorithm 
+human user changed lines $X$ and $Y$, a technique (either our algorithm
 or a baseline) is given credit for returning either $X$ or $Y$. When
 considering ranked lists, a response list is \emph{top-$k$ accurate} if any one
 of the top $k$ answers is contained in the ground truth set. \fixme{Read
 this paragraph and correct it for truth; it is currently simply WRW's best
-guess and I don't actually know what you did.} 
+guess and I don't actually know what you did.}
 
 In our evaluation, we used FIXME as a training set and FIXME as a held-out
 evaluation set. We employed cross-validation~\cite{kohavi} to help address
@@ -764,7 +764,7 @@ the potential threat of overfitting.
 Baseline is the normal Python interpreter. The Top-$k$ bars represent
 our approach, using random forests,
 on the largest dataset (272534 pairs). The strong performance of our
-algorithm on a large, real-world dataset is the primary result of this paper. 
+algorithm on a large, real-world dataset is the primary result of this paper.
 }
 \label{fig-full-dataset-acc-random-forest}
 \end{figure}
@@ -775,16 +775,16 @@ these produce a correct answer 60\%, 72\%, and
 79\% of the time (to two significant figures). As a baseline, we determine that
 the expression blamed by the standard Python interpreter (i.e., the one that
 raises the uncaught exception) is only changed by the user 45\% of the
-time. 
+time.
 
 Thus, our most directly comparable model (Top-1), significantly outperforms
 this baseline. Users who are only willing to look at a single error message
-would have been better-served by our Top-1 model on this historical data. 
+would have been better-served by our Top-1 model on this historical data.
 
 In addition, previous studies have shown that developers are willing to use
 very short ranked lists~\cite[Sec.~5.6]{orso-parnin}, but not voluminous
 ones. Our Top-3 model accuracy of 79\% dramatically improves upon the
-current state of practice for scalable type-error localization in Python. 
+current state of practice for scalable type-error localization in Python.
 
 % Goal: Establish that our algorithm works. This is the most basic question,
 % but also the most relevant. If the reader takes away nothing else, they
@@ -846,12 +846,12 @@ the node in question.}
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={No Context, No Types},
+    symbolic x coords={No Context, No Syntax, No Types},
     xtick=data,
     ymin=0,
     ymax=1.1,
     ylabel=Normalized Model Accuracy,
-    enlarge x limits=0.5,
+    enlarge x limits=0.3,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
     \addplot table[x=scoreName, y=score, col sep=comma]{removing-features-2-normalized.csv};
@@ -861,14 +861,13 @@ the node in question.}
 \caption{Normalized accuracy when categories of features are removed, based
 on Top-1 decision trees on a random subset of 20,000 program pairs, as
 compared to a Top-1 decision tree trained on all features.
-\fixme{will add No Syntax bar}
 }
 \label{fig-removing-features}
 \end{figure}
 
 Having established the efficacy of our approach, we now investigate which
 elements of our algorithmic design (\secref{algorithm}) contributed to that
-success. 
+success.
 \tabref{feature-predictive-power} summarizes the relative importance
 of the top features in our model. The features are ranked by their
 Gini importance (or mean decrease in impurity), a common measure
@@ -890,7 +889,7 @@ Python we find that defects and typos often in the immediate child position
 of a list or dictionary term because of FIXME. Finally, we note the
 importance of our \lt{Unknown} type feature for expressions that are never
 evaluated in the given trace: we find that they are relevant because of
-FIXME. \fixme{Ben (etc.) must actually fill in real explanations here.} 
+FIXME. \fixme{Ben (etc.) must actually fill in real explanations here.}
 
 More broadly, we also present the results of a leave-one-out analysis in which
 entire categories of features are removed and the model is trained
@@ -903,7 +902,7 @@ are likely to implicate similar terms.
 
 In all cases we see that syntactic, dynamic, and contextual features (i.e.,
 the design decisions of our algorithm) are crucial to our algorithm's
-accuracy. 
+accuracy.
 
 % prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
 % ANOVA, whatever)
@@ -946,20 +945,20 @@ the error on the x-axis, as compared to a Top-1 decision tree on all the data.
 \end{figure}
 
 We investigate the sensitivity of our algorithm to different categories of
-Python errors: is our accuracy sensitive to certain kinds of user defects? 
+Python errors: is our accuracy sensitive to certain kinds of user defects?
 We investigate training and testing Top-1 decision trees on only those
 subsets of the dataset corresponding to each of the five most common
 uncaught exceptions: \lt{TypeError}, \lt{IndexError}, \lt{AttributeError},
 \lt{ValueError}, and \lt{KeyError}. Together, these five exceptions make
-up FIXME\% of the errors in our dataset. 
+up FIXME\% of the errors in our dataset.
 
 As shown in \figref{defect-categories}, these per-defect models have
 normalized accuracy between 86\% and 115\% of a comparable model trained on
 the dataset as a whole. This shows that our algorithm is robust and able to
-give high-accuracy fault localizations on a wide variety of defect types. 
+give high-accuracy fault localizations on a wide variety of defect types.
 Having consistent, rather than defect-type-sensitive, performance is
 important for debugging-tool
-usability~\cite{orso-parnin,Bessey2010,ayewah10}. 
+usability~\cite{orso-parnin,Bessey2010,ayewah10}.
 
 
 % prereq: define defect category. This could be either the raw python
@@ -1207,7 +1206,7 @@ print(devowel('foo'))
 %     print(GeorgiaAreaCodes[i])
 
 We now highlight a few indicative localization examples in detail to
-demonstrate how our algorithm accurately localizes faults. 
+demonstrate how our algorithm accurately localizes faults.
 These examples are simplified slightly for presentation and to protect the
 anonymity of the programmers, but they retain the essential character of
 the originals from our dataset.
@@ -1219,10 +1218,10 @@ the list in place and returns \lt{None}. By contrast, the user-corrected
 version forgoes the assignment instead uses \lt{w_list.remove(letter)}. In
 the buggy case, Python does not crash until line 8, where its message is
 the somewhat-misleading \lt{TypeError: can only join an iterable}. However,
-our decision tree flags the correct statement, based on the features 
+our decision tree flags the correct statement, based on the features
 that it is an assignment statement whose second child has type
 \lt{NoneType}. This seems to capture the intuitive reasoning that there is
-rarely a good reason to assign the value \lt{None} to a variable. 
+rarely a good reason to assign the value \lt{None} to a variable.
 
 Note that our algorithm uses both the syntactic form of the statement (an
 assignment) and the dynamic type of one of its children, so all our
@@ -1255,20 +1254,20 @@ aligns with human expectations.
 
 Although our evaluation demonstrates that our algorithm scales to
 accurately localize Python errors in lage datasets, our results may not
-generalize to all use cases. 
+generalize to all use cases.
 
 \emph{Overfitting.} Since our algorithm makes use of supervised machine
 learning, one threat to validity is overfitting (i.e., learning a model
 that is too complex with respect to the data and thus fails to generalize).
 We mitigate this threat by using cross-validation, as discussed in
-\secref{training}. 
+\secref{training}.
 
 \emph{Language choice.} We have only demonstrated that our technique works
 for Python 3. We hypothesize that it should apply to similar
 dynamically-typed languages, such as Ruby, but such evaluations remain
-future work. We mitigate this threat slightly by constructing our algorithm 
+future work. We mitigate this threat slightly by constructing our algorithm
 so that it does not depend on Python-specific features or node types
-(e.g., in \secref{slice-algorithm} we explicitly omit relatively ``exotic'' 
+(e.g., in \secref{slice-algorithm} we explicitly omit relatively ``exotic''
 features such as generators, ``yield'' and coroutines that may not always
 be present in other languages).
 
@@ -1282,7 +1281,7 @@ professional software engineers. As a result, our technique may not
 generalize well to the kinds of bugs that would be found in an industrial
 setting rather than a novice or educational one.
 
-\emph{Ground truth.} The size of our dataset precluded the manual annotation 
+\emph{Ground truth.} The size of our dataset precluded the manual annotation
 of each buggy program. Instead, we used historical successful
 edits from actual users as our ground truth notion of the desired fault
 localization. This has the advantage of aligning our algorithm with user
@@ -1294,22 +1293,22 @@ changes beyond those strictly needed to fix the bug.
 We mitigate this problem by discarding as outliers program pairs that have
 changed too much. \fixme{Really? This is the first time WRW is hearing
 about this. If this is true, you have to go back and mention this earlier
-where we talk about ground truth definitions and data set selection.} 
+where we talk about ground truth definitions and data set selection.}
 
 \subsection{Evaluation Summary}
 
 We evaluated our results on over 270,000 pairs of beginner-written Python
-programs. Our primary research result relates to accuracy: 
+programs. Our primary research result relates to accuracy:
 \begin{framed}
 \noindent Our algorithm is very accurate, implicating the correct program
 terms 60--79\% of the time (for Top-1 to Top-3 lists), compared to the
-Python interpreter's 45\% accuracy. 
-\end{framed} 
+Python interpreter's 45\% accuracy.
+\end{framed}
 In addition, we investigated the design decisions of our algorithm:
 \begin{framed}
 \noindent All feature categories (i.e., static, dynamic, and contextual)
 were critical, as measured by Gini importance, ANOVA F-score
-and a leave-one-out analysis. 
+and a leave-one-out analysis.
 \end{framed}
 Finally, we investigated the sensitivity of our algorithm to various
 contexts:
@@ -1317,14 +1316,14 @@ contexts:
 \noindent Our algorithm generalizes, with similar accuracy across the top
 error types and on a dataset that is more diverse than that of related
 work.
-\end{framed} 
+\end{framed}
 
 \section{Related Work}
 
-Broadly, the two most relevant areas of related work are 
+Broadly, the two most relevant areas of related work are
 software engineering approaches to fault localization (typically based on
 dynamic test information) and programming languages approaches to fault
-localization (typically based on static type information). 
+localization (typically based on static type information).
 
 A significant body of work in fault localization follows from the Tarantula
 project~\cite{tarantula}. Jones et al. proposed that statements executed
@@ -1335,9 +1334,9 @@ mathematically-computed suspiciousness score. Subsequent algorithms
 such as Pinpoint~\cite{chen02} or Ochiai~\cite{Abreu2006} have improved
 upon Tarantula in various ways. For example, the Cooperative Bug Isolation
 approach gathers richer dynamic information (i.e., invariants) and also
-combines information from multiple end-user sources~\cite{liblit05}. 
+combines information from multiple end-user sources~\cite{liblit05}.
 Spectrum-based fault localization has been
-the subject of significant empirical evaluation~\cite{Abreu2009}. 
+the subject of significant empirical evaluation~\cite{Abreu2009}.
 Research on spectrum-based methods continues to this day, with
 refinements, and even optimality results, to the associated
 mathematical formulae~\cite{yoo2017}. While human studies have demonstrated
@@ -1348,15 +1347,15 @@ depend critically on accurate fault localization~\cite{gpfaultloc}.
 
 Our approach shares the overall goal of spectrum-based fault localization:
 pinpointing suspicious statements to reducing debugging effort. However,
-where spectrum-based traditionally focus on larger, industrial-scale 
+where spectrum-based traditionally focus on larger, industrial-scale
 programs, we target beginner-written software. Spectrum methods require
 multiple test cases (ideally very many of them); we use just one program
 execution. Spectrum methods focus heavily on dynamic features; we make
-critical use of syntactic, contextual and type information as well. 
+critical use of syntactic, contextual and type information as well.
 In addition, some human studies have focused specifically on accuracy and
 expertise for fault localization~\cite{fry2010,Prabhakararao03,ruthruff05};
 our decision to use particular features to support beginning programmers is
-informed by such insights. 
+informed by such insights.
 
 Zeller's popular Delta Debugging algorithm~\cite{zeller99}, interpreted
 generally, efficiently finds a minimal ``interesting'' subset from among a
@@ -1369,11 +1368,11 @@ cause failures~\cite{zeller05}. While our dynamic slicing information can
 be viewed as a coarse approximation to the precise, fine-grained
 localization such an approach can provide, a key difference is our use
 of machine learning to agree with human judgments in cases where multiple
-causes are equally logically valid.  
+causes are equally logically valid.
 
-In the programming languages community, a large body of work has focused on 
+In the programming languages community, a large body of work has focused on
 localizing faults and providing better error messages, typically through
-the use of type information. \fixme{Sherrloc, Mycroft, Nate, etc.} 
+the use of type information. \fixme{Sherrloc, Mycroft, Nate, etc.}
 
 
 
@@ -1384,16 +1383,16 @@ We present an approach for accurately localizing type errors in
 off-the-shelf beginner-written Python programs. Our approach makes use of a
 combination of static, dynamic and contextual features. Static features,
 such as syntactic forms and expression sizes, are a particularly powerful
-heuristic for novice programmer defects. Dynamic features can both 
+heuristic for novice programmer defects. Dynamic features can both
 implicate relevant terms (partial typing information) and rule out
 irrelevant program regions (slicing). Contextual features allow our
 approach to gain the benefits of precise AST- or CFG-style information
-while retaining the scalable performance of a linear representation. 
+while retaining the scalable performance of a linear representation.
 We use off-the-shelf machine learning to accurately combine those disparate
 features in a way that captures and models human judgments of ground-truth
-correct answers --- a notion that is especially relevant when multiple 
+correct answers --- a notion that is especially relevant when multiple
 program locations are equally formally implicated but not equally useful to
-the user. 
+the user.
 
 We evaluate our approach with respect to historical user defects and fixes.
 All of the feature categories (static, dynamic, and contextual) were
