@@ -719,13 +719,6 @@ We define FIXME-ACCURACY to be FIXME.
 \subsection{RQ 1 --- Fault Localization Accuracy}
 
 \begin{figure}
-
-\caption{\fixme{This figure has been removed; this is a placeholder so the
-numbering doesn't change while I handle some TODOs}}
-\label{fig-full-dataset-acc}
-\end{figure}
-
-\begin{figure}
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
@@ -751,7 +744,7 @@ Top-1, Top-2, and Top-3 accuracy. As shown in \figref{full-dataset-acc},
 these produce a correct answer 60, 72, and
 79\% of the time (to two significant figures). As a baseline, we determine that
 the expression blamed by the standard Python interpreter (i.e. the one that
-causes it to crash) is only changed by the user 30\% of the time. Thus our
+causes it to crash) is only changed by the user 45\% of the time. Thus our
 most directly comparable model, the one for Top-1, significantly outperforms
 this baseline, and as we then exercise our power to give a ranked output rather
 than a single answer, our margin gets even better.
@@ -829,6 +822,7 @@ thousands to two significant figures; all p-values are less than 0.01.}
 \caption{Accuracy when features are removed, based on Top-1 decision trees on a
 random subset of 20000 program pairs, as compared to a Top-1 decision tree trained
 on all features.
+\fixme{will add No Syntax bar}
 }
 \label{fig-removing-features}
 \end{figure}
