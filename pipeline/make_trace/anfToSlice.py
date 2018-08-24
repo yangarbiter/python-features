@@ -1,16 +1,15 @@
 from subprocess import run, PIPE, CalledProcessError, TimeoutExpired
 from process_raw import process_one
-from collections import defaultdict
 import json
 import ast
 
 ANF_BIN="../../.stack-work/install/x86_64-osx/lts-8.14/8.0.2/bin/make-anf-raw"
 ANF_TIMEOUT=3
 
-def contains(superSpan, subSpan):
-    (a,b,c,d) = superSpan
-    (w,x,y,z) = subSpan
-    return (a,b) <= (w,x) and (y,z) <= (c,d)
+# def contains(superSpan, subSpan):
+#     (a,b,c,d) = superSpan
+#     (w,x,y,z) = subSpan
+#     return (a,b) <= (w,x) and (y,z) <= (c,d)
 
 def getSpan(line):
     parts = line.split("#  interaction:")

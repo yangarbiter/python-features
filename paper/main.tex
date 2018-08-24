@@ -883,7 +883,7 @@ application of our algorithm to beginner-written code.
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={baseline, Type, Attribute, Value, Key},
+    symbolic x coords={baseline, Type, Attribute, Value, Key, Index},
     xtick=data,
     ymin=0,
     ylabel=Model Accuracy,
@@ -1105,13 +1105,92 @@ two-level machine learning.
 
 \subsection{Qualitative Analysis}
 
+\fixme{
 Pick out one example where we did poorly. Walk through why it is ``out of
 scope'', in some sense: we would need features that capture XYZ to handle
 it correctly, but those are either expensive or undecideable. Hint at
 future work.
+}
 
-Pick out a few examples where we did well and the baseline did poorly. Walk
-through how interesting and indicative they are and explain why we did well.
+%%% Original for fig-win-example-1; index 19615 of v4
+% def word_checker(food):
+%     w_alphabet_ned = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
+%                 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
+%                 'u', 'v', 'w', 'x', 'y', 'z', 'ë', 'ï', 'é', 'è', 'ö', 'ê',
+%                 'ü', 'ó', 'ç', 'á', 'à', 'ä', 'û', 'î', 'í', 'ô', 'ú', 'ñ', 'â']
+%
+%     w_list_food = list(food)
+%
+%     for letters in w_list_food:
+%         if letters not in w_alphabet_ned:
+%             w_list_food = w_list_food.remove(letters)
+%         food = ''.join(w_list_food)
+%     print(food)
+%
+%
+%
+%
+% word_checker('sl^* ( ) 0a')
+
+\begin{figure}
+\begin{lstlisting}
+def devowel(word):
+    word = 'foo'
+    w_list = list(word)
+    vowels = ['a', 'e', 'i', 'o', 'u']
+    for letter in w_list:
+        if letter not in vowels:
+            w_list = w_list.remove(letter)
+    word = ''.join(w_list)
+print(devowel('foo'))
+\end{lstlisting}
+\caption{A program with a bug on line 7.}
+\label{fig-win-example-one}
+\end{figure}
+
+%%% Original for fig-win-example-2; index 50219 of v4
+% GeorgiaAreaCodes = [404, 770, 678, 706, 762, 229, 423, 912, 478]
+% for i in range(0, len(GeorgiaAreaCodes) + 1):
+%     print(GeorgiaAreaCodes[i])
+
+\begin{figure}
+\begin{lstlisting}
+areaCodes = [800, 555]
+for i in range(0, len(areaCodes) + 1):
+    print(areaCodes[i])
+\end{lstlisting}
+\caption{A program with an off-by-one bug.}
+\label{fig-win-example-two}
+\end{figure}
+
+We now go through a couple examples where our method does well. These examples
+are adapted slightly for simplicity of
+presentation and to protect the anonymity of the programmers, but they retain
+the essential character of the originals from our dataset.
+
+\paragraph{NoneType}
+The function in \figref{win-example-one} attempts to remove all vowels from a
+given word. However the
+\lt{remove} method in line 7 actually modifies the list in place and returns
+\lt{None}, so the correct version forgoes the assignment and just has
+\lt{w_list.remove(letter)}. Python does not crash until line 8, where its
+message is \lt{TypeError: can only join an iterable}. However, our decision
+tree flags the correct statement, using as some of its rules that it is an
+assignment statement whose second child has type \lt{NoneType}. This seems to
+capture the intuitive rule that there is rarely a good reason to assign the
+value \lt{None} to a variable. Note that these rules use both the syntactic
+form of the statement (an assignment) and the dynamic type of one of its
+children, so all our categories of features - syntactic, dynamic, and
+contextual - were useful here.
+
+\paragraph{Off-by-one bugs}
+In \figref{win-example-two}, the programmer incorrectly adds one to the high
+end of their range, causing an \lt{IndexError: list index out of range} on line
+3 during the final iteration of the for loop. The correct expression to blame
+is the addition \lt{len(areaCodes) + 1}. Some of the rules that our
+decision tree uses to correctly localize this bug include that the error is an
+index error, the type of the parent, and the fact that it's an addition
+expression. Thus once again we see all three categories of features being used.
 
 \subsection{Evaluation Summary}
 
