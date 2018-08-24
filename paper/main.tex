@@ -100,26 +100,33 @@ exotic list comprehensions and higher-order function blocks. One side
 effect of popularity with novices and students, however, is that many
 programmers of such languages may lack expertise when presented with
 dynamic type errors, and may thus struggle to interpret and localize
-them~\cite{FIXME,FIXME}. We propose a machine learning approach based on
-static, dynamic and contextual information that effectively localizes
-beginner type errors.
+them~\cite{orso-parnin,Zhang2014-lv,Christiansen2014-qc,Pavlinovic2014-mr,Chen2014-gd,Neubauer2003-xv,Stuckey2004-ne}.
+We propose a machine learning approach based on static, dynamic and
+contextual information that effectively localizes beginner type errors.
 
 The relative costs and benefits of static vs. dynamic error detection are
 well-studied. Despite this, however, many currently-available techniques
 are ill-suited to address the problem of localization for type errors in
 dynamic languages. First, relying on the extant language interpreter
-requires test inputs~\cite{FIXME}, may involve error messages that are
-difficult for novices to understand~\cite{FIXME}, and may misleadingly
-implicate the symptom rather than the cause~\cite{FIXME}.  Second, a
+requires test inputs
+(cf.~\cite{Godefroid2005-am,Naylor2007-mi,Cadar2008-kg,PAcheco2007-at}),
+may involve error messages that are difficult for novices to
+understand~\cite{Marceau2011-ok,Marceau2011-cy,Nienaltowski2008-bv,Jadud2006-ly,Ishii2014-nf},
+and may misleadingly implicate the symptom rather than the
+cause~\cite{zeller05,Jose2011}.  Second, a
 significant amount of development is carried out via IDE or web interfaces,
 which require tools that operate on code fragments~\cite{Guo2013-vu}.
 Third, attempts to retrofit static type systems into dynamic languages,
-such as TypeScript for JavaScript~\cite{FIXME} and FIXME for
-Python~\cite{FIXME} are promising but not yet as widely
-deployed~\cite{FIXME}. Finally, research tools and algorithms for fault
+such as TypeScript~\cite{typescript2014,refscriptpldi16,mollerOOPSLA14} for
+JavaScript and various
+gradual and static type approaches for 
+Python~\cite{mypy,gradual-typing-python} or
+Ruby~\cite{static-typing-ruby,an11,foster09,foster11}
+are promising but not always widely
+deployed. Finally, research tools and algorithms for fault
 localization either require rich static types (e.g., as in
-Mycroft~\cite{FIXME}, Nate~\cite{FIXME} or Sherrloc~\cite{FIXME}), require
-test cases (e.g., as in Tarantula~\cite{FIXME}), or produce voluminous
+Mycroft~\cite{FIXME}, Nate~\cite{learning-to-blame} or Sherrloc~\cite{FIXME}), require
+test cases (e.g., as in Tarantula~\cite{tarantula}), or produce voluminous
 ranked output lists that have been found to be unhelpful in general and
 less useful to novices in particular~\cite[Sec.~5.1]{orso-parnin}.
 
@@ -133,7 +140,7 @@ modern supervised machine learning for accuracy and an agreement with human
 norms; (2) that we can use static, dynamic, contextual and slice-based
 features to generalize to off-the-shelf beginner programs; and (3) that we
 can use large beginner datasets, such as those from
-PythonTutor.com~\cite{Guo2012-vu}, to assess scalability.
+PythonTutor.com~\cite{Guo2013-vu}, to assess scalability.
 
 We propose an algorithm that takes as input a Python program fragment that
 produces an uncaught runtime exception such as a type error. Via machine
@@ -148,14 +155,18 @@ The contributions of this paper are as follows:
 \begin{enumerate}
 
 \item We present an algorithm for accurately localizing dynamic type errors
-in Python. We find that FIXME.
+in Python. We find that our approach is 60--79\% accurate, compared to
+the interpreter baseline of 45\%.  
 
 \item We describe and evaluate static, dynamic, contextual and slice-based
 features for generalizing machine-learning fault localization to
-beginner-written Python fragments. We find that FIXME.
+beginner-written Python fragments. We find such features are all critical
+to our model, but that our model is not sensitive to error type and
+performs similarly across defect classes.  
 
 \item We analyze the results of a thorough evaluation on over 270,000 real
-user instances, demonstrating the scalability of our algorithm.
+user instances, show that it is a more heterogeneous dataset than those used
+in previous work, and demonstrate the scalability of our algorithm.
 
 \end{enumerate}
 
