@@ -550,11 +550,11 @@ extracted features into a length $M$ feature vector $\mathbf{x} \in
 For the corresponding label, is represented as $1$ and $0$, which means whether
 the line blamed or not.
 Let the number of examples be $N$.
-Given a data set $\mathcal{D} \in \{\mathbf{x}^{(i)}, y^{(i)}\}^{N}_{i=1}$,
+Given a dataset $\mathcal{D} \in \{\mathbf{x}^{(i)}, y^{(i)}\}^{N}_{i=1}$,
 where $\mathbf{x}^{(i)} \in \mathcal{R}^{M}$ and $y^{(i)} \in \{0, 1\}$,
 a learning model will learn a function $f: \mathbf{R}^{M} \to \{0, 1\}$.
 Due to the large amount of data provided in this task, we only consider the
-following models which are scalable to large data set.
+following models which are scalable to large dataset.
 
 \emph{Decision Tree}
 Decision tree~(DT) learns a tree of binary predicates over the features and
@@ -613,7 +613,7 @@ interpret.
 
 \emph{Training methodology}
 At this point we have feature vectors describing every term of every program in
-our data set. The vectors from a random 30\% of the program pairs are set aside for testing and
+our dataset. The vectors from a random 30\% of the program pairs are set aside for testing and
 the other 70\% are used for training.
 Within the training data, we use 3-fold
 cross-validation to select the best parameters for our models, before training
@@ -740,7 +740,7 @@ of the top $k$ answers is contained in the ground truth set. \fixme{Read
 this paragraph and correct it for truth; it is currently simply WRW's best
 guess and I don't actually know what you did.}
 
-In our evaluation, we used FIXME as a training set and FIXME as a held-out
+In our evaluation, we used 70\% as a training set and 30\% as a held-out
 evaluation set. We employed cross-validation~\cite{kohavi} to help address
 the potential threat of overfitting.
 
@@ -1293,7 +1293,7 @@ changes beyond those strictly needed to fix the bug.
 We mitigate this problem by discarding as outliers program pairs that have
 changed too much. \fixme{Really? This is the first time WRW is hearing
 about this. If this is true, you have to go back and mention this earlier
-where we talk about ground truth definitions and data set selection.}
+where we talk about ground truth definitions and dataset selection.}
 
 \subsection{Evaluation Summary}
 
