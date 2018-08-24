@@ -516,27 +516,31 @@ Random Forests will have to be redone as they are copied from Learning to Blame.
 
 \fixme{is program pair the correct term?}
 
-For each line of a program pair, we can extracted the features mentioned in Section
-\ref{sec-features}.
+To apply machine learning to analyze the data, we have to formulate the 
+problem into standard classification problem.
+For each line of a program pair, we extracted the features mentioned in
+Section \ref{sec-features}.
 By performing one-hot encoding on categorical features, we can represent the
 extracted features into a length $M$ feature vector $\mathbf{x} \in
 \mathcal{R}^{M}$.
+For the corresponding label, is represented as $1$ and $0$, which means whether
+the line blamed or not.
 Let the number of examples be $N$.
-The problem can be formulated as a binary classification problem.
 Given a data set $\mathcal{D} \in \{\mathbf{x}^{(i)}, y^{(i)}\}^{N}_{i=1}$,
 where $\mathbf{x}^{(i)} \in \mathcal{R}^{M}$ and $y^{(i)} \in \{0, 1\}$,
 a learning model will learn a function $f: \mathbf{R}^{M} \to \{0, 1\}$.
-Due to the large amount of data provided in this task, we only considers the
+Due to the large amount of data provided in this task, we only consider the
 following models which are scalable to large data set.
 
 \emph{Decision Tree}
-Decision tree~(DT) learns a tree of binary predicates over the features,
-recursively partitioning the feature space until a final classification can be
-made.
+Decision tree~(DT) learns a tree of binary predicates over the features and
+recursively partitioning the feature space until a final classification can
+be made.
 %
-Each node in the tree contains a single thresholding
-$\mathbf{x}_i \leq t$ for some feature $\mathbf{x}_i$ and threshold $t$, which determines
-whether a given input should proceed down the left or right subtree.
+Each node in the tree contains a single thresholding $\mathbf{x}_i \leq t$, where
+applying threshold $t \in \mathcal{R}$ on the $i$-th feature of $\mathbf{x}$,
+which determines whether a given input should proceed down the left or right
+subtree.
 %
 Each leaf is labeled with a prediction and the fraction of
 correctly-labeled training samples that would reach it; the latter
@@ -561,28 +565,30 @@ and there are several implementations of DT such as C4.5
 
 \emph{Random Forest}
 %
-Random forest (RF)~\cite{breiman2001random} improve generalization by
-training an \emph{ensemble} of distinct decision trees and using a majority
-vote to make a prediction.
-For each tree, RF selects a random sample with replacement of the training
-set and trains the tree with these samples.
+Random forest (RF)~\cite{breiman2001random} improves generalization by
+learning an \emph{ensemble} of decision trees.
+For prediction, each tree in the forest votes on one of the classes.
+The percentage of vote for each class forms a natural confidence score.
+During training, RF selects a subset of training data by sampling with
+replacement and use the subset to train each of the tree.
+By doing so, RF is able to generate a forest with each tree trained on
+a different subset of data.
+The diversity of the underlying models tends to make RF less susceptible to
+the overfitting, but it also makes the learned model more difficult to
+interpret.
 %
-The agreement among the trees forms a natural confidence score.
-%
-Since each classifier in the ensemble is a decision tree, this still
-allows for complex and expressive classifiers.
+%Since each classifier in the ensemble is a decision tree, this still
+%allows for complex and expressive classifiers.
 
-The training process involves taking $N$ random subsets of the training
-data and training a separate decision tree on each subset --- the
-training process for the decision trees is often modified slightly to
-reduce correlation between trees, by forcing each tree to pick features
-from a random subset of all features at each node.
+%The training process involves taking $N$ random subsets of the training
+%data and training a separate decision tree on each subset --- the
+%training process for the decision trees is often modified slightly to
+%reduce correlation between trees, by forcing each tree to pick features
+%from a random subset of all features at each node.
 %
-The diversity of the underlying models tends to make random forests less
-susceptible to the overfitting, but it
-also makes the learned model more difficult to interpret.
 
-\emph{Training methodology} At this point we have feature vectors describing every term of every program in
+\paragraph{Training methodology}
+At this point we have feature vectors describing every term of every program in
 our data set. The vectors from a random 30\% of the program pairs are set aside for testing and
 the other 70\% are used for training.
 Within the training data, we use 3-fold
@@ -595,9 +601,9 @@ that term was one of the terms changed between the fixed and buggy versions.
 Thus we can treat the model as providing a \emph{ranking} over all terms by
 confidence, where the top result is the one that the model deems most likely
 to be changed.
-For a given k, we score the model based on Top-k accuracy: for what
+For a given $k$, we score the model based on Top-$k$ accuracy: for what
 proportion of the programs is a correct answer (i.e. a term that is actually
-changed) present in the top k results.
+changed) present in the top $k$ results.
 We retrain the models for each value of k, since a model optimized to produce
 the single best result might be different from one optimized to get a good
 result into the top three.
@@ -615,9 +621,9 @@ examples).
 The weight for each example during training is re-weighted to the reciprocal
 of the frequency of corresponding class.
 
-\emph{Hyper-parameters}
+\paragraph{Hyper-parameters}
 All hyper-parameters are tuned using three-fold cross-validation on the
-intended score (Top-k accuracy).
+intended score (Top-$k$ accuracy).
 For RF, the maximum depth of each tree is searched from $25$ to $35$ and the
 number of tree are fixed to $500$.
 For decision tree maximum depth of the tree is searched from $25$ to $35$ with interval of $5$,
@@ -631,14 +637,14 @@ the weight for L2 term is searched from $10^0$ to $10^{-5}$ with a multiple of $
 Other parameters that are not mentioned are kept with the default setting of the
 original packages.
 
-In each case the most effective model we trained was a decision tree. (The other
-models we tried were Logistic Regression and MLP. Yao-Yuan - anything to add to
-this section? in particular, is it actually accurate to say we're doing
-cross-validation - the 3-fold thing we do is actually just to select parameters,
-and then there's no cross-validation on the final model, right?
-%
-Correct
-)
+%In each case the most effective model we trained was a decision tree. (The other
+%models we tried were Logistic Regression and MLP. Yao-Yuan - anything to add to
+%this section? in particular, is it actually accurate to say we're doing
+%cross-validation - the 3-fold thing we do is actually just to select parameters,
+%and then there's no cross-validation on the final model, right?
+%%
+%Correct
+%)
 
 
 \section{Evaluation}
