@@ -22,6 +22,7 @@
 \usepackage{listings}
 \usepackage{myref}
 \usepackage{url}
+\usepackage{framed}
 \usepackage{pgfplots}
 \def\BibTeX{{\rm B\kern-.05em{\sc i\kern-.025em b}\kern-.08em
     T\kern-.1667em\lower.7ex\hbox{E}\kern-.125emX}}
@@ -699,6 +700,7 @@ Ultimately, the dataset used in this evaluation contained
 272,534 usable pairs of programs.
 
 \subsection{Labeled Training and Ground Truth}
+\label{sec-training} 
 
 Our algorithm is based on supervised machine learning and thus requires
 labeled training instances.  For these experiments, we employ a random
@@ -1237,39 +1239,76 @@ expression. This example also highlights the use of all three categories of
 features simultaneously to capture a notion of root cause that more closely
 aligns with human expectations.
 
-\subsection{Evaluation Summary}
-
-Summarize the evaluation. One sentence per subsection.
-
 \subsection{Threats to validity}
 \label{sec-threats}
 
-\emph{Overfitting and other machine learning issues} Yao-Yuan, how do we avoid
-these?
+Although our evaluation demonstrates that our algorithm scales to
+accurately localize Python errors in lage datasets, our results may not
+generalize to all use cases. 
 
-\emph{Language choice} We only showed that this technique works for Python 3.
-However, \cite{learning-to-blame} uses a similar technique to great effect in
-OCaml, and if it works on these two quite-different languages then we believe
-it would work on others as well. Additionally, Python is a common choice of
-language for introductory programming courses, so even a technique that worked
-only on Python would still be very useful for helping novices.
+\emph{Overfitting.} Since our algorithm makes use of supervised machine
+learning, one threat to validity is overfitting (i.e., learning a model
+that is too complex with respect to the data and thus fails to generalize).
+We mitigate this threat by using cross-validation, as discussed in
+\secref{training}. 
 
-\emph{Target population} We don't know exactly who our study population is -
-who wrote the programs in the dataset and what exactly they were trying to write.
-It is likely that they are primarily students and not professional software engineers,
-and thus possible that our technique does not generalize well to the kinds of
-bugs that would be found in an industrial setting rather than an educational one.
+\emph{Language choice.} We have only demonstrated that our technique works
+for Python 3. We hypothesize that it should apply to similar
+dynamically-typed languages, such as Ruby, but such evaluations remain
+future work. We mitigate this threat slightly by constructing our algorithm 
+so that it does not depend on Python-specific features or node types
+(e.g., in \secref{slice-algorithm} we explicitly omit relatively ``exotic'' 
+features such as generators, ``yield'' and coroutines that may not always
+be present in other languages).
 
-\emph{Automatic labeling} Since our dataset is so large, we were forced to use an automatic
-scheme to label bugs rather than marking them by hand. We chose to use the diffs
-between each program that crashes and the next program that does not, but this method
-is not 100\% accurate because the next program may contain additional changes
-beyond what was needed to fix the bug, or it may indeed be an entirely unrelated
-program. We mitigate this problem by discarding as outliers program pairs that have
-changed too much. We also note that if our `true' accuracy is indeed a little
-smaller than our reported accuracy because of this effect, then the `true' baseline
-is also lower than the reported baseline for the same reason, so our
-\emph{margin} of effectiveness is unlikely to change much.
+\emph{Target population.} Unlike many other studies that focus specifically
+on students, we have very little information about the makeup of our
+subject population. The general popularity of PythonTutor is an advantage
+for collecting a large, indicative dataset, but it does mean that we have
+no specific information about the programmers or the programs they were
+trying to write. In general the website targets beginners rather than
+professional software engineers. As a result, our technique may not
+generalize well to the kinds of bugs that would be found in an industrial
+setting rather than a novice or educational one.
+
+\emph{Ground truth.} The size of our dataset precluded the manual annotation 
+of each buggy program. Instead, we used historical successful
+edits from actual users as our ground truth notion of the desired fault
+localization. This has the advantage of aligning our algorithm with user
+intuitions in cases where there are multiple logically-consistent answers
+(see \secref{motex}), and thus increasing the utility of our tool. However,
+this definition of ground truth may be overly permissive: the next
+correct program in the historical sequence may contain additional spurious
+changes beyond those strictly needed to fix the bug.
+We mitigate this problem by discarding as outliers program pairs that have
+changed too much. \fixme{Really? This is the first time WRW is hearing
+about this. If this is true, you have to go back and mention this earlier
+where we talk about ground truth definitions and data set selection.} 
+
+\subsection{Evaluation Summary}
+
+We evaluated our results on over 270,000 pairs of beginner-written Python
+programs. Our primary research result relates to accuracy: 
+\begin{framed}
+\noindent Our algorithm is very accurate, implicating the correct program
+terms 60--79\% of the time (for Top-1 to Top-3 lists), compared to the
+Python interpreter's 45\% accuracy. 
+\end{framed} 
+In addition, we investigated the design decisions of our algorithm:
+\begin{framed}
+\noindent All feature categories (i.e., static, dynamic, and contextual)
+were critical, as measured by Gini importance, ANOVA F-score
+and a leave-one-out analysis. 
+\end{framed}
+Finally, we investigated the sensitivity of our algorithm to various
+contexts:
+\begin{framed}
+\noindent Our algorithm generalizes, with similar accuracy across the top
+error types and on a dataset that is more diverse than that of related
+work.
+\end{framed} 
+
+
 
 \section{Related Work}
 \fixme{This must all be rewritten or dropped, as it is directly copied from
