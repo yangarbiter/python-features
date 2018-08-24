@@ -516,7 +516,7 @@ Random Forests will have to be redone as they are copied from Learning to Blame.
 
 \fixme{is program pair the correct term?}
 
-To apply machine learning to analyze the data, we have to formulate the 
+To apply machine learning to analyze the data, we have to formulate the
 problem into standard classification problem.
 For each line of a program pair, we extracted the features mentioned in
 Section \ref{sec-features}.
@@ -814,23 +814,21 @@ thousands to two significant figures; all p-values are less than 0.01.}
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={noContext, noTypes, all},
+    symbolic x coords={No Context, No Types},
     xtick=data,
     ymin=0,
-    ylabel=Model Accuracy,
+    ymax=1.1,
+    ylabel=Normalized Model Accuracy,
     enlarge x limits=0.5,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
-    \addplot table[x=scoreName, y=score, col sep=comma]{removing-features-2.csv};
+    \addplot table[x=scoreName, y=score, col sep=comma]{removing-features-2-normalized.csv};
+    \draw [red] ({rel axis cs:0,0}|-{axis cs:No Types,1}) -- ({rel axis cs:1,0}|-{axis cs:No Types,1}) node [pos=0.33, above] {};
 \end{axis}
 \end{tikzpicture}
-\caption{Accuracy when features are removed, based on decision trees on a
-random subset of 20000 program pairs.
-\fixme{The x-axis labels are not perfectly clear: does ``all'' mean that
-everything is still in or that everything is out?}
-\fixme{Indicate that this is a top-1 model.}
-\fixme{Normal the y-axis so that ``all'' is 1.0 to make the subset effects
-more evident.}
+\caption{Accuracy when features are removed, based on Top-1 decision trees on a
+random subset of 20000 program pairs, as compared to a Top-1 decision tree trained
+on all features.
 }
 \label{fig-removing-features}
 \end{figure}
@@ -883,17 +881,21 @@ application of our algorithm to beginner-written code.
 \begin{tikzpicture}
 \begin{axis}[
     ybar,
-    symbolic x coords={baseline, Type, Attribute, Value, Key, Index},
+    symbolic x coords={Index, Value, Key, Type, Attribute},
     xtick=data,
     ymin=0,
-    ylabel=Model Accuracy,
+    ylabel=Normalized Model Accuracy,
     legend style={at={(0.5,-0.15)},anchor=north}
 ]
-    \addplot table[x=scoreName, y=score, col sep=comma]{defect-categories-2.csv};
+    \addplot table[x=scoreName, y=score, col sep=comma]{defect-categories-2-normalized.csv};
+    \draw [red] ({rel axis cs:0,0}|-{axis cs:Index,1}) -- ({rel axis cs:1,0}|-{axis cs:Index,1}) node [pos=0.33, above] {};
 \end{axis}
+% \begin{axis}
+%     \addplot{1};
+% \end{axis}
 \end{tikzpicture}
-\caption{Accuracy when the model is trained and tested on only the data exhibiting
-the error on the x-axis.
+\caption{Accuracy when a Top-1 decision tree is trained and tested on only the data exhibiting
+the error on the x-axis, as compared to a Top-1 decision tree on all the data.
 \fixme{Spin this for generality. Indicate that our model gives high-quality
 fault localization regardless of defect type. To put it another way, we
 can view this as a sensitivity analysis: our algorithm is not sensitive to
