@@ -216,6 +216,7 @@ features.
 % may not be a place that should be fixed?
 
 \section{Algorithm Overview}
+\label{sec-algorithm} 
 
 We present an algorithm for accurately localizing faults~\cite{tarantula} in
 dynamically-typed, beginner-written Python programs that exhibit
@@ -300,7 +301,7 @@ values include all the basic Python types (such as \lt{int}
 and \lt{tuple}) as well as three special values:
 \begin{itemize}
     \item \lt{Statement} --- Given to all statements, since our terms
-    include both statments and expressions but only expressions
+    include both statements and expressions but only expressions
     have types
     \item \lt{Unknown} --- Given to expressions that are never evaluated in the dynamic
     trace
@@ -691,42 +692,44 @@ difference between crashing and fixed versions is too high (more than a
 stddev above average), since these are most likely to be violations of that
 assumption (i.e., the program that does not crash is unrelated to the
 crashing program). We also discard submissions that are out of scope given
-PythonTutor's policies (e.g., very long-running executions or the
-use of forbidden libraries).
+PythonTutor's policies (e.g., very long-running executions or those that 
+use forbidden libraries).
 
-Ultimately, the dataset used in this evaluation contained just over
-270,000 usable pairs of programs.
+Ultimately, the dataset used in this evaluation contained 
+272,534 usable pairs of programs.
 
 \subsection{Labeled Training and Ground Truth}
 
 Our algorithm is based on supervised machine learning and thus requires
-labeled training instances. In addition, our evaluations require a ground
-truth notion of which terms correspond to correct fault localizations.
+labeled training instances.  For these experiments, we employ a random
+forest our machine learning algorithm, finding it to provide the best
+accuracy on our dataset with a scalable training and testing time.  In
+addition, our evaluations require a ground truth notion of which terms
+correspond to correct fault localizations.
 
 We use the terms changed involved in the fixes by actual users as our
 ground truth and training information.  Many PythonTutor users use the site
 in an iterative fashion: they start out by writing a program that crashes,
 and then edit it until it no longer crashes. Our dataset contains only
 those crashing programs for which the same user later submitted a program
-that did not crash. We compute a tree-diff \cite{tree-diff} between the
+that did not crash. We compute a tree-diff~\cite{tree-diff} between the
 originaly, buggy submission and the first fixed submission. We define
-the ground truth correct answer to be the set of terms in the crashing
-program that also appear in the diff. We discuss the implications of this
-choice in \secref{threats}.
+the \emph{ground truth} correct answer to be the set of terms in the
+crashing program that also appear in the diff. We discuss the implications
+of this choice in \secref{threats}.
+
+Given that notion of ground truth, a candidate fault localization answer is
+\emph{accurate} if it is contained in the ground truth set. That is, if the
+human user changed lines $X$ and $Y$, a technique (either our algorithm 
+or a baseline) is given credit for returning either $X$ or $Y$. When
+considering ranked lists, a response list is \emph{top-$k$ accurate} if any one
+of the top $k$ answers is contained in the ground truth set. \fixme{Read
+this paragraph and correct it for truth; it is currently simply WRW's best
+guess and I don't actually know what you did.} 
 
 In our evaluation, we used FIXME as a training set and FIXME as a held-out
 evaluation set. We employed cross-validation~\cite{kohavi} to help address
 the potential threat of overfitting.
-
-\subsection{Methodology}
-
-For these evaluations, we employ decision trees as our machine learning
-algorithm, since they provided the best accuracy on our data given the
-available training time.
-
-We report Top-1 and Top-3...
-
-We define FIXME-ACCURACY to be FIXME.
 
 \subsection{RQ 1 --- Fault Localization Accuracy}
 
@@ -745,21 +748,30 @@ We define FIXME-ACCURACY to be FIXME.
 \end{axis}
 \end{tikzpicture}
 \caption{Fault localization accuracy.
-Baseline is the normal Python interpreter. Other bars represent
+Baseline is the normal Python interpreter. The Top-$k$ bars represent
 our approach, using random forests,
-on the largest dataset (272534 pairs).}
+on the largest dataset (272534 pairs). The strong performance of our
+algorithm on a large, real-world dataset is the primary result of this paper. 
+}
 \label{fig-full-dataset-acc-random-forest}
 \end{figure}
 
-We first use the full dataset to train and test decsion forests optimized for
+We first use the full dataset to train and test decision forests optimized for
 Top-1, Top-2, and Top-3 accuracy. As shown in \figref{full-dataset-acc-random-forest},
-these produce a correct answer 60, 72, and
+these produce a correct answer 60\%, 72\%, and
 79\% of the time (to two significant figures). As a baseline, we determine that
-the expression blamed by the standard Python interpreter (i.e. the one that
-causes it to crash) is only changed by the user 45\% of the time. Thus our
-most directly comparable model, the one for Top-1, significantly outperforms
-this baseline, and as we then exercise our power to give a ranked output rather
-than a single answer, our margin gets even better.
+the expression blamed by the standard Python interpreter (i.e., the one that
+raises the uncaught exception) is only changed by the user 45\% of the
+time. 
+
+Thus, our most directly comparable model (Top-1), significantly outperforms
+this baseline. Users who are only willing to look at a single error message
+would have been better-served by our Top-1 model on this historical data. 
+
+In addition, previous studies have shown that developers are willing to use
+very short ranked lists~\cite[Sec.~5.6]{orso-parnin}, but not voluminous
+ones. Our Top-3 model accuracy of 79\% dramatically improves upon the
+current state of practice for scalable type-error localization in Python. 
 
 % Goal: Establish that our algorithm works. This is the most basic question,
 % but also the most relevant. If the reader takes away nothing else, they
@@ -770,22 +782,22 @@ than a single answer, our margin gets even better.
 \begin{table}[]
 \begin{tabular}{llc}
 Name                      & Category                & Gini Importance \\ \bottomrule
-P size                    & Contextual (Syntactic)  & 0.112 \\
-C3 is statement           & Contextual (Syntactic)  & 0.061 \\
-P is list literal         & Contextual (Syntactic)  & 0.055 \\
+Parent size                    & Contextual (Syntactic)  & 0.112 \\
+Child3 is statement           & Contextual (Syntactic)  & 0.061 \\
+Parent is list literal         & Contextual (Syntactic)  & 0.055 \\
 Program crashes here      & Dynamic (Error location)& 0.039 \\
 Type is unknown           & Dynamic (Type)          & 0.037 \\
-P type is unknown         & Contextual (Type)       & 0.037 \\
+Parent type is unknown         & Contextual (Type)       & 0.037 \\
 Err message is IndexError & Dynamic (Error message) & 0.033 \\
 Size                      & Syntactic               & 0.028 \\
-P is dictionary literal   & Contextual (Syntactic)  & 0.027 \\
-C1 size                   & Contextual (Syntactic)  & 0.024 \\
+Parent is dictionary & Contextual (Syntactic)  & 0.027 \\
+Child1 size                   & Contextual (Syntactic)  & 0.024 \\
 Is variable               & Syntactic               & 0.020 \\
-C1 type is unknown        & Contextual (Type)       & 0.020 \\
+Child1 type is unknown        & Contextual (Type)       & 0.020 \\
 \toprule
 \end{tabular}
 \caption{Feature predictive power (for a Top-3 Decision Tree
-learned on the entire dataset). P and C1-C3 refer to the parent and
+learned on the entire dataset). Parent and Child1--3 refer to the parent and
 first three children of the node in question.}
 \label{tab-feature-predictive-power}
 \end{table}
@@ -794,24 +806,26 @@ first three children of the node in question.}
 \begin{center}
 \begin{tabular}{llc}
 Name                     & Category                & F-score \\ \bottomrule
-C3 is statement          & Contextual (Syntactic)  & 69 \\
+Child3 is statement          & Contextual (Syntactic)  & 69 \\
 Size                     & Syntactic               & 63 \\
 Program crashes here     & Dynamic (Error location)& 50 \\
-P type is list           & Contextual (Type)       & 36 \\
-C1 type is bool          & Contextual (Type)       & 30 \\
-P type is unknown        & Contextual (Type)       & 28 \\
-C1 is expression         & Contextual (Type)       & 25 \\
-C3 size                  & Contextual (Syntactic)  & 20 \\
-C1 is binary or unary op & Contextual (Syntactic)  & 20 \\
-C1 size                  & Contextual (Syntactic)  & 18 \\
-P type is dictionary     & Contextual (Type)       & 17 \\
+Parent type is list           & Contextual (Type)       & 36 \\
+Child1 type is bool          & Contextual (Type)       & 30 \\
+Parent type is unknown        & Contextual (Type)       & 28 \\
+Child1 is expression         & Contextual (Type)       & 25 \\
+Child3 size                  & Contextual (Syntactic)  & 20 \\
+Child1 is binary or unary op & Contextual (Syntactic)  & 20 \\
+Child1 size                  & Contextual (Syntactic)  & 18 \\
+Parent type is dictionary     & Contextual (Type)       & 17 \\
 Type is string           & Dynamic (Type)          & 12 \\
 \toprule
 \end{tabular}
 \end{center}
 \caption{Feature predictive power as measured by ANOVA.  The F-score in
 shown in
-thousands to two significant figures; all p-values are less than 0.01.}
+thousands to two significant figures; all p-values are less than 0.01.
+Parent and Child1--3 refer to the parent and first three children of
+the node in question.}
 \label{tab-anova}
 \end{table}
 
@@ -831,14 +845,17 @@ thousands to two significant figures; all p-values are less than 0.01.}
     \draw [red] ({rel axis cs:0,0}|-{axis cs:No Types,1}) -- ({rel axis cs:1,0}|-{axis cs:No Types,1}) node [pos=0.33, above] {};
 \end{axis}
 \end{tikzpicture}
-\caption{Accuracy when features are removed, based on Top-1 decision trees on a
-random subset of 20000 program pairs, as compared to a Top-1 decision tree trained
-on all features.
+\caption{Normalized accuracy when categories of features are removed, based
+on Top-1 decision trees on a random subset of 20,000 program pairs, as
+compared to a Top-1 decision tree trained on all features.
 \fixme{will add No Syntax bar}
 }
 \label{fig-removing-features}
 \end{figure}
 
+Having established the efficacy of our approach, we now investigate which
+elements of our algorithmic design (\secref{algorithm}) contributed to that
+success. 
 \tabref{feature-predictive-power} summarizes the relative importance
 of the top features in our model. The features are ranked by their
 Gini importance (or mean decrease in impurity), a common measure
@@ -846,11 +863,24 @@ for decision tree and random forest models~\cite{breiman2001random}. Informally,
 Gini importance conveys a weighted count of the number of times a feature
 is used to split a node: a feature that is learned to guide more model
 classification decisions is more important. Similarly, \tabref{anova} gives
-an alternate view of the relative feature importances, as measured by an
-analysis of variance (ANOVA).
+an alternate view of the relative feature importances, as measured by a
+standard analysis of variance (ANOVA).
 
-We also present the results of a leave-one-out analysis in which
-certain categories of features are removed and the model is trained
+Some features, such as ``program crashes here'' and features
+related to term size, are fairly direct. Others, such as ``Child3 is
+statement'', a contextual, syntactic feature that was found to be very
+important, merit additional explanation. In practice, we found it to
+encode FIXME, since Python terms with statements in the third child node
+position are FIXME. Similarly, features that determine if the parent node
+is a list or dictionary are relevant because of FIXME. In beginner-written
+Python we find that defects and typos often in the immediate child position
+of a list or dictionary term because of FIXME. Finally, we note the
+importance of our \lt{Unknown} type feature for expressions that are never
+evaluated in the given trace: we find that they are relevant because of
+FIXME. \fixme{Ben (etc.) must actually fill in real explanations here.} 
+
+More broadly, we also present the results of a leave-one-out analysis in which
+entire categories of features are removed and the model is trained
 and tested only on those that remain. \figref{removing-features} shows
 that there is a significant decrease in accuracy in each case. We note,
 however, that leave-one-out analyses underestimate importance in cases of
@@ -858,10 +888,9 @@ feature overlap. For example, if a small program contains a string bug but
 only a few string variables, both type information and slice information
 are likely to implicate similar terms.
 
-In all cases we see that syntactic, dynamic, and contextual features are
-all important. Features such as FIXME, FIXME and FIXME are found to be of
-primary importance. We interpret this to mean FIXME with respect to the
-application of our algorithm to beginner-written code.
+In all cases we see that syntactic, dynamic, and contextual features (i.e.,
+the design decisions of our algorithm) are crucial to our algorithm's
+accuracy. 
 
 % prereq: define predictive power (leave-one-out, leave-one-in, Relief-F,
 % ANOVA, whatever)
@@ -903,14 +932,22 @@ the error on the x-axis, as compared to a Top-1 decision tree on all the data.
 \label{fig-defect-categories}
 \end{figure}
 
-We next try training and testing Top-1 decision trees on only the subsets of
-the data
-corresponding to each of the five most common exceptions: \lt{TypeError},
-\lt{IndexError}, \lt{AttributeError}, \lt{ValueError}, and \lt{KeyError}.
-As shown in \figref{defect-categories}, these models have accuracy between
-86\% and 115\% of a comparable model trained on the data as a whole. This shows
-that our algorithm is robust, able to give high accuracy fault localizations on
-a wide variety of defect types.
+We investigate the sensitivity of our algorithm to different categories of
+Python errors: is our accuracy sensitive to certain kinds of user defects? 
+We investigate training and testing Top-1 decision trees on only those
+subsets of the dataset corresponding to each of the five most common
+uncaught exceptions: \lt{TypeError}, \lt{IndexError}, \lt{AttributeError},
+\lt{ValueError}, and \lt{KeyError}. Together, these five exceptions make
+up FIXME\% of the errors in our dataset. 
+
+As shown in \figref{defect-categories}, these per-defect models have
+normalized accuracy between 86\% and 115\% of a comparable model trained on
+the dataset as a whole. This shows that our algorithm is robust and able to
+give high-accuracy fault localizations on a wide variety of defect types. 
+Having consistent, rather than defect-type-sensitive, performance is
+important for debugging-tool
+usability~\cite{orso-parnin,Bessey2010,ayewah10}. 
+
 
 % prereq: define defect category. This could be either the raw python
 % exception name or it could be clusters that we have manually created.
@@ -1012,14 +1049,14 @@ that of previous work.}
 
 To demonstrate that our evaluation dataset is not only larger but also more
 diverse than those used in previous work, we compare the diversity of
-programs present here to those in a relevant balance. The Nate
+programs used here to those in a relevant baseline. The Nate
 algorithm~\cite{learning-to-blame} also provides type error localization
 and also focuses on a machine-learning approach backed by slicing. However,
 Nate targets strongly statically typed OCaml programs. Nate's evaluation
 also focused on beginner-written programs: specifically, it considered
-student submissions to 23 different university homework problems.  Thus the
-Nate dataset is comparatively homogeneous, raising concerns about whether
-evaluation results would generalize to more diverse settings.
+student submissions to 23 different university homework problems.  Such a
+dataset is comparatively homogeneous, raising concerns about whether
+associated evaluation results would generalize to more diverse settings.
 
 In our PythonTutor dataset, by comparison, users were not constrained to
 specific university assignments. We hypothesize that the evaluation data are
@@ -1098,10 +1135,10 @@ dataset contains a more diverse set of programs. Note that we are not
 claiming any novelty or advances in clustering accuracy in this
 determination (indeed, scalability concerns limited us to coarser
 approaches); instead, our claim is that even with simple clustering,
-it is clear that our dataset contains a greater diversity of programs than
-were considered by previously-published evaluations.
-We view it as an advantage of our algorithm that it can apply to multiple
-different program categories.
+it is clear that our dataset contains a greater diversity of programs, even
+when controlling for size, than were considered by previously-published
+evaluations. We view it as an advantage of our algorithm that it can apply
+to multiple different program categories.
 
 % \subsection{RQ 5 --- Wishlist: Partitioning Kinds of Errors}
 
@@ -1114,13 +1151,6 @@ different program categories.
 % two-level machine learning.
 
 \subsection{Qualitative Analysis}
-
-\fixme{
-Pick out one example where we did poorly. Walk through why it is ``out of
-scope'', in some sense: we would need features that capture XYZ to handle
-it correctly, but those are either expensive or undecideable. Hint at
-future work.
-}
 
 %%% Original for fig-win-example-1; index 19615 of v4
 % def word_checker(food):
@@ -1163,44 +1193,49 @@ print(devowel('foo'))
 % for i in range(0, len(GeorgiaAreaCodes) + 1):
 %     print(GeorgiaAreaCodes[i])
 
+We now highlight a few indicative localization examples in detail to
+demonstrate how our algorithm accurately localizes faults. 
+These examples are simplified slightly for presentation and to protect the
+anonymity of the programmers, but they retain the essential character of
+the originals from our dataset.
+
+\paragraph{NoneType}
+The function in \figref{win-example-one} attempts to remove all vowels from
+a given word. However the \lt{remove} method in line 7 actually modifies
+the list in place and returns \lt{None}. By contrast, the user-corrected
+version forgoes the assignment instead uses \lt{w_list.remove(letter)}. In
+the buggy case, Python does not crash until line 8, where its message is
+the somewhat-misleading \lt{TypeError: can only join an iterable}. However,
+our decision tree flags the correct statement, based on the features 
+that it is an assignment statement whose second child has type
+\lt{NoneType}. This seems to capture the intuitive reasoning that there is
+rarely a good reason to assign the value \lt{None} to a variable. 
+
+Note that our algorithm uses both the syntactic form of the statement (an
+assignment) and the dynamic type of one of its children, so all our
+categories of features --- syntactic, dynamic, and contextual --- were
+useful here.
+
 \begin{figure}
 \begin{lstlisting}
 areaCodes = [800, 555]
 for i in range(0, len(areaCodes) + 1):
     print(areaCodes[i])
 \end{lstlisting}
-\caption{A program with an off-by-one bug.}
+\caption{A program with an off-by-one bug on line 2.}
 \label{fig-win-example-two}
 \end{figure}
-
-We now go through a couple examples where our method does well. These examples
-are adapted slightly for simplicity of
-presentation and to protect the anonymity of the programmers, but they retain
-the essential character of the originals from our dataset.
-
-\paragraph{NoneType}
-The function in \figref{win-example-one} attempts to remove all vowels from a
-given word. However the
-\lt{remove} method in line 7 actually modifies the list in place and returns
-\lt{None}, so the correct version forgoes the assignment and just has
-\lt{w_list.remove(letter)}. Python does not crash until line 8, where its
-message is \lt{TypeError: can only join an iterable}. However, our decision
-tree flags the correct statement, using as some of its rules that it is an
-assignment statement whose second child has type \lt{NoneType}. This seems to
-capture the intuitive rule that there is rarely a good reason to assign the
-value \lt{None} to a variable. Note that these rules use both the syntactic
-form of the statement (an assignment) and the dynamic type of one of its
-children, so all our categories of features - syntactic, dynamic, and
-contextual - were useful here.
 
 \paragraph{Off-by-one bugs}
 In \figref{win-example-two}, the programmer incorrectly adds one to the high
 end of their range, causing an \lt{IndexError: list index out of range} on line
 3 during the final iteration of the for loop. The correct expression to blame
-is the addition \lt{len(areaCodes) + 1}. Some of the rules that our
+is the addition \lt{len(areaCodes) + 1}. Some of the features that our
 decision tree uses to correctly localize this bug include that the error is an
-index error, the type of the parent, and the fact that it's an addition
-expression. Thus once again we see all three categories of features being used.
+index error, the type of the parent, and the fact that it is an addition
+expression. This example also highlights the use of all three categories of
+features simultaneously to capture a notion of root cause that more closely
+aligns with human expectations.
 
 \subsection{Evaluation Summary}
 
