@@ -249,7 +249,7 @@ model.
 
 Drawing inspiration from localization algorithms such as
 Nate~\cite{learning-to-blame} and the natural language processing term
-frequency vector (or ``bag of words'') model~\cite{FIXME}, we represent
+frequency vector (or ``bag of words'') model~\cite{Salton:1986:IMI:576628}, we represent
 each buggy program as a ``bag of abstracted terms''. A \emph{term} is
 either a statement or expression.
 
@@ -967,12 +967,12 @@ We investigate training and testing Top-1 decision trees on only those
 subsets of the dataset corresponding to each of the five most common
 uncaught exceptions: \lt{TypeError}, \lt{IndexError}, \lt{AttributeError},
 \lt{ValueError}, and \lt{KeyError}. Together, these five exceptions make
-up FIXME\% of the errors in our dataset.
+up almost 96\% of the errors in our dataset.
 
 As shown in \figref{defect-categories}, these per-defect models have
 normalized accuracy between 86\% and 115\% of a comparable model trained on
 the dataset as a whole. This shows that our algorithm is robust and able to
-give high-accuracy fault localizations on a wide variety of defect types.
+give high-accuracy fault localizations on a variety of defect types.
 Having consistent, rather than defect-type-sensitive, performance is
 important for debugging-tool
 usability~\cite{orso-parnin,Bessey2010,ayewah10}.
@@ -1400,7 +1400,7 @@ small sets. We instead use machine learning to agree with human judgements.
 Nate~\cite{learning-to-blame} uses machine learning on static and contextual
 features, including static types, to localize type errors in OCaml
 code. We employ a similar approach to localize Python faults, but we use
-dynamic features as well as static and contextual ones, we handle a wide
+dynamic features as well as static and contextual ones, we handle a
 variety of errors beyond type errors, and we evaluate our approach on a set of
 programs both more heterogeneous and almost two orders of magnitude larger than
 the Nate dataset.
