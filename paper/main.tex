@@ -899,10 +899,11 @@ statement'', a contextual, syntactic feature that was found to be very
 important, merit additional explanation. In practice, we found it to
 encode complex control structures, like large loops, where fixing the crash
 often involved adding or removing whole statements from the loop.
-Similarly, features that determine if the parent node
-is a list or dictionary are relevant because of FIXME. In beginner-written
-Python we find that defects and typos often in the immediate child position
-of a list or dictionary term because of FIXME. Finally, we note the
+In contrast, features that determine if the parent node
+is a list or dictionary are relevant as strong negative features: we find that
+fixing bugs in beginner-written
+Python rarely requires changing the elements of a list or dictionary literal.
+Finally, we note the
 importance of our \lt{Unknown} type feature for expressions that are never
 evaluated in the given trace: we find that they are relevant because of
 FIXME. \fixme{Ben (etc.) must actually fill in real explanations here.}
@@ -1064,13 +1065,13 @@ usability~\cite{orso-parnin,Bessey2010,ayewah10}.
     {
       \addplot+[mark=none] table[x=threshold, y=\language_cluster_counts_single, col sep=comma]{cluster_counts.csv};
     }
-\legend{NATE OCaml data, Our Python data}
+\legend{Nate OCaml data, Our Python data}
 \end{axis}
 \end{tikzpicture}
-\caption{Number of natural program clusters in each dataset as a function
+\caption{Number of natural program clusters in the Nate dataset and in a
+random sample of our dataset of the same size, as a function
 of clustering parameter (informally, how ``strict'' or ``tight'' the
-clustering is). \fixme{Talk about how you sample to be fair to the smaller
-datasets.} At all points our dataset demonstrates more diversity than
+clustering is). At all points our dataset demonstrates more diversity than
 that of previous work.}
 \label{fig-diversity}
 \end{figure}
@@ -1098,7 +1099,7 @@ more distinct program categories are more heterogeneous.
 % checked all thresholds at .01 intervals, starting at 0 and ending at the point
 % where everything collapses into a single cluster. As shown in
 % \figref{diversity}, regardless of the choice of threshold, our data breaks into
-% more clusters than the NATE data. This confirms that our data is more
+% more clusters than the Nate data. This confirms that our data is more
 % heterogeneous.
 
 % To cluster programs, we transform the program ASTs into flat strings, and
@@ -1150,12 +1151,10 @@ value comparable. Our implementation uses the standard
 SciPy library (e.g., \lt{scipy.cluster.hierarchy.fcluster} with the
 \lt{inconsistent} method).
 
-\fixme{We need to say something about how we controlled for number, lest
-reviewers think we have more clusters simply because we have hundreds of
-thousands of datapoints.}
-
 \figref{diversity} shows the results of clustering on our dataset and the
-Nate dataset. At a high level, the structural similarity in the graphs
+Nate dataset. Since our dataset is much larger than Nate's, we
+used a random sample of our data of the same size as the Nate dataset.
+At a high level, the structural similarity in the graphs
 confirms the comparability of cluster counts between the two datasets.  For
 all values of the inconsistency threshold, there are more clusters in our
 Python dataset than in the baseline OCaml dataset. This suggests that our
@@ -1398,13 +1397,13 @@ type inference algorithms to produce a ``correcting set'' for a program with
 a type error. Mycroft assumes that the minimal such set is the most
 desirable to the user, and has no way to rank multiple equally
 small sets. We instead use machine learning to agree with human judgements.
-NATE~\cite{learning-to-blame} uses machine learning on static and contextual
+Nate~\cite{learning-to-blame} uses machine learning on static and contextual
 features, including static types, to localize type errors in OCaml
 code. We employ a similar approach to localize Python faults, but we use
 dynamic features as well as static and contextual ones, we handle a wide
 variety of errors beyond type errors, and we evaluate our approach on a set of
 programs both more heterogeneous and almost two orders of magnitude larger than
-the NATE dataset.
+the Nate dataset.
 
 
 \section{Conclusion}
