@@ -536,7 +536,7 @@ dynamic slice.
 Random Forests will have to be redone as they are copied from Learning to Blame.
 }
 
-To apply machine learning to analyze the data, we have to formulate the
+To apply machine learning for analysis of the data, we have to formulate the
 problem into standard classification problem.
 The corresponding label, is represented as $1$ and $0$, which means whether
 the term of a program pair (a buggy and a fixed program) is blamed or not.
@@ -547,7 +547,7 @@ By performing one-hot encoding on categorical features, we can represent the
 extracted features into a length $M$ feature vector $\mathbf{x} \in
 \mathcal{R}^{M}$.
 
-The notations are defined as follows.
+The binary classification problem is defined as follows.
 Let the number of examples be $N$.
 Given a dataset $\mathcal{D} \in \{\mathbf{x}^{(i)}, y^{(i)}\}^{N}_{i=1}$,
 where $\mathbf{x}^{(i)} \in \mathcal{R}^{M}$ and $y^{(i)} \in \{0, 1\}$,
@@ -579,8 +579,8 @@ then linear model like LR depending on the data used to build it.
 %Training a decision tree entails finding both a set of good partitioning
 %predicates and a good ordering of the predicates based on data.
 %
-There are several implementations of DT such as C4.5
-\cite{quinlan2014c4} and CART \cite{breiman2017classification}.
+There are several implementations of DT such as C4.5 \cite{quinlan2014c4},
+ID3 \cite{quinlan1986induction} and CART \cite{breiman2017classification}.
 
 %Another advantage of decision trees is their ease of interpretation ---
 %the decision rule is a white-box model that can be readily described to
