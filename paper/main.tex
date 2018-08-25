@@ -538,13 +538,16 @@ Random Forests will have to be redone as they are copied from Learning to Blame.
 
 To apply machine learning to analyze the data, we have to formulate the
 problem into standard classification problem.
-For each line of a program pair, we extracted the features mentioned in
+The corresponding label, is represented as $1$ and $0$, which means whether
+the term of a program pair (a buggy and a fixed program) is blamed or not.
+This is a binary classification problem.
+For each term of a program pair, we extracted the features mentioned in
 Section \ref{sec-features}.
 By performing one-hot encoding on categorical features, we can represent the
 extracted features into a length $M$ feature vector $\mathbf{x} \in
 \mathcal{R}^{M}$.
-For the corresponding label, is represented as $1$ and $0$, which means whether
-the line blamed or not.
+
+The notations are defined as follows.
 Let the number of examples be $N$.
 Given a dataset $\mathcal{D} \in \{\mathbf{x}^{(i)}, y^{(i)}\}^{N}_{i=1}$,
 where $\mathbf{x}^{(i)} \in \mathcal{R}^{M}$ and $y^{(i)} \in \{0, 1\}$,
@@ -554,13 +557,17 @@ following models which are scalable to large dataset.
 
 \emph{Decision Tree}
 Decision tree~(DT) learns a tree of binary predicates over the features and
-recursively partitioning the feature space until a final classification can
-be made.
+recursively partitioning the feature space until specific criteria is met.
+The usual stopping criteria is the number of data in a node falls below a
+certain threshold.
 %
-Each node in the tree contains a single thresholding $\mathbf{x}_i \leq t$, where
-applying threshold $t \in \mathcal{R}$ on the $i$-th feature of $\mathbf{x}$,
-which determines whether a given input should proceed down the left or right
-subtree.
+Each node in the tree contains a single thresholding binary classifier
+$[ \mathbf{x}_i \leq t ]$, $[ \cdot ]$ is the indicator function.
+$i$ is greedly selected to minimize the impurity of the training data.
+The impurity is usually measured by gini index
+\cite{breiman2017classification} or entropy \cite{quinlan1986induction}.
+This thresholding classifier determines that during prediction, whether a
+given input should proceed down the left or right subtree.
 %
 Each leaf is labeled with a prediction and the fraction of
 correctly-labeled training samples that would reach it; the latter
@@ -572,8 +579,7 @@ then linear model like LR depending on the data used to build it.
 %Training a decision tree entails finding both a set of good partitioning
 %predicates and a good ordering of the predicates based on data.
 %
-The training of a decision tree is usually done in a top-down greedy manner,
-and there are several implementations of DT such as C4.5
+There are several implementations of DT such as C4.5
 \cite{quinlan2014c4} and CART \cite{breiman2017classification}.
 
 %Another advantage of decision trees is their ease of interpretation ---
@@ -585,17 +591,23 @@ and there are several implementations of DT such as C4.5
 
 \emph{Random Forest}
 %
-Random forest (RF)~\cite{breiman2001random} improves generalization by
-learning an \emph{ensemble} of decision trees.
+The greedy nature of DT make it often suffers from overfitting and may
+require a lot of tuning such as pruning the tree.
+Random forest (RF)~\cite{breiman2001random} improves DT by learning an
+\emph{ensemble} of decision trees.
+During training, RF randomly selects a subsets of training data by sampling
+with replacement and use different subset of data to train multiple different
+of trees.
 For prediction, each tree in the forest votes on one of the classes.
 The percentage of vote for each class forms a natural confidence score.
-During training, RF selects a subset of training data by sampling with
-replacement and use the subset to train each of the tree.
-By doing so, RF is able to generate a forest with each tree trained on
-a different subset of data.
+
+By randomly sampling, RF is able to generate a forest with diverse trees
+trained on a different subset of data.
 The diversity of the underlying models tends to make RF less susceptible to
-the overfitting, but it also makes the learned model more difficult to
-interpret.
+the overfitting.
+However, the trade-off is the use more computational power/
+% but it also makes the learned model more difficult to
+%interpret.
 %
 %Since each classifier in the ensemble is a decision tree, this still
 %allows for complex and expressive classifiers.
@@ -609,22 +621,23 @@ interpret.
 
 \emph{Training methodology}
 At this point we have feature vectors describing every term of every program in
-our dataset. The vectors from a random 30\% of the program pairs are set aside for testing and
-the other 70\% are used for training.
-Within the training data, we use 3-fold
-cross-validation to select the best parameters for our models, before training
-using those parameters on the full training set and then scoring the models
-using the testing set.
-Each trained model takes in any vector representing a term
-in a buggy program, and returns a confidence score representing how likely it is that
-that term was one of the terms changed between the fixed and buggy versions.
+our dataset.
+We first split the the data by 70-30 into training data and testing data.
+Within the training data, we use 3-fold cross-validation~\cite{kohavi} to
+select the best parameters for our models.
+Then we use the whole training data to train the model with best parameter
+and report its performance on the testing data.
+
+Each trained model takes in the feature vector $\mathbf{x}$ and returns a
+confidence score representing how likely it is that the term was one of the
+terms changed between the fixed and buggy programs.
 Thus we can treat the model as providing a \emph{ranking} over all terms by
 confidence, where the top result is the one that the model deems most likely
 to be changed.
 For a given $k$, we score the model based on Top-$k$ accuracy: for what
 proportion of the programs is a correct answer (i.e. a term that is actually
 changed) present in the top $k$ results.
-We retrain the models for each value of k, since a model optimized to produce
+We retrain the models for each value of $k$, since a model optimized to produce
 the single best result might be different from one optimized to get a good
 result into the top three.
 
